@@ -1,17 +1,10 @@
 ## This script is used to download and pre-process series (GSE) from GEO for PDAC patients (normal and tumor tissues) with samples taken
 ## from blood (whole blood samples or circulating tumor samples)
 
-#########################################################################################################################################
-#########################################################################################################################################
-
-## LIBRARIES
 library(dplyr)
 library(GEOquery)
 
-#########################################################################################################################################
-#########################################################################################################################################
-
-## DOWNLOADING DATA SERIES FROM GEO DATABASE
+##### Downloading data #####
 datasets = c("GSE125158", "GSE49641", "GSE74629", "GSE18670")
 
 # Run this before getGEO
@@ -24,35 +17,10 @@ GEOsets = list()
 for (i in 1:length(datasets)){
   GEOsets[[i]] = getGEO(datasets[i])
 }; rm(i)
-
 GEOsets = unlist(GEOsets)
 names(GEOsets) = datasets; rm(i)
 
-#########################################################################################################################################
-#########################################################################################################################################
-
-## NA VALUES IN EACH EXPRESSION MATRIX
-
-# Isolate expression data for each GSE
-esets = list()
-for (i in 1:length(GEOsets)) {
-  esets[[i]] = exprs(GEOsets[[i]])
-}; rm(i)
-names(esets) = datasets; rm(i)
-
-# Calculate NAs values
-na_esets = c()
-for(i in 1:length(esets)) {
-  na_esets[i] = sum(is.na(esets[[i]]))
-}; rm(i)
-names(na_esets) = datasets
-na_esets
-
-#########################################################################################################################################
-#########################################################################################################################################
-
-## PHENOTYPIC DATA
-
+###### pData #####
 pdata = list()
 for(i in 1:length(GEOsets)) {
   pdata[[i]] = pData(GEOsets[[i]])
@@ -62,14 +30,9 @@ names(pdata) = datasets; rm(i)
 ## Isolate only needed pdata
 filt_pdata = list()
 
-###############
-##           ##
-## GSE125158 ##
-##           ##
-###############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE125158
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC6447845/
+# GSE125158 
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE125158
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC6447845/
 # Comments/To discuss with Aris:
 #   - 30 samples (30 patients)
 #     - 17 PDAC whole blood samples
@@ -101,14 +64,9 @@ filt_pdata$GSE125158$Tissue_type = factor(x = filt_pdata$GSE125158$Tissue_type, 
 filt_pdata$GSE125158$Gender = factor(x = filt_pdata$GSE125158$Gender, levels = c("female","male"), labels = c("female","male"))
 filt_pdata$GSE125158$Age = as.numeric(filt_pdata$GSE125158$Age)
 
-##############
-##          ##
-## GSE49641 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE49641
-## Paper: https://pubmed.ncbi.nlm.nih.gov/25069573/
+# GSE49641
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE49641
+# Paper: https://pubmed.ncbi.nlm.nih.gov/25069573/
 # Comments/To discuss with Aris:
 #   - 36 samples (36 patients)
 #     - 18 unresectable PDAC
@@ -142,14 +100,9 @@ filt_pdata$GSE49641$AJCC_classification = gsub("III", "3", filt_pdata$GSE49641$A
 filt_pdata$GSE49641$AJCC_classification = gsub("NA", NA, filt_pdata$GSE49641$AJCC_classification)
 filt_pdata$GSE49641$AJCC_classification = factor(x = filt_pdata$GSE49641$AJCC_classification, levels = c("1a","1b","2a","2b","3","4"), labels = c("1a","1b","2a","2b","3","4"))
 
-##############
-##          ##
-## GSE74629 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE74629
-## Paper: https://pubmed.ncbi.nlm.nih.gov/29617451/
+# GSE74629
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE74629
+# Paper: https://pubmed.ncbi.nlm.nih.gov/29617451/
 # Comments/To discuss with Aris:
 #   - 50 samples (50 patients)
 #     - 36 PDAC
@@ -185,14 +138,9 @@ filt_pdata$GSE74629$Chronic_pancreatitis = as.factor(filt_pdata$GSE74629$Chronic
 filt_pdata$GSE74629$Type_II_diabetes = as.factor(filt_pdata$GSE74629$Type_II_diabetes)
 filt_pdata$GSE74629$T_stage = factor(x = filt_pdata$GSE74629$T_stage, levels = c("1","2","3","4"), labels = c("1","2","3","4"))
 
-##############
-##          ##
-## GSE18670 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3599097/
+# GSE18670
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3599097/
 # Comments:
 #   - 24 samples (6 patients)
 #       - 6 circulating tumor (CTC)
@@ -259,7 +207,85 @@ for(i in 1:length(filt_pdata$GSE18670$Tissue_type)){
   }
 }; rm(i)
 
-## ESETS ##
-# From GSE18670 keep only samples for tumor (CTC) and non_tumor (P)
+##### Expression data #####
+esets = list()
+for (i in 1:length(GEOsets)) {
+  esets[[i]] = exprs(GEOsets[[i]])
+  esets[[i]] = as.data.frame(esets[[i]])
+}; rm(i)
+names(esets) = datasets
+
+## Calculate NAs values
+na_esets = c()
+for(i in 1:length(esets)) {
+  na_esets[i] = sum(is.na(esets[[i]]))
+}; rm(i)
+names(na_esets) = datasets
+na_esets
+
+## Remove unneeded/inappropriate samples
+# GSE18670 
+# Keep only samples for tumor (CTC) and non_tumor (P)
 esets[["GSE18670"]] = esets$GSE18670[, filt_pdata$GSE18670$GEO_accession]
 
+##### Annotation esets with Entrez ID's #####
+# GSE125158
+fdata125158 = fData(GEOsets$GSE125158) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = GENE) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[1]]$ID = rownames(esets[[1]])
+esets[[1]] = esets[[1]] %>%
+  inner_join(fdata125158) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata125158)
+
+# GSE49641
+# No gene information
+
+# GSE74629
+fdata74629 = fData(GEOsets$GSE74629) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = Entrez_Gene_ID) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[3]]$ID = rownames(esets[[3]])
+esets[[3]] = esets[[3]] %>%
+  inner_join(fdata74629) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata74629)
+
+# GSE18670
+fdata18670 = fData(GEOsets$GSE18670) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[4]]$ID = rownames(esets[[4]])
+esets[[4]] = esets[[4]] %>%
+  inner_join(fdata18670) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata18670)
+
+##### z-score-transformation #####
+# KBZ transformation method ( https:://www.biostars.org/p/283083/ )
+z = list()
+for(i in 1:length(esets)){
+  df = as.data.frame(esets[[i]][,colnames(esets[[i]]) %in% filt_pdata[[i]]$GEO_accession])
+  t = as.data.frame(t(df))
+  z_t = sapply(t, function(t) (t-mean(t, na.rm = T))/sd(t, na.rm = T))
+  z[[i]] = as.matrix(t(z_t))
+  rownames(z[[i]]) = esets[[i]]$ENTREZ_GENE_ID
+  colnames(z[[i]]) = colnames(df)
+  z[[i]] = as.data.frame(z[[i]])
+  z[[i]]$EntrezGene.ID = esets[[i]]$ENTREZ_GENE_ID
+  rm(t, z_t, df)
+}; rm(i)
+names(z) = names(filt_pdata)
