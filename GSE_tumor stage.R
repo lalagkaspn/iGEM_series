@@ -1,15 +1,11 @@
 ## This script is used to download and pre-process series (GSE) from GEO for PDAC patients (normal and tumor tissues) who did not take
 ## neoadjuvant chemotherapy and mention tumor stage information.
 
-## LIBRARIES
 library(dplyr)
 library(readr)
 library(GEOquery)
 
-#########################################################################################################################################
-
-## DOWNLOADING DATA SERIES FROM GEO DATABASE
-
+##### Downloading data #####
 datasets = c("GSE21501", "GSE42952", "GSE18670", "GSE62452", "GSE62165", "GSE102238", "GSE84219")
 
 # Run this before getGEO
@@ -22,33 +18,10 @@ GEOsets = list()
 for (i in 1:length(datasets)){
   GEOsets[[i]] = getGEO(datasets[i])
 }
-
 GEOsets = unlist(GEOsets)
 names(GEOsets) = datasets; rm(i)
 
-#########################################################################################################################################
-
-## NA VALUES IN EACH EXPRESSION MATRIX
-
-# Isolate expression data for each GSE
-esets = list()
-for (i in 1:length(GEOsets)) {
-  esets[[i]] = exprs(GEOsets[[i]])
-}
-names(esets) = datasets; rm(i)
-
-# Calculate NAs values
-na_esets = c()
-for(i in 1:length(esets)) {
-  na_esets[i] = sum(is.na(esets[[i]]))
-}
-names(na_esets) = datasets
-na_esets
-
-#########################################################################################################################################
-
-## PHENOTYPIC DATA
-
+###### pData #####
 pdata = list()
 for(i in 1:length(GEOsets)) {
   pdata[[i]] = pData(GEOsets[[i]])
@@ -57,7 +30,6 @@ names(pdata) = datasets; rm(i)
 
 # TNM classification for PDAC
 # https://www.cancerresearchuk.org/about-cancer/pancreatic-cancer/stages-types-grades/tnm-staging
-
 # T: Describes the size of the cancer
 #   Tis: carcinoma in situ --> very early stage pancreatic cancer
 #   T1: the cancer is inside the pancreas and is 2cm or less in any direction
@@ -67,12 +39,10 @@ names(pdata) = datasets; rm(i)
 #   T2: the cancer is between 2cm and 4cm in any direction
 #   T3: the cancer is bigger than 4cm but is still within the pancreas
 #   T4: the cancer has grown outside the pancreas, into the nearby large blood vessels
-
 # N: Describes whether there are cancer cells in the lymph nodes
 #   N0: there are no cancer cells in the nearby lymph
 #   N1: there are 1 to 3 lymph nodes that contain cancer cells
 #   N2: there is cancer in 4 or more lymph nodes
-
 # M: Describes whether the cancer has spread to a different part of the body
 #   M0: cancer has not spread to other areas of the body
 #   M1: cancer has spread to other areas of the body
@@ -99,14 +69,9 @@ names(pdata) = datasets; rm(i)
 # Filter pdata for keeping only needed information
 filt_pdata = list()
 
-##############
-##          ##
-## GSE21501 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE21501
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC2903589/
+# GSE21501
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE21501
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC2903589/
 # Comments:
 #   - Clinical data from "University of Nebraska Medical Center Rapid Autopsy Pancreatic Program" (NEB) and "Yeh Lab-UNC-CH" (UNC) were 
 #     not used in the original analysis. Therefore, authors did not include them in the GSE dataset.
@@ -141,7 +106,6 @@ filt_pdata$GSE21501$Biomaterial_provider = ifelse(filt_pdata$GSE21501$Biomateria
                                                          ifelse(filt_pdata$GSE21501$Biomaterial_provider == "Northwestern Memorial Hospital", "NW",
                                                                 ifelse(filt_pdata$GSE21501$Biomaterial_provider == "NorthShore University HealthSystem" , "NSU", "JHMI"))))
 
-
 # Annotate metastatic samples (M_stage = 1)
 filt_pdata$GSE21501$M_stage = ifelse(filt_pdata$GSE21501$Biomaterial_provider == "NEB", "1", "0") 
 
@@ -157,7 +121,7 @@ filt_pdata$GSE21501 = filt_pdata$GSE21501 %>%
 filt_pdata$GSE21501 = filt_pdata$GSE21501 %>%
   select(GEO_accession, Patient_ID, Platform, Biomaterial_provider, Tissue_type, AJCC_classification, T_stage, N_stage, M_stage, Survival_status, Survival_months)
 
-# Transform pdata to universal levels
+# Transform pData to universal levels
 for (i in 1:length(filt_pdata$GSE21501$Tissue_type)) {
   if(filt_pdata$GSE21501$Tissue_type[i] == "Patient Primary Pancreatic Tumor") {
     filt_pdata$GSE21501$Tissue_type[i] = "tumor"
@@ -174,20 +138,9 @@ filt_pdata$GSE21501$M_stage = factor(x = filt_pdata$GSE21501$M_stage, levels = c
 filt_pdata$GSE21501$Survival_status = factor(x = filt_pdata$GSE21501$Survival_status, levels = c("1", "0"), labels = c("alive", "dead"))
 filt_pdata$GSE21501$Survival_months = as.numeric(filt_pdata$GSE21501$Survival_months)
 
-## ESETS ##
-# From GSE21501 expression matrix remove  sample GSM506033 because it was used as reference (it will be excluded from pdata, too)
-esets[["GSE21501"]] = esets[["GSE21501"]][, -6]
-# Keep only expression data for JHMI samples
-esets$GSE21501 = esets$GSE21501[, colnames(esets$GSE21501) %in% filt_pdata[["GSE21501"]][["GEO_accession"]]]
-
-##############
-##          ##
-## GSE42952 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE42952
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3511800/
+# GSE42952
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE42952
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3511800/
 # Comments:
 #   - 34 samples
 #       - 17 PDAC (classified as "good" and "bad" outcome)
@@ -199,7 +152,7 @@ esets$GSE21501 = esets$GSE21501[, colnames(esets$GSE21501) %in% filt_pdata[["GSE
 #     of liver and peritoneal specific genes. Therefore only genes that were not differentially expressed between LM and PM samples, 
 #     considered as metastatic specific genes, were used for analysis between primary tumor and metastatic tissue.
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE42952"]] = pdata$GSE42952 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = title,
@@ -233,7 +186,7 @@ filt_pdata$GSE42952 = filt_pdata$GSE42952 %>%
 filt_pdata$GSE42952 = filt_pdata$GSE42952 %>%
   select(GEO_accession, Patient_ID, Platform, Gender, Age, Tissue_type, AJCC_classification, T_stage, N_stage, M_stage, Tumor_grade, Perineural_invasion, Vascular_invasion, Prognosis, Tumor_localization)
 
-# Trasnform pdata to universal levels
+# Trasnform pData to universal levels
 for (i in 1:length(filt_pdata$GSE42952$Tissue_type)) {
   if(filt_pdata$GSE42952$Tissue_type[i] == "pancreatic ductal adenocarcinoma (PDAC)") {
     filt_pdata$GSE42952$Tissue_type[i] = "tumor"
@@ -256,19 +209,9 @@ filt_pdata$GSE42952$Age = as.numeric(filt_pdata$GSE42952$Age)
 filt_pdata$GSE42952$Prognosis = factor(x = filt_pdata$GSE42952$Prognosis, levels = c("good", "bad"), labels = c("good", "bad"))
 filt_pdata$GSE42952$Tumor_localization = factor(x = filt_pdata$GSE42952$Tumor_localization, levels = c("head", "body/tail"), labels = c("head", "body/tail"))
 
-## ESETS ##
-# First 10 samples will be removed because they are identical to the samples of GSE18670
-# Moreover, non PDAC tissue samples will be removed
-esets[["GSE42952"]] = esets[["GSE42952"]][, -c(1:10, 13,14,17,18,21,22,25,26,28,30,33)]
-
-##############
-##          ##
-## GSE18670 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3599097/
+# GSE18670
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3599097/
 # Comments:
 #   - 24 samples (6 patients)
 #       - 6 circulating tumor (CTC)
@@ -276,7 +219,7 @@ esets[["GSE42952"]] = esets[["GSE42952"]][, -c(1:10, 13,14,17,18,21,22,25,26,28,
 #       - 6 original tumor (T)
 #       - 6 non-tumor pancreatic control (P)
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE18670"]] = pdata$GSE18670 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = title,
@@ -314,7 +257,7 @@ rm(tumor, non_tumor, i)
 filt_pdata$GSE18670 = filt_pdata$GSE18670 %>%
   select(GEO_accession, Patient_ID, Platform, Gender, Age, Tissue_type, AJCC_classification, T_stage, N_stage, M_stage, Tumor_grade)
 
-# Transform pdata to universal levels
+# Transform pData to universal levels
 filt_pdata$GSE18670$Gender = factor(x = filt_pdata$GSE18670$Gender, levels = c("Female", "Male"), labels = c("female", "male"))
 filt_pdata$GSE18670$Age = as.numeric(filt_pdata$GSE18670$Age)
 filt_pdata$GSE18670$Tissue_type = factor(x = filt_pdata$GSE18670$Tissue_type, levels = c("non_tumor", "tumor"), labels = c("non_tumor", "tumor"))
@@ -335,18 +278,9 @@ for(i in 1:length(filt_pdata$GSE18670$Tissue_type)){
     }
 }; rm(i)
 
-## ESETS ##
-# From GSE18670 keep only samples for tumor (T) and non_tumor (P)
-esets[["GSE18670"]] = esets$GSE18670[, c("GSM463723", "GSM463724", "GSM463727", "GSM463728", "GSM463731", "GSM463732", "GSM463735", "GSM463736", "GSM463739", "GSM463740", "GSM463743", "GSM463744")]
-
-##############
-##          ##
-## GSE62452 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE62452
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC4930741/
+# GSE62452
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE62452
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC4930741/
 # Comments:
 #   - 130 samples
 #     - 69 pancreatic tumor
@@ -354,7 +288,7 @@ esets[["GSE18670"]] = esets$GSE18670[, c("GSM463723", "GSM463724", "GSM463727", 
 #   - For tumor grading, the general classification was used (GX,G1,G2,G3,G4). In all the other samples, the PDAC classification
 #     was used (G1,G2,G3,G4)
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE62452"]] = pdata$GSE62452 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = title,
@@ -376,7 +310,7 @@ for (i in 1:length(filt_pdata[["GSE62452"]][["Tissue_type"]])) {
   }
 } ; rm(i)
 
-# Transform pdata to universall levels
+# Transform pData to universall levels
 filt_pdata$GSE62452$Tissue_type = factor(x = filt_pdata$GSE62452$Tissue_type, levels = c("non_tumor","tumor"), labels = c("non_tumor","tumor"))
 filt_pdata$GSE62452$AJCC_classification = gsub(">IIB", "3", fixed = TRUE, filt_pdata$GSE62452$AJCC_classification)
 filt_pdata$GSE62452$AJCC_classification = gsub("IIB", "2b", fixed = TRUE, filt_pdata$GSE62452$AJCC_classification)
@@ -389,7 +323,7 @@ filt_pdata$GSE62452$AJCC_classification = gsub("IV", "4", fixed = TRUE, filt_pda
 filt_pdata$GSE62452$AJCC_classification = factor(x = filt_pdata$GSE62452$AJCC_classification, levels = c("1a","1b","2a","2b","3","4"), labels = c("1a","1b","2a","2b","3","4"))
 filt_pdata$GSE62452$Tumor_grade = factor(x = filt_pdata$GSE62452$Tumor_grade, levels = c("x","1","2","3", "4"), labels = c("GX","G1","G2","G3","G4"))
 
-# Add NAs to non_tumor samples clinical data
+# Add NAs to non_tumor samples' clinical data
 for(i in 1:length(filt_pdata$GSE62452$Tissue_type)){
   if(filt_pdata$GSE62452$Tissue_type[i] == "non_tumor") {
     filt_pdata$GSE62452$AJCC_classification[i] = NA
@@ -397,20 +331,15 @@ for(i in 1:length(filt_pdata$GSE62452$Tissue_type)){
   }
 }; rm(i)
 
-##############
-##          ##
-## GSE62165 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE62165
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC4983037/
+# GSE62165
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE62165
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC4983037/
 # Comments:
 #   - 131 samples
 #     - 118 PDAC samples
 #     - 13 histologically normal pancreatic tissue samples
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE62165"]] = pdata$GSE62165 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = title,
@@ -438,20 +367,15 @@ for(i in 1:length(filt_pdata$GSE62165$Tissue_type)){
   }
 }; rm(i)
 
-###############
-##           ##
-## GSE102238 ##
-##           ##
-###############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE102238
-## Paper: https://cancerres.aacrjournals.org/content/80/10/1991.long
+# GSE102238
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE102238
+# Paper: https://cancerres.aacrjournals.org/content/80/10/1991.long
 # Comments:
 #   - 100 samples (50 patients)
 #     - 50 tumor samples with/without perineural invasion
 #     - 50 non-tumor samples with/without perineural invasion
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE102238"]] = pdata$GSE102238 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = title,
@@ -504,7 +428,7 @@ filt_pdata$GSE102238$Vascular_invasion = factor(x = filt_pdata$GSE102238$Vascula
 filt_pdata$GSE102238$Differentiation = factor(x = filt_pdata$GSE102238$Differentiation, levels = c("0","1"), labels = c("well/moderate","poor"))
 filt_pdata$GSE102238$Survival_status = factor(x = filt_pdata$GSE102238$Survival_status, levels = c("0","1"), labels = c("alive","dead"))
 filt_pdata$GSE102238$Tumor_localization = factor(x = filt_pdata$GSE102238$Tumor_localization, levels = c("1","2"), labels = c("head", "body/tail"))
-# Survival_days to survival_months
+# Transform survival_days to survival_months
 filt_pdata$GSE102238$Survival_days = as.numeric(filt_pdata$GSE102238$Survival_days)
 filt_pdata$GSE102238 = filt_pdata$GSE102238 %>% mutate(Survival_months = Survival_days/30)
 
@@ -556,20 +480,15 @@ for(i in 1:length(filt_pdata$GSE102238$Tissue_type)){
   }
 }; rm(i)
 
-##############
-##          ##
-## GSE84219 ##
-##          ##
-##############
-
-## GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84219
-## Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC5739601/
+# GSE84219
+# GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE84219
+# Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC5739601/
 # Comments:
 #   - 30 samples (30 patients)
 #     - 15 short survival (lower than 24 months)
 #     - 15 long survival (higher than 24 months)
 
-# Select pdata
+# Select pData
 filt_pdata[["GSE84219"]] = pdata$GSE84219 %>%
   select(GEO_accession = geo_accession,
          Patient_ID = description,
@@ -592,4 +511,134 @@ filt_pdata$GSE84219$AJCC_classification = factor(x = filt_pdata$GSE84219$AJCC_cl
 filt_pdata$GSE84219 = filt_pdata$GSE84219 %>%
   select(GEO_accession, Patient_ID, Platform, Tissue_type, AJCC_classification, Survival_months)
 
-#########################################################################################################################################
+##### Expression data #####
+# Create the esets objects
+esets = list()
+for (i in 1:length(GEOsets)) {
+  esets[[i]] = exprs(GEOsets[[i]])
+  esets[[i]] = as.data.frame(esets[[i]])
+}
+names(esets) = datasets; rm(i)
+
+# Calculate NAs values
+na_esets = c()
+for(i in 1:length(esets)) {
+  na_esets[i] = sum(is.na(esets[[i]]))
+}
+names(na_esets) = datasets
+na_esets
+
+## Remove unneeded/inappropriate samples
+# GSE21501
+# Remove sample GSM506033 because it was used as reference (excluded from pdata, too)
+esets[["GSE21501"]] = esets[["GSE21501"]][, -6]
+# Keep only expression data for JHMI samples (no neoadjuvant chemotherapy)
+esets$GSE21501 = esets$GSE21501[, colnames(esets$GSE21501) %in% filt_pdata[["GSE21501"]][["GEO_accession"]]]
+
+# GSE42952
+# Remove first 10 samples because they are identical to the ones of GSE18670
+# Remove non PDAC tissue samples
+esets[["GSE42952"]] = esets[["GSE42952"]][, -c(1:10, 13,14,17,18,21,22,25,26,28,30,33)]
+
+# GSE18670 
+# Keep only samples for tumor (T) and non_tumor (P)
+esets[["GSE18670"]] = esets$GSE18670[, c("GSM463723", "GSM463724", "GSM463727", "GSM463728", "GSM463731", "GSM463732", "GSM463735", "GSM463736", "GSM463739", "GSM463740", "GSM463743", "GSM463744")]
+
+##### Annotation esets with Entrez ID's #####
+# GSE21501
+fdata21501 = fData(GEOsets$GSE21501) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = GENE) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[1]]$ID = as.numeric(rownames(esets[[1]]))
+esets[[1]] = esets[[1]] %>%
+  inner_join(fdata21501) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata21501)
+
+# GSE42952
+fdata42952 = fData(GEOsets$GSE42952) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[2]]$ID = rownames(esets[[2]])
+esets[[2]] = esets[[2]] %>%
+  inner_join(fdata42952) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata42952)
+
+# GSE18670
+fdata18670 = fData(GEOsets$GSE18670) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[3]]$ID = rownames(esets[[3]])
+esets[[3]] = esets[[3]] %>%
+  inner_join(fdata18670) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata18670)
+
+# GSE62452
+#??
+  
+# GSE62165
+fdata62165 = fData(GEOsets$GSE62165) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = 'Entrez Gene') %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[5]]$ID = rownames(esets[[5]])
+esets[[5]] = esets[[5]] %>%
+  inner_join(fdata62165) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE) %>%
+  dplyr::filter(ENTREZ_GENE_ID != "---")
+rm(fdata62165)
+
+# GSE102238
+# NO information for corresponding genes in general
+
+# GSE84219
+fdata84219 = fData(GEOsets$GSE84219) %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = Entrez_Gene_ID) %>%
+  dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
+  dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
+esets[[7]]$ID = rownames(esets[[7]])
+esets[[7]] = esets[[7]] %>%
+  inner_join(fdata84219) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+rm(fdata84219)
+
+##### z-score-transformation #####
+# KBZ transformation method ( https:://www.biostars.org/p/283083/ )
+z = list()
+for(i in 1:length(esets)){
+  df = as.data.frame(esets[[i]][,colnames(esets[[i]]) %in% filt_pdata[[i]]$GEO_accession])
+  t = as.data.frame(t(df))
+  z_t = sapply(t, function(t) (t-mean(t, na.rm = T))/sd(t, na.rm = T))
+  z[[i]] = as.matrix(t(z_t))
+  rownames(z[[i]]) = esets[[i]]$ENTREZ_GENE_ID
+  colnames(z[[i]]) = colnames(df)
+  z[[i]] = as.data.frame(z[[i]])
+  z[[i]]$EntrezGene.ID = esets[[i]]$ENTREZ_GENE_ID
+  rm(t, z_t, df)
+}; rm(i)
+
+
+
+
+
+
