@@ -4,6 +4,7 @@
 library(dplyr)
 library(readr)
 library(GEOquery)
+library(org.Hs.eg.db)
 
 ##### Downloading data #####
 datasets = c("GSE21501", "GSE42952", "GSE18670", "GSE62452", "GSE62165", "GSE102238", "GSE84219")
@@ -520,14 +521,6 @@ for (i in 1:length(GEOsets)) {
 }
 names(esets) = datasets; rm(i)
 
-# Calculate NAs values
-na_esets = c()
-for(i in 1:length(esets)) {
-  na_esets[i] = sum(is.na(esets[[i]]))
-}
-names(na_esets) = datasets
-na_esets
-
 ## Remove unneeded/inappropriate samples
 # GSE21501
 # Remove sample GSM506033 because it was used as reference (excluded from pdata, too)
@@ -557,6 +550,7 @@ esets[[1]] = esets[[1]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[1]]$ENTREZ_GENE_ID = as.character(esets[[1]]$ENTREZ_GENE_ID)
 rm(fdata21501)
 
 # GSE42952
@@ -588,7 +582,11 @@ esets[[3]] = esets[[3]] %>%
 rm(fdata18670)
 
 # GSE62452
-#??
+# Match GenBank RefSeq
+# From GB_LIST remove:
+#   - Values that have comma (,) (multiple genes to a probe)
+#   - Everything after the bullet (.)
+
   
 # GSE62165
 fdata62165 = fData(GEOsets$GSE62165) %>%
@@ -606,7 +604,26 @@ esets[[5]] = esets[[5]] %>%
 rm(fdata62165)
 
 # GSE102238
-# NO information for corresponding genes in general
+# No information for corresponding genes provided in GEOset
+# Manually perform BLASTN alignment to annotate probes with RefSeq gene IDs
+# https://blast.ncbi.nlm.nih.gov/Blast.cgi
+# Read csv results from BLASTN
+blastn_1 = read.csv(file = "GSE102238_BLASTN-1.csv", header = FALSE)
+blastn_2 = read.csv(file = "GSE102238_BLASTN-2.csv", header = FALSE)
+blastn = rbind(blastn_1, blastn_2); rm(blastn_1, blastn_2)
+
+# Remove duplicate probes (V1 columns)
+dups = blastn$V1[which(duplicated(blastn$V1))]
+final_blastn = blastn[!blastn$V1 %in% dups, ] %>%
+  select(ID = V1, RefSeq = V2)
+
+# Convert RefSeq IDs to ENTREZ IDs
+ref = org.Hs.egREFSEQ2EG
+mapped_genes_official = mappedkeys(ref)
+ref_df = as.data.frame(ref[mapped_genes_official])
+ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+
+annot = inner_join(final_blastn, ref_df, by = "RefSeq")
 
 # GSE84219
 fdata84219 = fData(GEOsets$GSE84219) %>%
@@ -621,6 +638,14 @@ esets[[7]] = esets[[7]] %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
 rm(fdata84219)
+
+##### Calculate NAs values #####
+na_esets = c()
+for(i in 1:length(esets)) {
+  na_esets[i] = sum(is.na(esets[[i]]))
+}; rm(i)
+names(na_esets) = datasets
+na_esets
 
 ##### z-score-transformation #####
 # KBZ transformation method ( https:://www.biostars.org/p/283083/ )
