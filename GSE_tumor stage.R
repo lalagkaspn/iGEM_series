@@ -587,7 +587,6 @@ rm(fdata18670)
 #   - Values that have comma (,) (multiple genes to a probe)
 #   - Everything after the bullet (.)
 
-  
 # GSE62165
 fdata62165 = fData(GEOsets$GSE62165) %>%
   dplyr::select(ID, ENTREZ_GENE_ID = 'Entrez Gene') %>%
