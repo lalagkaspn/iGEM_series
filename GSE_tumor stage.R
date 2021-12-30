@@ -512,6 +512,35 @@ filt_pdata$GSE84219$AJCC_classification = factor(x = filt_pdata$GSE84219$AJCC_cl
 filt_pdata$GSE84219 = filt_pdata$GSE84219 %>%
   select(GEO_accession, Patient_ID, Platform, Tissue_type, AJCC_classification, Survival_months)
 
+# full_pdata
+# Keep only information for Study, GEO_accession, Tissue_type and AJCC classification
+# Useful for QC analysis
+pdataGSE21501 = filt_pdata$GSE21501 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE21501")
+pdataGSE42952 = filt_pdata$GSE42952 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE42952")
+pdataGSE18670 = filt_pdata$GSE18670 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE18670")
+pdataGSE62452 = filt_pdata$GSE62452 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE62452")
+pdataGSE62165 = filt_pdata$GSE62165 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE62165")
+pdataGSE102238 = filt_pdata$GSE102238 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE102238")
+pdataGSE84219 = filt_pdata$GSE84219 %>%
+  dplyr::select(GEO_accession, Tissue_type, AJCC_classification) %>%
+  dplyr::mutate(Study = "GSE84219")
+
+full_pdata = rbind(pdataGSE21501, pdataGSE42952, pdataGSE18670, pdataGSE62452, pdataGSE62165, pdataGSE102238, pdataGSE84219)
+rownames(full_pdata) = full_pdata$GEO_accession
+rm(pdataGSE21501, pdataGSE42952, pdataGSE18670, pdataGSE62452, pdataGSE62165, pdataGSE102238, pdataGSE84219)
+
 ##### Expression data #####
 # Create the esets objects
 esets = list()
@@ -687,9 +716,3 @@ for(i in 1:length(esets)){
   z[[i]]$EntrezGene.ID = esets[[i]]$ENTREZ_GENE_ID
   rm(t, z_t, df)
 }; rm(i)
-
-
-
-
-
-
