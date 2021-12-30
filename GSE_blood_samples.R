@@ -4,6 +4,9 @@
 library(dplyr)
 library(GEOquery)
 library(org.Hs.eg.db)
+library(ggplot2)
+library(reshape2)
+library(pheatmap)
 
 ##### Downloading data #####
 datasets = c("GSE125158", "GSE49641", "GSE74629", "GSE18670")
@@ -208,6 +211,23 @@ for(i in 1:length(filt_pdata$GSE18670$Tissue_type)){
   }
 }; rm(i)
 
+# full_pdata
+# Keep only information for Study, GEO_accession and Tissue_type
+# Useful for QC analysis
+pdata125158 = filt_pdata$GSE125158 %>%
+  dplyr::select(GEO_accession, Tissue_type) %>%
+  dplyr::mutate(Study = "GSE125158")
+pdata74629 = filt_pdata$GSE74629 %>%
+  dplyr::select(GEO_accession, Tissue_type) %>%
+  dplyr::mutate(Study = "GSE74629")
+pdata18670 = filt_pdata$GSE18670 %>%
+  dplyr::select(GEO_accession, Tissue_type) %>%
+  dplyr::mutate(Study = "GSE18670")
+
+full_pdata = rbind(pdata125158, pdata74629, pdata18670)
+rownames(full_pdata) = full_pdata$GSM
+rm(pdata125158, pdata74629, pdata18670)
+
 ##### Expression data #####
 esets = list()
 for (i in 1:length(GEOsets)) {
@@ -318,3 +338,119 @@ for(i in 1:length(esets)){
   rm(t, z_t, df)
 }; rm(i)
 names(z) = names(filt_pdata)
+
+##### Quality Control #####
+# Joining in one expression matrix
+# z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
+#   inner_join(., z[[3]], by = "EntrezGene.ID") %>%
+#   inner_join(., z[[4]], by = "EntrezGene.ID") %>%
+#   dplyr::select(EntrezGene.ID, everything())
+# 73 genes
+
+# Exclude z[[2]] (GSE49641)
+z_exprs = z[[1]] %>% inner_join(z[[3]], by = "EntrezGene.ID") %>%
+  inner_join(., z[[4]], by = "EntrezGene.ID") %>%
+  dplyr::select(EntrezGene.ID, everything())
+
+rownames(z_exprs) = z_exprs$EntrezGene.ID
+z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID))
+# Making sure we do not have NAs in any row
+z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
+z_exprs_nonas = na.omit(z_exprs)
+# ENTREZ_ID 2597 had some NAs. It was removed from z_ezprs_nonas
+
+# Multidimensional plotting
+z_mds = plotMDS(z_exprs_nonas)
+z_pca = data.frame(cbind(z_mds$x, z_mds$y, 
+                         as.character(full_pdata$Study), full_pdata$GEO_accession, 
+                         as.character(full_pdata$Tissue_type)))
+colnames(z_pca) = c("X1", "X2", "Study", "GSM", "Type")
+z_pca$Study = factor(z_pca$Study, labels = c("GSE125158", "GSE74629", "GSE18670"))
+z_pca$Type = factor(z_pca$Type, labels = c("tumor", "non_tumor"))
+z_pca$X1 = as.numeric(z_pca$X1)
+z_pca$X2 = as.numeric(z_pca$X2)
+
+png("Plots/QC/KBZ/Blood_samples/MDS.png", width = 1024, height = 768)
+ggplot(z_pca, aes(X1, X2, color = Type, shape = Study)) +
+  geom_point(size = 3) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
+                                 size = 15),
+        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
+                                  size = 20),
+        axis.line = element_line(),
+        legend.position = "right",
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 17),
+        legend.key.size = unit(1, "cm"))+
+  labs(title = "Multidimensional Scaling Plot",
+       x = paste0("\nLeading logFC dimension 1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
+       y = paste0("Leading logFC dimension 2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
+dev.off()
+
+# Density boxplot - leave for now
+# library(oligo)
+# o = oligo::boxplot(z_exprs_nonas, main = "Density boxplot",
+#                target = "core")
+
+# Global expression boxplot
+z_eset = as.data.frame(z_exprs_nonas)
+png("Plots/QC/KBZ/Blood_samples/Boxplot.png", width = 1920, height = 1080)
+ggplot(melt(z_eset), aes(x=variable, y=value)) +
+  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
+               fill = c(rep("cyan", 30), rep("orange", 12), rep("red", 50)), outlier.alpha = 0.1)+
+  scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
+                     breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
+  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
+                                   size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 15, 
+                                   margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
+                                  size = 25, face = "bold"),
+        axis.line = element_line())+
+  labs(title = "Boxplot of expression",
+       x = "\nSamples",
+       y = "Expression\n")
+dev.off()
+
+# Heatmap
+save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
+  png(filename, width = width, height = height, res = res)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
+rownames(annotation_for_heatmap) = full_pdata$GEO_accession
+
+z_dists = as.matrix(dist(t(z_exprs_nonas), method = "manhattan"))
+
+rownames(z_dists) = full_pdata$GEO_accession
+hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(9, "RdBu"))(255))
+colnames(z_dists) <- NULL
+diag(z_dists) <- NA
+
+ann_colors <- list(
+  Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
+  Study = c(GSE125158 = "darkseagreen", GSE74629 = "darkcyan", GSE18670 = "darkred")
+)
+
+z_heatmap = pheatmap(t(z_dists), col = hmcol,
+                     annotation_col = annotation_for_heatmap,
+                     annotation_colors = ann_colors,
+                     legend = TRUE,
+                     treeheight_col = 0,
+                     legend_breaks = c(min(z_dists, na.rm = TRUE), 
+                                       max(z_dists, na.rm = TRUE)), 
+                     legend_labels = (c("small distance", "large distance")),
+                     main = "Clustering heatmap")
+save_pheatmap_png(z_heatmap, "Plots/QC/KBZ/Blood_samples/Heatmap.png")
