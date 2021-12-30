@@ -550,7 +550,7 @@ esets[[1]] = esets[[1]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-esets[[1]]$ENTREZ_GENE_ID = as.character(esets[[1]]$ENTREZ_GENE_ID)
+esets[[1]]$ENTREZ_GENE_ID = as.numeric(esets[[1]]$ENTREZ_GENE_ID)
 rm(fdata21501)
 
 # GSE42952
@@ -565,6 +565,7 @@ esets[[2]] = esets[[2]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[2]]$ENTREZ_GENE_ID = as.numeric(esets[[2]]$ENTREZ_GENE_ID)
 rm(fdata42952)
 
 # GSE18670
@@ -579,13 +580,35 @@ esets[[3]] = esets[[3]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[3]]$ENTREZ_GENE_ID = as.numeric(esets[[3]]$ENTREZ_GENE_ID)
 rm(fdata18670)
 
 # GSE62452
-# Match GenBank RefSeq
+# Convert GB_LIST (RefSeq) to ENTREZ IDs
+ref = org.Hs.egREFSEQ2EG
+mapped_genes_official = mappedkeys(ref)
+ref_df = as.data.frame(ref[mapped_genes_official])
+ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+
 # From GB_LIST remove:
 #   - Values that have comma (,) (multiple genes to a probe)
 #   - Everything after the bullet (.)
+fdata62452 = fData(GEOsets$GSE62452) %>%
+  dplyr::select(ID, RefSeq = GB_LIST) %>%
+  dplyr::filter(!grepl(",", RefSeq)) %>%
+  dplyr::filter(nchar(RefSeq)>0) %>%
+  mutate(RefSeq = gsub("\\..*","", RefSeq)) %>%
+  inner_join(ref_df, by = "RefSeq") %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = EntrezGene.ID)
+esets[[4]]$ID = as.numeric(rownames(esets[[4]]))
+esets[[4]] = esets[[4]] %>%
+  inner_join(fdata62452) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+esets[[4]]$ENTREZ_GENE_ID = as.numeric(esets[[4]]$ENTREZ_GENE_ID)
+rm(fdata62452)
 
 # GSE62165
 fdata62165 = fData(GEOsets$GSE62165) %>%
@@ -600,6 +623,7 @@ esets[[5]] = esets[[5]] %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE) %>%
   dplyr::filter(ENTREZ_GENE_ID != "---")
+esets[[5]]$ENTREZ_GENE_ID = as.numeric(esets[[5]]$ENTREZ_GENE_ID)
 rm(fdata62165)
 
 # GSE102238
@@ -636,6 +660,7 @@ esets[[7]] = esets[[7]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[7]]$ENTREZ_GENE_ID = as.numeric(esets[[7]]$ENTREZ_GENE_ID)
 rm(fdata84219)
 
 ##### Calculate NAs values #####
