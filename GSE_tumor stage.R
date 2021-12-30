@@ -589,6 +589,7 @@ ref = org.Hs.egREFSEQ2EG
 mapped_genes_official = mappedkeys(ref)
 ref_df = as.data.frame(ref[mapped_genes_official])
 ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+length(unique(ref_df$RefSeq)) == length(ref_df$RefSeq) # TRUE --> No duplicates in RefSeq
 
 # From GB_LIST remove:
 #   - Values that have comma (,) (multiple genes to a probe)
@@ -645,6 +646,7 @@ ref = org.Hs.egREFSEQ2EG
 mapped_genes_official = mappedkeys(ref)
 ref_df = as.data.frame(ref[mapped_genes_official])
 ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+length(unique(ref_df$RefSeq)) == length(ref_df$RefSeq) # TRUE --> No duplicates in RefSeq
 
 annot = inner_join(final_blastn, ref_df, by = "RefSeq")
 

@@ -3,6 +3,7 @@
 
 library(dplyr)
 library(GEOquery)
+library(org.Hs.eg.db)
 
 ##### Downloading data #####
 datasets = c("GSE125158", "GSE49641", "GSE74629", "GSE18670")
@@ -241,10 +242,36 @@ esets[[1]] = esets[[1]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[1]]$ENTREZ_GENE_ID = as.numeric(esets[[1]]$ENTREZ_GENE_ID)
 rm(fdata125158)
 
 # GSE49641
-# No gene information
+# Convert GB_LIST (RefSeq) to ENTREZ IDs
+ref = org.Hs.egREFSEQ2EG
+mapped_genes_official = mappedkeys(ref)
+ref_df = as.data.frame(ref[mapped_genes_official])
+ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+length(unique(ref_df$RefSeq)) == length(ref_df$RefSeq) # TRUE --> No duplicates in RefSeq
+
+# From GB_LIST remove:
+#   - Values that have comma (,) (multiple genes to a probe)
+#   - Everything after the bullet (.)
+fdata49641 = fData(GEOsets$GSE49641) %>%
+  dplyr::select(ID, RefSeq = GB_LIST) %>%
+  dplyr::filter(!grepl(",", RefSeq)) %>%
+  dplyr::filter(nchar(RefSeq)>0) %>%
+  mutate(RefSeq = gsub("\\..*","", RefSeq)) %>%
+  inner_join(ref_df, by = "RefSeq") %>%
+  dplyr::select(ID, ENTREZ_GENE_ID = EntrezGene.ID)
+esets[[2]]$ID = as.numeric(rownames(esets[[2]]))
+esets[[2]] = esets[[2]] %>%
+  inner_join(fdata49641) %>%
+  dplyr::select(-ID) %>%
+  dplyr::select(ENTREZ_GENE_ID, everything()) %>%
+  group_by(ENTREZ_GENE_ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+esets[[2]]$ENTREZ_GENE_ID = as.numeric(esets[[2]]$ENTREZ_GENE_ID)
+rm(fdata49641)
 
 # GSE74629
 fdata74629 = fData(GEOsets$GSE74629) %>%
@@ -258,6 +285,7 @@ esets[[3]] = esets[[3]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[3]]$ENTREZ_GENE_ID = as.numeric(esets[[3]]$ENTREZ_GENE_ID)
 rm(fdata74629)
 
 # GSE18670
@@ -272,6 +300,7 @@ esets[[4]] = esets[[4]] %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
+esets[[4]]$ENTREZ_GENE_ID = as.numeric(esets[[4]]$ENTREZ_GENE_ID)
 rm(fdata18670)
 
 ##### z-score-transformation #####
