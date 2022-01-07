@@ -1,4 +1,5 @@
-## This script is used to download and pre-process series (GSE) from GEO for PDAC patients (normal and tumor tissues) with samples taken
+## This script is used to download and pre-process series (GSE) from GEO for 
+## PDAC patients (normal and tumor tissues) with samples taken
 ## from blood (whole blood samples or circulating tumor samples)
 
 library(dplyr)
@@ -7,9 +8,13 @@ library(org.Hs.eg.db)
 library(ggplot2)
 library(reshape2)
 library(pheatmap)
+library(tidyr)
+library(reshape2)
+library(limma)
 
 ##### Downloading data #####
 datasets = c("GSE125158", "GSE49641", "GSE74629", "GSE18670")
+# the latter is the dataset for GSE18670 and contains the full gene expression matrix
 
 # Run this before getGEO
 # Probably, there is a bug with the newest version of readr and GEOquery
@@ -22,29 +27,29 @@ for (i in 1:length(datasets)){
   GEOsets[[i]] = getGEO(datasets[i])
 }; rm(i)
 GEOsets = unlist(GEOsets)
-names(GEOsets) = datasets; rm(i)
+names(GEOsets) = datasets; rm(datasets)
 
 ###### pData #####
 pdata = list()
 for(i in 1:length(GEOsets)) {
   pdata[[i]] = pData(GEOsets[[i]])
 }
-names(pdata) = datasets; rm(i)
+names(pdata) = names(GEOsets); rm(i)
 
-## Isolate only needed pdata
+## Keep only necessary pdata
 filt_pdata = list()
 
 # GSE125158 
 # GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE125158
 # Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC6447845/
-# Comments/To discuss with Aris:
+# Comments:
 #   - 30 samples (30 patients)
 #     - 17 PDAC whole blood samples
 #     - 13 normal whole blood samples
 
 # Select informative data only
 filt_pdata[["GSE125158"]] = pdata$GSE125158 %>%
-  select(GEO_accession = geo_accession,
+  dplyr::select(GEO_accession = geo_accession,
          Patient_ID = title,
          Platform = platform_id,
          Gender = "gender:ch1",
@@ -53,7 +58,7 @@ filt_pdata[["GSE125158"]] = pdata$GSE125158 %>%
 
 # Change Tissue_type to tumor and non_tumor
 for (i in 1:length(filt_pdata$GSE125158$Tissue_type)) {
-  if(filt_pdata$GSE125158$Tissue_type[i] == "healthy") {
+  if (filt_pdata$GSE125158$Tissue_type[i] == "healthy") {
     filt_pdata$GSE125158$Tissue_type[i] = "non_tumor"
   } else {
     filt_pdata$GSE125158$Tissue_type[i] = "tumor"
@@ -63,22 +68,26 @@ for (i in 1:length(filt_pdata$GSE125158$Tissue_type)) {
 # Clear Patient_ID names
 filt_pdata$GSE125158$Patient_ID = sub("\\:.*", "", filt_pdata$GSE125158$Patient_ID)
 
-# Transform pdata to universal levels
-filt_pdata$GSE125158$Tissue_type = factor(x = filt_pdata$GSE125158$Tissue_type, levels = c("non_tumor","tumor"), labels = c("non_tumor","tumor"))
-filt_pdata$GSE125158$Gender = factor(x = filt_pdata$GSE125158$Gender, levels = c("female","male"), labels = c("female","male"))
+# Transform to factors with consistent universal levels
+filt_pdata$GSE125158$Tissue_type = factor(x = filt_pdata$GSE125158$Tissue_type,
+                                          levels = c("non_tumor","tumor"),
+                                          labels = c("non_tumor","tumor"))
+filt_pdata$GSE125158$Gender = factor(x = filt_pdata$GSE125158$Gender,
+                                     levels = c("female","male"),
+                                     labels = c("female","male"))
 filt_pdata$GSE125158$Age = as.numeric(filt_pdata$GSE125158$Age)
 
 # GSE49641
 # GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE49641
 # Paper: https://pubmed.ncbi.nlm.nih.gov/25069573/
-# Comments/To discuss with Aris:
+# Comments:
 #   - 36 samples (36 patients)
 #     - 18 unresectable PDAC
 #     - 18 normal
 
 # Select informative data only
 filt_pdata[["GSE49641"]] = pdata$GSE49641 %>%
-  select(GEO_accession = geo_accession,
+  dplyr::select(GEO_accession = geo_accession,
          Patient_ID = title,
          Platform = platform_id,
          Gender = "gender:ch1",
@@ -88,33 +97,42 @@ filt_pdata[["GSE49641"]] = pdata$GSE49641 %>%
 
 # Change Tissue_type to tumor and non_tumor
 for (i in 1:length(filt_pdata$GSE49641$Tissue_type)) {
-  if(filt_pdata$GSE49641$Tissue_type[i] == "control") {
+  if (filt_pdata$GSE49641$Tissue_type[i] == "control") {
     filt_pdata$GSE49641$Tissue_type[i] = "non_tumor"
   } else {
     filt_pdata$GSE49641$Tissue_type[i] = "tumor"
   }
 }; rm(i)
 
-# Transform pdata to universal levels
-filt_pdata$GSE49641$Tissue_type = factor(x = filt_pdata$GSE49641$Tissue_type, levels = c("non_tumor","tumor"), labels = c("non_tumor","tumor"))
-filt_pdata$GSE49641$Gender = factor(x = filt_pdata$GSE49641$Gender, levels = c("Female","Male"), labels = c("female","male"))
+# Transform to factors with consistent universal levels
+filt_pdata$GSE49641$Tissue_type = factor(x = filt_pdata$GSE49641$Tissue_type, 
+                                         levels = c("non_tumor","tumor"), 
+                                         labels = c("non_tumor","tumor"))
+filt_pdata$GSE49641$Gender = factor(x = filt_pdata$GSE49641$Gender, 
+                                    levels = c("Female","Male"), 
+                                    labels = c("female","male"))
 filt_pdata$GSE49641$Age = as.numeric(filt_pdata$GSE49641$Age)
-filt_pdata$GSE49641$AJCC_classification = gsub("IV", "4", filt_pdata$GSE49641$AJCC_classification)
-filt_pdata$GSE49641$AJCC_classification = gsub("III", "3", filt_pdata$GSE49641$AJCC_classification)
-filt_pdata$GSE49641$AJCC_classification = gsub("NA", NA, filt_pdata$GSE49641$AJCC_classification)
-filt_pdata$GSE49641$AJCC_classification = factor(x = filt_pdata$GSE49641$AJCC_classification, levels = c("1a","1b","2a","2b","3","4"), labels = c("1a","1b","2a","2b","3","4"))
+filt_pdata$GSE49641$AJCC_classification = gsub("IV", "4", 
+                                               filt_pdata$GSE49641$AJCC_classification)
+filt_pdata$GSE49641$AJCC_classification = gsub("III", "3", 
+                                               filt_pdata$GSE49641$AJCC_classification)
+filt_pdata$GSE49641$AJCC_classification = gsub("NA", NA, 
+                                               filt_pdata$GSE49641$AJCC_classification)
+filt_pdata$GSE49641$AJCC_classification = factor(x = filt_pdata$GSE49641$AJCC_classification,
+                                                 levels = c("1a","1b","2a","2b","3","4"),
+                                                 labels = c("1a","1b","2a","2b","3","4"))
 
 # GSE74629
 # GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE74629
 # Paper: https://pubmed.ncbi.nlm.nih.gov/29617451/
-# Comments/To discuss with Aris:
+# Comments:
 #   - 50 samples (50 patients)
 #     - 36 PDAC
 #     - 14 normal
 
 # Select informative data only
 filt_pdata[["GSE74629"]] = pdata$GSE74629 %>%
-  select(GEO_accession = geo_accession,
+  dplyr::select(GEO_accession = geo_accession,
          Patient_ID = title,
          Platform = platform_id,
          Gender = "gender:ch1",
@@ -123,26 +141,32 @@ filt_pdata[["GSE74629"]] = pdata$GSE74629 %>%
          T_stage = "pathological staging:ch1",
          Chronic_pancreatitis = "chronic pancreatitis:ch1",
          Type_II_diabetes = "diabetes:ch1")
-# Patient_ID are named in similar way with GSE49641
+# Patient_ID are defined similarly to GSE49641
 
 # Change Tissue_type to tumor and non_tumor
 for (i in 1:length(filt_pdata$GSE74629$Tissue_type)) {
-  if(filt_pdata$GSE74629$Tissue_type[i] == "healthy") {
+  if (filt_pdata$GSE74629$Tissue_type[i] == "healthy") {
     filt_pdata$GSE74629$Tissue_type[i] = "non_tumor"
   } else {
     filt_pdata$GSE74629$Tissue_type[i] = "tumor"
   }
 }; rm(i)
 
-# Transform pdata to universal levels
-filt_pdata$GSE74629$Tissue_type = factor(x = filt_pdata$GSE74629$Tissue_type, levels = c("non_tumor","tumor"), labels = c("non_tumor","tumor"))
-filt_pdata$GSE74629$Gender = factor(x = filt_pdata$GSE74629$Gender, levels = c("female","male"), labels = c("female","male"))
+# Transform to factors with consistent universal levels
+filt_pdata$GSE74629$Tissue_type = factor(x = filt_pdata$GSE74629$Tissue_type,
+                                         levels = c("non_tumor","tumor"),
+                                         labels = c("non_tumor","tumor"))
+filt_pdata$GSE74629$Gender = factor(x = filt_pdata$GSE74629$Gender,
+                                    levels = c("female","male"),
+                                    labels = c("female","male"))
 filt_pdata$GSE74629$Age = as.numeric(filt_pdata$GSE74629$Age)
 filt_pdata$GSE74629$Chronic_pancreatitis = as.factor(filt_pdata$GSE74629$Chronic_pancreatitis)
 filt_pdata$GSE74629$Type_II_diabetes = as.factor(filt_pdata$GSE74629$Type_II_diabetes)
-filt_pdata$GSE74629$T_stage = factor(x = filt_pdata$GSE74629$T_stage, levels = c("1","2","3","4"), labels = c("1","2","3","4"))
+filt_pdata$GSE74629$T_stage = factor(x = filt_pdata$GSE74629$T_stage,
+                                     levels = c("1","2","3","4"),
+                                     labels = c("1","2","3","4"))
 
-# GSE18670
+# GSE18670 (GDS4329)
 # GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
 # Paper: https://www.ncbi.nlm.nih.gov/labs/pmc/articles/PMC3599097/
 # Comments:
@@ -154,7 +178,7 @@ filt_pdata$GSE74629$T_stage = factor(x = filt_pdata$GSE74629$T_stage, levels = c
 
 # Select pdata
 filt_pdata[["GSE18670"]] = pdata$GSE18670 %>%
-  select(GEO_accession = geo_accession,
+  dplyr::select(GEO_accession = geo_accession,
          Patient_ID = title,
          Platform = platform_id,
          Tissue_type = "source_name_ch1",
@@ -188,17 +212,31 @@ rm(tumor, non_tumor, i)
 
 # Reorder columns
 filt_pdata$GSE18670 = filt_pdata$GSE18670 %>%
-  select(GEO_accession, Patient_ID, Platform, Gender, Age, Tissue_type, AJCC_classification, T_stage, N_stage, M_stage, Tumor_grade)
+  dplyr::select(GEO_accession, Patient_ID, Platform, Gender, Age, Tissue_type, 
+         AJCC_classification, T_stage, N_stage, M_stage, Tumor_grade)
 
-# Transform pdata to universal levels
-filt_pdata$GSE18670$Gender = factor(x = filt_pdata$GSE18670$Gender, levels = c("Female", "Male"), labels = c("female", "male"))
+# Transform to factors with consistent universal levels
+filt_pdata$GSE18670$Gender = factor(x = filt_pdata$GSE18670$Gender, 
+                                    levels = c("Female", "Male"), 
+                                    labels = c("female", "male"))
 filt_pdata$GSE18670$Age = as.numeric(filt_pdata$GSE18670$Age)
-filt_pdata$GSE18670$Tissue_type = factor(x = filt_pdata$GSE18670$Tissue_type, levels = c("non_tumor", "tumor"), labels = c("non_tumor", "tumor"))
-filt_pdata$GSE18670$AJCC_classification = factor(x = filt_pdata$GSE18670$AJCC_classification, levels = c("1a","1b","2a","2b","3","4"), labels = c("1a","1b","2a","2b","3","4"))
-filt_pdata$GSE18670$T_stage = factor(x = filt_pdata$GSE18670$T_stage, levels = c("1","2","3","4"), labels = c("1","2","3","4"))
-filt_pdata$GSE18670$N_stage = factor(x = filt_pdata$GSE18670$N_stage, levels = c("0","1","2"), labels = c("0","1","2"))
-filt_pdata$GSE18670$M_stage = factor(x = filt_pdata$GSE18670$M_stage, levels = c("0", "1"), labels = c("non_metastatic", "metastatic"))
-filt_pdata$GSE18670$Tumor_grade = factor(x = filt_pdata$GSE18670$Tumor_grade, levels = c("1","2","3"), labels = c("1","2","3"))
+filt_pdata$GSE18670$Tissue_type = factor(x = filt_pdata$GSE18670$Tissue_type, 
+                                         levels = c("non_tumor", "tumor"), 
+                                         labels = c("non_tumor", "tumor"))
+filt_pdata$GSE18670$AJCC_classification = factor(x = filt_pdata$GSE18670$AJCC_classification, 
+                                                 levels = c("1a","1b","2a","2b","3","4"),
+                                                 labels = c("1a","1b","2a","2b","3","4"))
+filt_pdata$GSE18670$T_stage = factor(x = filt_pdata$GSE18670$T_stage, 
+                                     levels = c("1","2","3","4"), 
+                                     labels = c("1","2","3","4"))
+filt_pdata$GSE18670$N_stage = factor(x = filt_pdata$GSE18670$N_stage, 
+                                     levels = c("0","1","2"), 
+                                     labels = c("0","1","2"))
+filt_pdata$GSE18670$M_stage = factor(x = filt_pdata$GSE18670$M_stage, 
+                                     levels = c("0", "1"), 
+                                     labels = c("non_metastatic", "metastatic"))
+filt_pdata$GSE18670$Tumor_grade = factor(x = filt_pdata$GSE18670$Tumor_grade, 
+                                         levels = c("1","2","3"), labels = c("1","2","3"))
 
 # Add NAs to non_tumor samples clinical data
 for(i in 1:length(filt_pdata$GSE18670$Tissue_type)){
@@ -217,6 +255,9 @@ for(i in 1:length(filt_pdata$GSE18670$Tissue_type)){
 pdata125158 = filt_pdata$GSE125158 %>%
   dplyr::select(GEO_accession, Tissue_type) %>%
   dplyr::mutate(Study = "GSE125158")
+pdata49641 = filt_pdata$GSE49641 %>%
+  dplyr::select(GEO_accession, Tissue_type) %>%
+  dplyr::mutate(Study = "GSE49641")
 pdata74629 = filt_pdata$GSE74629 %>%
   dplyr::select(GEO_accession, Tissue_type) %>%
   dplyr::mutate(Study = "GSE74629")
@@ -224,9 +265,9 @@ pdata18670 = filt_pdata$GSE18670 %>%
   dplyr::select(GEO_accession, Tissue_type) %>%
   dplyr::mutate(Study = "GSE18670")
 
-full_pdata = rbind(pdata125158, pdata74629, pdata18670)
+full_pdata = rbind(pdata125158, pdata49641, pdata74629, pdata18670)
 rownames(full_pdata) = full_pdata$GSM
-rm(pdata125158, pdata74629, pdata18670)
+rm(pdata125158, pdata49641, pdata74629, pdata18670)
 
 ##### Expression data #####
 esets = list()
@@ -234,20 +275,15 @@ for (i in 1:length(GEOsets)) {
   esets[[i]] = exprs(GEOsets[[i]])
   esets[[i]] = as.data.frame(esets[[i]])
 }; rm(i)
-names(esets) = datasets
+names(esets) = names(GEOsets)
 
 ## Calculate NAs values
 na_esets = c()
 for(i in 1:length(esets)) {
   na_esets[i] = sum(is.na(esets[[i]]))
 }; rm(i)
-names(na_esets) = datasets
-na_esets
-
-## Remove unneeded/inappropriate samples
-# GSE18670 
-# Keep only samples for tumor (CTC) and non_tumor (P)
-esets[["GSE18670"]] = esets$GSE18670[, filt_pdata$GSE18670$GEO_accession]
+names(na_esets) = names(GEOsets)
+na_esets # no missing values
 
 ##### Annotation esets with Entrez ID's #####
 # GSE125158
@@ -255,14 +291,13 @@ fdata125158 = fData(GEOsets$GSE125158) %>%
   dplyr::select(ID, ENTREZ_GENE_ID = GENE) %>%
   dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
   dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
-esets[[1]]$ID = rownames(esets[[1]])
-esets[[1]] = esets[[1]] %>%
+esets[["GSE125158"]]$ID = rownames(esets[["GSE125158"]])
+esets[["GSE125158"]] = esets[["GSE125158"]] %>%
   inner_join(fdata125158) %>%
   dplyr::select(-ID) %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-esets[[1]]$ENTREZ_GENE_ID = as.numeric(esets[[1]]$ENTREZ_GENE_ID)
 rm(fdata125158)
 
 # GSE49641
@@ -270,42 +305,71 @@ rm(fdata125158)
 ref = org.Hs.egREFSEQ2EG
 mapped_genes_official = mappedkeys(ref)
 ref_df = as.data.frame(ref[mapped_genes_official])
-ref_df = ref_df %>% dplyr::rename(EntrezGene.ID = gene_id, RefSeq = accession)
+ref_df = ref_df %>% dplyr::rename(ENTREZ_GENE_ID = gene_id, RefSeq = accession)
 length(unique(ref_df$RefSeq)) == length(ref_df$RefSeq) # TRUE --> No duplicates in RefSeq
 
-# From GB_LIST remove:
-#   - Values that have comma (,) (multiple genes to a probe)
-#   - Everything after the bullet (.)
+# The GB_LIST column contains RefSeq ID's which we aim to map to Entrez ID's
+# It might be the case that a probe is matched to multiple RefSeq ID's which,
+# however, correspond to the same Entrez. In order to account for that and keep
+# these probes while discarding probes which match to multiple Entrez ID's we do
+# the following
+
 fdata49641 = fData(GEOsets$GSE49641) %>%
   dplyr::select(ID, RefSeq = GB_LIST) %>%
-  dplyr::filter(!grepl(",", RefSeq)) %>%
+  dplyr::filter(is.na(RefSeq)==F) %>%
+  dplyr::filter(nchar(RefSeq)>0)
+
+names = c()
+for (i in 1:202){
+  names = c(names, paste0("RS", i))
+}
+fdata49641$ID = as.character(fdata49641$ID)
+fdata49641_sep = melt(separate(fdata49641, col = RefSeq, into = names, sep = ","),
+                      id.vars = "ID") %>%
+  dplyr::select(-variable) %>%
+  dplyr::rename(RefSeq = value) %>%
+  dplyr::filter(is.na(RefSeq)==F) %>%
   dplyr::filter(nchar(RefSeq)>0) %>%
-  mutate(RefSeq = gsub("\\..*","", RefSeq)) %>%
   inner_join(ref_df, by = "RefSeq") %>%
-  dplyr::select(ID, ENTREZ_GENE_ID = EntrezGene.ID)
-esets[[2]]$ID = as.numeric(rownames(esets[[2]]))
-esets[[2]] = esets[[2]] %>%
-  inner_join(fdata49641) %>%
+  distinct() %>%
+  group_by(ID)
+fdata49641_sep$Filter = NA
+
+# Keep only the probes which match to a unique Entrez, even if these mapped to
+# multiple RefSeq ID's
+for (i in 1:nrow(fdata49641_sep)){
+  if (length(unique(fdata49641_sep$ENTREZ_GENE_ID[fdata49641_sep$ID==fdata49641_sep$ID[i]]))==1){
+    fdata49641_sep$Filter[i] = "keep"
+  } else {
+    fdata49641_sep$Filter[i] = "discard"
+  }
+}
+
+final_fdata49641 = fdata49641_sep %>%
+  dplyr::filter(Filter == "keep") %>%
+  distinct() %>% 
+  dplyr::select(-RefSeq, -Filter)
+esets[["GSE49641"]]$ID = as.character(rownames(esets[["GSE49641"]]))
+esets[["GSE49641"]] = esets[["GSE49641"]] %>%
+  inner_join(final_fdata49641, by = "ID") %>%
   dplyr::select(-ID) %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-esets[[2]]$ENTREZ_GENE_ID = as.numeric(esets[[2]]$ENTREZ_GENE_ID)
-rm(fdata49641)
+rm(fdata49641, fdata49641_sep, final_fdata49641, names)
 
 # GSE74629
 fdata74629 = fData(GEOsets$GSE74629) %>%
   dplyr::select(ID, ENTREZ_GENE_ID = Entrez_Gene_ID) %>%
   dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
   dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
-esets[[3]]$ID = rownames(esets[[3]])
-esets[[3]] = esets[[3]] %>%
+esets[["GSE74629"]]$ID = rownames(esets[["GSE74629"]])
+esets[["GSE74629"]] = esets[["GSE74629"]] %>%
   inner_join(fdata74629) %>%
   dplyr::select(-ID) %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-esets[[3]]$ENTREZ_GENE_ID = as.numeric(esets[[3]]$ENTREZ_GENE_ID)
 rm(fdata74629)
 
 # GSE18670
@@ -313,65 +377,84 @@ fdata18670 = fData(GEOsets$GSE18670) %>%
   dplyr::select(ID, ENTREZ_GENE_ID) %>%
   dplyr::filter(!grepl("///", ENTREZ_GENE_ID)) %>%
   dplyr::filter(nchar(ENTREZ_GENE_ID)>0)
-esets[[4]]$ID = rownames(esets[[4]])
-esets[[4]] = esets[[4]] %>%
+esets[["GSE18670"]]$ID = rownames(esets[["GSE18670"]])
+esets[["GSE18670"]] = esets[["GSE18670"]] %>%
   inner_join(fdata18670) %>%
   dplyr::select(-ID) %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-esets[[4]]$ENTREZ_GENE_ID = as.numeric(esets[[4]]$ENTREZ_GENE_ID)
 rm(fdata18670)
 
 ##### z-score-transformation #####
 # KBZ transformation method ( https:://www.biostars.org/p/283083/ )
 z = list()
 for(i in 1:length(esets)){
-  df = as.data.frame(esets[[i]][,colnames(esets[[i]]) %in% filt_pdata[[i]]$GEO_accession])
+  df = as.data.frame(esets[[i]]) %>%
+    dplyr::select(-ENTREZ_GENE_ID)
   t = as.data.frame(t(df))
   z_t = sapply(t, function(t) (t-mean(t, na.rm = T))/sd(t, na.rm = T))
   z[[i]] = as.matrix(t(z_t))
   rownames(z[[i]]) = esets[[i]]$ENTREZ_GENE_ID
   colnames(z[[i]]) = colnames(df)
   z[[i]] = as.data.frame(z[[i]])
-  z[[i]]$EntrezGene.ID = esets[[i]]$ENTREZ_GENE_ID
+  z[[i]]$EntrezGene.ID = as.character(esets[[i]]$ENTREZ_GENE_ID)
   rm(t, z_t, df)
 }; rm(i)
 names(z) = names(filt_pdata)
 
 ##### Quality Control #####
-# Joining in one expression matrix
-# z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
-#   inner_join(., z[[3]], by = "EntrezGene.ID") %>%
-#   inner_join(., z[[4]], by = "EntrezGene.ID") %>%
-#   dplyr::select(EntrezGene.ID, everything())
-# 73 genes
+# Joining in one expression matrix: original version
+for (i in 1:length(esets)){
+  esets[[i]]$ENTREZ_GENE_ID = as.character(esets[[i]]$ENTREZ_GENE_ID)
+  esets[[i]] = esets[[i]][,c("ENTREZ_GENE_ID", 
+                             intersect(colnames(esets[[i]]),
+                                       filt_pdata[[i]]$GEO_accession))]
+}
+original_exprs = esets[[1]] %>% inner_join(esets[[2]], by = "ENTREZ_GENE_ID") %>%
+  inner_join(esets[[3]], by = "ENTREZ_GENE_ID") %>%
+  inner_join(esets[[4]], by = "ENTREZ_GENE_ID") %>%
+  dplyr::select(ENTREZ_GENE_ID, everything())
 
-# Exclude z[[2]] (GSE49641)
-z_exprs = z[[1]] %>% inner_join(z[[3]], by = "EntrezGene.ID") %>%
-  inner_join(., z[[4]], by = "EntrezGene.ID") %>%
+rows = original_exprs$ENTREZ_GENE_ID
+original_exprs = as.matrix(original_exprs %>% dplyr::select(-ENTREZ_GENE_ID))
+rownames(original_exprs) = rows; rm(rows) # 5016 x 128
+# Making sure we do not have NAs in any row
+original_exprs = original_exprs[rowSums(is.na(original_exprs)) != ncol(original_exprs), ]
+original_exprs_nonas = na.omit(original_exprs) # 5016 x 128
+
+for (i in 1:length(z)){
+  z[[i]]$EntrezGene.ID = as.character(z[[i]]$EntrezGene.ID)
+  z[[i]] = z[[i]][,c("EntrezGene.ID", 
+                     intersect(colnames(z[[i]]),
+                               filt_pdata[[i]]$GEO_accession))]
+}
+# Joining in one expression matrix: z-score normalised version
+z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
+  inner_join(z[[3]], by = "EntrezGene.ID") %>%
+  inner_join(z[[4]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, everything())
 
 rownames(z_exprs) = z_exprs$EntrezGene.ID
-z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID))
+z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 5016 x 128
 # Making sure we do not have NAs in any row
 z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
-z_exprs_nonas = na.omit(z_exprs)
-# ENTREZ_ID 2597 had some NAs. It was removed from z_ezprs_nonas
+z_exprs_nonas = na.omit(z_exprs) # 5015 x 128
+# ENTREZ_ID 2597 had some NAs. It was removed from z_exprs_nonas
 
-# Multidimensional plotting
-z_mds = plotMDS(z_exprs_nonas)
-z_pca = data.frame(cbind(z_mds$x, z_mds$y, 
-                         as.character(full_pdata$Study), full_pdata$GEO_accession, 
-                         as.character(full_pdata$Tissue_type)))
-colnames(z_pca) = c("X1", "X2", "Study", "GSM", "Type")
-z_pca$Study = factor(z_pca$Study, labels = c("GSE125158", "GSE74629", "GSE18670"))
-z_pca$Type = factor(z_pca$Type, labels = c("tumor", "non_tumor"))
-z_pca$X1 = as.numeric(z_pca$X1)
-z_pca$X2 = as.numeric(z_pca$X2)
+# Multidimensional scaling plot: original matrix #####
+original_mds = plotMDS(original_exprs_nonas)
+original_pca = data.frame(cbind(original_mds$x, original_mds$y, 
+                                as.character(full_pdata$Study), full_pdata$GEO_accession, 
+                                as.character(full_pdata$Tissue_type)))
+colnames(original_pca) = c("X1", "X2", "Study", "GSM", "Type")
+original_pca$Study = factor(original_pca$Study)
+original_pca$Type = factor(original_pca$Type)
+original_pca$X1 = as.numeric(original_pca$X1)
+original_pca$X2 = as.numeric(original_pca$X2)
 
-png("Plots/QC/KBZ/Blood_samples/MDS.png", width = 1024, height = 768)
-ggplot(z_pca, aes(X1, X2, color = Type, shape = Study)) +
+png("Plots/QC/Blood_samples/Original_MDS.png", width = 1024, height = 768)
+ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
   geom_point(size = 3) +
   scale_color_brewer(palette = "Dark2") +
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -388,23 +471,52 @@ ggplot(z_pca, aes(X1, X2, color = Type, shape = Study)) +
         legend.title = element_text(size = 17),
         legend.key.size = unit(1, "cm"))+
   labs(title = "Multidimensional Scaling Plot",
+       x = paste0("\nLeading logFC dimension 1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       y = paste0("Leading logFC dimension 2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
+dev.off()
+
+# Multidimensional scaling plot: z-score normalised matrix
+z_mds = plotMDS(z_exprs_nonas)
+z_pca = data.frame(cbind(z_mds$x, z_mds$y, 
+                         as.character(full_pdata$Study), full_pdata$GEO_accession, 
+                         as.character(full_pdata$Tissue_type)))
+colnames(z_pca) = c("X1", "X2", "Study", "GSM", "Type")
+z_pca$Study = factor(z_pca$Study)
+z_pca$Type = factor(z_pca$Type)
+z_pca$X1 = as.numeric(z_pca$X1)
+z_pca$X2 = as.numeric(z_pca$X2)
+
+png("Plots/QC/Blood_samples/KBZ_MDS.png", width = 1024, height = 768)
+ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
+  geom_point(size = 3) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
+                                 size = 15),
+        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
+                                  size = 20),
+        axis.line = element_line(),
+        legend.position = "right",
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 17),
+        legend.key.size = unit(1, "cm"))+
+  labs(title = "Multidimensional Scaling Plot: z-score-normalised data",
        x = paste0("\nLeading logFC dimension 1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
        y = paste0("Leading logFC dimension 2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
 dev.off()
 
-# Density boxplot - leave for now
-# library(oligo)
-# o = oligo::boxplot(z_exprs_nonas, main = "Density boxplot",
-#                target = "core")
-
-# Global expression boxplot
-z_eset = as.data.frame(z_exprs_nonas)
-png("Plots/QC/KBZ/Blood_samples/Boxplot.png", width = 1920, height = 1080)
-ggplot(melt(z_eset), aes(x=variable, y=value)) +
+# Global expression boxplot: original matrix
+original_eset = as.data.frame(original_exprs_nonas)
+png("Plots/QC/Blood_samples/Original_boxplot.png", width = 1920, height = 1080)
+ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
-               fill = c(rep("cyan", 30), rep("orange", 12), rep("red", 50)), outlier.alpha = 0.1)+
-  scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
-                     breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
+               fill = c(rep("cyan", 30), rep("chartreuse", 36),
+                        rep("orange", 50), rep("red", 12)), outlier.alpha = 0.1)+
+  scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
+                     breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
@@ -421,7 +533,32 @@ ggplot(melt(z_eset), aes(x=variable, y=value)) +
        y = "Expression\n")
 dev.off()
 
-# Heatmap
+# Global expression boxplot: z-score normalised matrix
+z_eset = as.data.frame(z_exprs_nonas)
+png("Plots/QC/Blood_samples/KBZ_boxplot.png", width = 1920, height = 1080)
+ggplot(melt(z_eset), aes(x=variable, y=value)) +
+  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
+               fill = c(rep("cyan", 30), rep("chartreuse", 36),
+                        rep("orange", 50), rep("red", 12)), outlier.alpha = 0.1)+
+  scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
+                     breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
+  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
+                                   size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 15, 
+                                   margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
+                                  size = 25, face = "bold"),
+        axis.line = element_line())+
+  labs(title = "Boxplot of expression: z-score-normalised data",
+       x = "\nSamples",
+       y = "Expression\n")
+dev.off()
+
+# Heatmaps
 save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
   png(filename, width = width, height = height, res = res)
   grid::grid.newpage()
@@ -429,6 +566,35 @@ save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
   dev.off()
 }
 
+# Original
+annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
+rownames(annotation_for_heatmap) = full_pdata$GEO_accession
+
+original_dists = as.matrix(dist(t(original_exprs_nonas), method = "manhattan"))
+
+rownames(original_dists) = full_pdata$GEO_accession
+hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(9, "RdBu"))(255))
+colnames(original_dists) <- NULL
+diag(original_dists) <- NA
+
+ann_colors <- list(
+  Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
+  Study = c(GSE125158 = "darkseagreen", GSE49641 = "darkorange",
+            GSE74629 = "darkcyan", GSE18670 = "darkred")
+)
+
+original_heatmap = pheatmap(t(original_dists), col = hmcol,
+                            annotation_col = annotation_for_heatmap,
+                            annotation_colors = ann_colors,
+                            legend = TRUE,
+                            treeheight_col = 0,
+                            legend_breaks = c(min(original_dists, na.rm = TRUE), 
+                                              max(original_dists, na.rm = TRUE)), 
+                            legend_labels = (c("small distance", "large distance")),
+                            main = "Original heatmap")
+save_pheatmap_png(original_heatmap, "Plots/QC/Blood_samples/original_heatmap.png")
+
+# Z-score version
 annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
 rownames(annotation_for_heatmap) = full_pdata$GEO_accession
 
@@ -441,7 +607,8 @@ diag(z_dists) <- NA
 
 ann_colors <- list(
   Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
-  Study = c(GSE125158 = "darkseagreen", GSE74629 = "darkcyan", GSE18670 = "darkred")
+  Study = c(GSE125158 = "darkseagreen", GSE49641 = "darkorange",
+            GSE74629 = "darkcyan", GSE18670 = "darkred")
 )
 
 z_heatmap = pheatmap(t(z_dists), col = hmcol,
@@ -452,5 +619,5 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      legend_breaks = c(min(z_dists, na.rm = TRUE), 
                                        max(z_dists, na.rm = TRUE)), 
                      legend_labels = (c("small distance", "large distance")),
-                     main = "Clustering heatmap")
-save_pheatmap_png(z_heatmap, "Plots/QC/KBZ/Blood_samples/Heatmap.png")
+                     main = "Z-score normalisation heatmap")
+save_pheatmap_png(z_heatmap, "Plots/QC/Blood_samples/KBZ_heatmap.png")
