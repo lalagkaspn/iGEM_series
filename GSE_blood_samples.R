@@ -715,3 +715,26 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
 png("DGEA/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
 TN_z_volcano
 dev.off()
+
+##### Comparisons with tumor stage analysis #####
+# Intersect of DEGs:
+tumor_stage_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx")
+significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
+significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
+DEG_overlap = intersect(significants_blood, significants_tumor) # 841 genes
+
+# We also need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+subset1 = tumor_stage_z_results[tumor_stage_z_results$Gene.Symbol %in% DEG_overlap, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_tumor = logFC, adj_p_val_tumor = adj.P.Val)
+subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
+common_set = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set$concordance = ifelse(common_set$logFC_tumor*common_set$logFC_blood > 0, 1, 0)
+concordant_set = common_set %>%
+  dplyr::filter(concordance == 1)
+concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
+write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx")
