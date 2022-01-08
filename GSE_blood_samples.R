@@ -11,6 +11,8 @@ library(pheatmap)
 library(tidyr)
 library(reshape2)
 library(limma)
+library(openxlsx)
+library(EnhancedVolcano)
 
 ##### Downloading data #####
 datasets = c("GSE125158", "GSE49641", "GSE74629", "GSE18670")
@@ -621,3 +623,95 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      legend_labels = (c("small distance", "large distance")),
                      main = "Z-score normalisation heatmap")
 save_pheatmap_png(z_heatmap, "Plots/QC/Blood_samples/KBZ_heatmap.png")
+
+##### Differential Gene Expression (DGEA) #####
+
+full_pdata$Study = as.factor(full_pdata$Study)
+
+# Tumor vs Normal #####
+# Original matrix
+design = model.matrix(~0 + full_pdata$Tissue_type + full_pdata$Study)
+colnames(design) = c("non_tumor", "tumor", "GSE18670", "GSE49641", "GSE74629")
+rownames(design) = colnames(original_exprs_nonas)
+cont.matrix = makeContrasts(tumorvsnontumor=tumor-non_tumor, levels=design)
+
+TN_fit = lmFit(original_exprs_nonas, design)
+TN_fit2 = contrasts.fit(TN_fit, cont.matrix)
+TN_fit2 = eBayes(TN_fit2, robust = TRUE)
+TN_results = decideTests(TN_fit2)
+summary(TN_results)
+TN_DE = as.data.frame(topTable(TN_fit2, adjust.method = "BH", number = Inf))
+TN_DE$EntrezGene.ID = rownames(TN_DE)
+
+# z-score-normalised matrix
+TN_z_fit = lmFit(z_exprs_nonas, design)
+TN_z_fit2 = contrasts.fit(TN_z_fit, cont.matrix)
+TN_z_fit2 = eBayes(TN_z_fit2, robust = TRUE)
+TN_z_results = decideTests(TN_z_fit2)
+summary(TN_z_results)
+TN_z_DE = as.data.frame(topTable(TN_z_fit2, adjust.method = "BH", number = Inf))
+TN_z_DE$EntrezGene.ID = rownames(TN_z_DE)
+
+# Concordance of results (%)
+up_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
+                                                                           TN_z_DE$logFC > 0],
+                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0]))/
+                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC > 0]), 
+                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0])),2), "%")
+down_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
+                                                                             TN_z_DE$logFC < 0],
+                                                     TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0]))/
+                                  max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC < 0]), 
+                                      length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0])),2), "%")
+ns_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05],
+                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05]))/
+                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05]), 
+                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05])),2), "%")
+
+# up-concordance: 46.64%, down_concordance: 48.78%, ns_concordance: 79.27%
+
+# Annotation with official gene symbols
+official = org.Hs.egSYMBOL
+mapped_genes_official = mappedkeys(official)
+official_df = as.data.frame(official[mapped_genes_official])
+official_df = official_df %>% dplyr::rename(EntrezGene.ID = gene_id, Gene.Symbol = symbol)
+official_df = official_df[-which(duplicated(official_df$Gene.Symbol)==T),]
+official_df = distinct(official_df)
+
+TN_DE_mapped = TN_DE %>% left_join(official_df, by = "EntrezGene.ID")
+TN_DE_mapped = TN_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
+rownames(TN_DE_mapped) = TN_DE_mapped$EntrezGene.ID
+write.xlsx(TN_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_DE_topTable.xlsx")
+
+TN_z_DE_mapped = TN_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
+TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
+rownames(TN_z_DE_mapped) = TN_z_DE_mapped$EntrezGene.ID
+write.xlsx(TN_z_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx")
+
+##### Volcano plots #####
+# Tumor vs Normal
+TN_volcano = EnhancedVolcano(TN_DE_mapped,
+                             lab = TN_DE_mapped[, "Gene.Symbol"],
+                             x = 'logFC',
+                             y = 'adj.P.Val',
+                             title = "Tumor vs. Non-tumor",
+                             pCutoff = 0.05,
+                             FCcutoff = 2,
+                             col=c('grey', 'pink', 'purple4', 'red4'),
+                             colAlpha = 0.7)
+png("DGEA/Blood_samples_analysis/Blood_TN_Volcano.png", width = 1920, height = 1080)
+TN_volcano
+dev.off()
+
+TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
+                               lab = TN_z_DE_mapped[, "Gene.Symbol"],
+                               x = 'logFC',
+                               y = 'adj.P.Val',
+                               title = "Tumor vs. Non-tumor (z-normalised)",
+                               pCutoff = 0.05,
+                               FCcutoff = 0.5,
+                               col=c('grey', 'pink', 'purple4', 'red4'),
+                               colAlpha = 0.7)
+png("DGEA/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
+TN_z_volcano
+dev.off()
