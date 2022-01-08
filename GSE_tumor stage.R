@@ -9,7 +9,6 @@ library(ggplot2)
 library(reshape2)
 library(pheatmap)
 library(tidyr)
-library(reshape2)
 library(limma)
 library(openxlsx)
 library(EnhancedVolcano)
@@ -1756,3 +1755,17 @@ Twovsone_z_volcano = EnhancedVolcano(Twovsone_z_DE_mapped,
 png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_Volcano.png", width = 1920, height = 1080)
 Twovsone_z_volcano
 dev.off()
+
+# Writing out the z-score-normalised expression matrix for machine learning purposes
+tumor_matrix_pre = as.data.frame(z_exprs_nonas)
+tumor_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
+tumor_matrix_pre = tumor_matrix_pre %>%
+  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
+  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
+rownames(tumor_matrix_pre) = tumor_matrix_pre$Gene.Symbol
+tumor_matrix = t(tumor_matrix_pre)
+tumor_frame = as.data.frame(tumor_matrix) %>%
+  mutate(GEO_accession = rownames(tumor_matrix)) %>%
+  inner_join(full_pdata, by = "GEO_accession")
+write.xlsx(tumor_frame, "Tumor_samples_z_expression_matrix.xlsx")
+rm(tumor_matrix, tumor_matrix_pre)

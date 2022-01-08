@@ -9,7 +9,6 @@ library(ggplot2)
 library(reshape2)
 library(pheatmap)
 library(tidyr)
-library(reshape2)
 library(limma)
 library(openxlsx)
 library(EnhancedVolcano)
@@ -738,3 +737,17 @@ concordant_set = common_set %>%
   dplyr::filter(concordance == 1)
 concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
 write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx")
+
+# Writing out the z-score-normalised expression matrix for machine learning purposes
+blood_matrix_pre = as.data.frame(z_exprs_nonas)
+blood_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
+blood_matrix_pre = blood_matrix_pre %>%
+  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
+  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
+rownames(blood_matrix_pre) = blood_matrix_pre$Gene.Symbol
+blood_matrix = t(blood_matrix_pre)
+blood_frame = as.data.frame(blood_matrix) %>%
+  mutate(GEO_accession = rownames(blood_matrix)) %>%
+  inner_join(full_pdata, by = "GEO_accession")
+write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx")
+rm(blood_matrix, blood_matrix_pre)
