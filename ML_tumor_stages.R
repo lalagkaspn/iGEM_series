@@ -35,6 +35,30 @@ if (system == 'Windows') {
   options('mc.cores' = cores)
   registerDoParallel(cores)
 }
+# A function that outputs performance measures
+err_metric=function(CM)
+{
+  TN =CM[1,1]
+  TP =CM[2,2]
+  FP =CM[1,2]
+  FN =CM[2,1]
+  precision =(TP)/(TP+FP)
+  recall_score =(FP)/(FP+TN)
+  
+  f1_score=2*((precision*recall_score)/(precision+recall_score))
+  accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+  False_positive_rate =(FP)/(FP+TN)
+  False_negative_rate =(FN)/(FN+TP)
+  
+  print(paste("Precision value of the model: ",round(precision,2)))
+  print(paste("Accuracy of the model: ",round(accuracy_model,2)))
+  print(paste("Recall value of the model: ",round(recall_score,2)))
+  print(paste("False Positive rate of the model: ",round(False_positive_rate,2)))
+  
+  print(paste("False Negative rate of the model: ",round(False_negative_rate,2)))
+  
+  print(paste("f1 score of the model: ",round(f1_score,2)))
+}
 
 # Importing the tumor expression data frame
 tumor_frame = read.xlsx("Tumor_samples_z_expression_matrix.xlsx") %>%
