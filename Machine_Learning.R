@@ -505,7 +505,7 @@ for(i in 1:length(Training)){
   DT_models = list(C50_model, model_bag, boost, adaboost_cv, 
                    rf, comp_rf, m_c50)
   names(DT_models) = c("C5.0 - k", "100X Bagging", "Boosting", "Boosting.cv",
-                       "RForest - k", "Rforest - ROC", 
+                       "RForest - k", "RForest - ROC", 
                        "C5.0 - ROC")
   DT[[i]] = DT_models
   DT_Accuracy = DT_Accuracy[2:nrow(DT_Accuracy),]

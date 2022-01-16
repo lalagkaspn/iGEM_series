@@ -957,6 +957,14 @@ for(i in 1:length(esets)){
 }; rm(i)
 
 ##### Quality Control #####
+
+# Depending on whether the poorly annotated experiment GSE102238 will be included
+# we define our full pheno data differently. Here it is excluded.
+
+full_pdata_filt = full_pdata[full_pdata$Study != "GSE102238", ]
+# In order to include GSE102238 change the previous line of code to:
+# full_pdata_filt = full_pdata
+
 # Joining in one expression matrix: original version
 for (i in 1:length(esets)){
   esets[[i]]$ENTREZ_GENE_ID = as.character(esets[[i]]$ENTREZ_GENE_ID)
@@ -968,16 +976,16 @@ original_exprs = esets[[1]] %>% inner_join(esets[[2]], by = "ENTREZ_GENE_ID") %>
   inner_join(esets[[3]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[4]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[5]], by = "ENTREZ_GENE_ID") %>%
-  inner_join(esets[[6]], by = "ENTREZ_GENE_ID") %>%
+  # inner_join(esets[[6]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[7]], by = "ENTREZ_GENE_ID") %>%
   dplyr::select(ENTREZ_GENE_ID, everything())
 
 rows = original_exprs$ENTREZ_GENE_ID
 original_exprs = as.matrix(original_exprs %>% dplyr::select(-ENTREZ_GENE_ID))
-rownames(original_exprs) = rows; rm(rows) # 2628 x 449
+rownames(original_exprs) = rows; rm(rows) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
 # Making sure we do not have NAs in any row
 original_exprs = original_exprs[rowSums(is.na(original_exprs)) != ncol(original_exprs), ]
-original_exprs_nonas = na.omit(original_exprs) # 2628 x 449
+original_exprs_nonas = na.omit(original_exprs) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
 
 # Joining in one expression matrix: z-score normalised version
 for (i in 1:length(z)){
@@ -990,21 +998,22 @@ z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
   inner_join(z[[3]], by = "EntrezGene.ID") %>%
   inner_join(z[[4]], by = "EntrezGene.ID") %>%
   inner_join(z[[5]], by = "EntrezGene.ID") %>%
-  inner_join(z[[6]], by = "EntrezGene.ID") %>%
+  # inner_join(z[[6]], by = "EntrezGene.ID") %>%
   inner_join(z[[7]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, everything())
 
 rownames(z_exprs) = z_exprs$EntrezGene.ID
-z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 2628 x 449
+z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
 # Making sure we do not have NAs in any row
 z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
-z_exprs_nonas = na.omit(z_exprs) # 2628 x 449
+z_exprs_nonas = na.omit(z_exprs) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
 
 # Multidimensional scaling plot: original matrix #####
 original_mds = plotMDS(original_exprs_nonas)
 original_pca = data.frame(cbind(original_mds$x, original_mds$y, 
-                                as.character(full_pdata$Study), full_pdata$GEO_accession, 
-                                as.character(full_pdata$Tissue_type)))
+                                as.character(full_pdata_filt$Study), 
+                                full_pdata_filt$GEO_accession, 
+                                as.character(full_pdata_filt$Tissue_type)))
 colnames(original_pca) = c("X1", "X2", "Study", "GSM", "Type")
 original_pca$Study = factor(original_pca$Study)
 original_pca$Type = factor(original_pca$Type)
@@ -1036,8 +1045,8 @@ dev.off()
 # Multidimensional scaling plot: z-score normalised matrix
 z_mds = plotMDS(z_exprs_nonas)
 z_pca = data.frame(cbind(z_mds$x, z_mds$y, 
-                         as.character(full_pdata$Study), full_pdata$GEO_accession, 
-                         as.character(full_pdata$Tissue_type)))
+                         as.character(full_pdata_filt$Study), full_pdata_filt$GEO_accession, 
+                         as.character(full_pdata_filt$Tissue_type)))
 colnames(z_pca) = c("X1", "X2", "Study", "GSM", "Type")
 z_pca$Study = factor(z_pca$Study)
 z_pca$Type = factor(z_pca$Type)
@@ -1073,7 +1082,8 @@ ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 12),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
-                        rep("purple", 100), rep("pink", 30)), outlier.alpha = 0.1)+
+                        # rep("purple", 100), 
+                        rep("pink", 30)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -1099,7 +1109,8 @@ ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 12),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
-                        rep("purple", 100), rep("pink", 30)), outlier.alpha = 0.1)+
+                        # rep("purple", 100), 
+                        rep("pink", 30)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -1127,12 +1138,12 @@ save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
 }
 
 # Original
-annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
-rownames(annotation_for_heatmap) = full_pdata$GEO_accession
+annotation_for_heatmap = full_pdata_filt[, c("Study", "Tissue_type")]
+rownames(annotation_for_heatmap) = full_pdata_filt$GEO_accession
 
 original_dists = as.matrix(dist(t(original_exprs_nonas), method = "manhattan"))
 
-rownames(original_dists) = full_pdata$GEO_accession
+rownames(original_dists) = full_pdata_filt$GEO_accession
 hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(9, "RdBu"))(255))
 colnames(original_dists) <- NULL
 diag(original_dists) <- NA
@@ -1141,7 +1152,8 @@ ann_colors <- list(
   Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
-            GSE62165 = "grey", GSE102238 = "darkmagenta", GSE84219 = "yellow")
+            GSE62165 = "grey", #GSE102238 = "darkmagenta", 
+            GSE84219 = "yellow")
 )
 
 original_heatmap = pheatmap(t(original_dists), col = hmcol,
@@ -1156,12 +1168,12 @@ original_heatmap = pheatmap(t(original_dists), col = hmcol,
 save_pheatmap_png(original_heatmap, "Plots/QC/Tumor_stage/original_heatmap.png")
 
 # Z-score version
-annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
-rownames(annotation_for_heatmap) = full_pdata$GEO_accession
+annotation_for_heatmap = full_pdata_filt[, c("Study", "Tissue_type")]
+rownames(annotation_for_heatmap) = full_pdata_filt$GEO_accession
 
 z_dists = as.matrix(dist(t(z_exprs_nonas), method = "manhattan"))
 
-rownames(z_dists) = full_pdata$GEO_accession
+rownames(z_dists) = full_pdata_filt$GEO_accession
 hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(9, "RdBu"))(255))
 colnames(z_dists) <- NULL
 diag(z_dists) <- NA
@@ -1170,7 +1182,8 @@ ann_colors <- list(
   Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
-            GSE62165 = "grey", GSE102238 = "darkmagenta", GSE84219 = "yellow")
+            GSE62165 = "grey", #GSE102238 = "darkmagenta", 
+            GSE84219 = "yellow")
 )
 
 z_heatmap = pheatmap(t(z_dists), col = hmcol,
@@ -1193,13 +1206,13 @@ save_pheatmap_png(z_heatmap, "Plots/QC/Tumor_stage/KBZ_heatmap.png")
 #    - Stage 2 vs Stages 3/4
 #    - Stage 2 vs Stage 1
 
-full_pdata$Study = as.factor(full_pdata$Study)
+full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
 
 # Tumor vs Normal #####
 
 # Original matrix
-design1 = model.matrix(~0 + full_pdata$Tissue_type + full_pdata$Study)
-colnames(design1) = c("non_tumor", "tumor", "GSE18670", "GSE21501", "GSE42952",
+design1 = model.matrix(~0 + full_pdata_filt$Tissue_type + full_pdata_filt$Study)
+colnames(design1) = c("non_tumor", "tumor", "GSE21501", "GSE42952",
                       "GSE62165", "GSE62452", "GSE84219")
 rownames(design1) = colnames(original_exprs_nonas)
 cont.matrix1 = makeContrasts(tumorvsnontumor=tumor-non_tumor, levels=design1)
@@ -1251,18 +1264,20 @@ official_df = distinct(official_df)
 TN_DE_mapped = TN_DE %>% left_join(official_df, by = "EntrezGene.ID")
 TN_DE_mapped = TN_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(TN_DE_mapped) = TN_DE_mapped$EntrezGene.ID
-write.xlsx(TN_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_DE_topTable.xlsx")
+write.xlsx(TN_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 TN_z_DE_mapped = TN_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(TN_z_DE_mapped) = TN_z_DE_mapped$EntrezGene.ID
-write.xlsx(TN_z_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx")
+write.xlsx(TN_z_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 # Stages 1/2 vs stages 3/4 #####
 
 # Filtering the matrices for tumor samples only (the ones with available
 # AJCC classification info):
-Stages_pdata = full_pdata %>%
+Stages_pdata = full_pdata_filt %>%
   dplyr::filter(Tissue_type == "tumor") %>%
   dplyr::filter(is.na(AJCC_classification) == FALSE) %>%
   mutate(Stage_group = NA)
@@ -1274,12 +1289,12 @@ Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == "1a" |
                            Stages_pdata$AJCC_classification == "2b"] = "Early_stage"
 Stages_pdata$Stage_group = as.factor(Stages_pdata$Stage_group)
 
-stages_original_matrix = original_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318
-stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318
+stages_original_matrix = original_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318 (or 4922 x 268 if we exclude GSE102238)
+stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318 (or 4922 x 268 if we exclude GSE102238)
 
 # Original matrix
 design2 = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
-colnames(design2) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
+colnames(design2) = c("Advanced_stage", "Early_stage", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 rownames(design2) = colnames(stages_original_matrix)
 cont.matrix2 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design2)
@@ -1323,12 +1338,14 @@ stages_ns_concordance = paste0(round(100*length(intersect(Stages_z_DE$EntrezGene
 Stages_DE_mapped = Stages_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Stages_DE_mapped = Stages_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Stages_DE_mapped) = Stages_DE_mapped$EntrezGene.ID
-write.xlsx(Stages_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_DE_topTable.xlsx")
+write.xlsx(Stages_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 Stages_z_DE_mapped = Stages_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Stages_z_DE_mapped = Stages_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Stages_z_DE_mapped) = Stages_z_DE_mapped$EntrezGene.ID
-write.xlsx(Stages_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_z_DE_topTable.xlsx")
+write.xlsx(Stages_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 # Stage 1 vs Stages 2/3/4 #####
 
@@ -1343,7 +1360,7 @@ Stages_pdata$One_vs_all = as.factor(Stages_pdata$One_vs_all)
 
 # Original matrix
 design3 = model.matrix(~0 + Stages_pdata$One_vs_all + Stages_pdata$Study)
-colnames(design3) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
+colnames(design3) = c("Advanced_stage", "Early_stage", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 rownames(design3) = colnames(stages_original_matrix)
 cont.matrix3 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design3)
@@ -1387,12 +1404,14 @@ Onevsall_ns_concordance = paste0(round(100*length(intersect(Onevsall_z_DE$Entrez
 Onevsall_DE_mapped = Onevsall_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Onevsall_DE_mapped = Onevsall_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Onevsall_DE_mapped) = Onevsall_DE_mapped$EntrezGene.ID
-write.xlsx(Onevsall_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_DE_topTable.xlsx")
+write.xlsx(Onevsall_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 Onevsall_z_DE_mapped = Onevsall_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Onevsall_z_DE_mapped = Onevsall_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Onevsall_z_DE_mapped) = Onevsall_z_DE_mapped$EntrezGene.ID
-write.xlsx(Onevsall_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_z_DE_topTable.xlsx")
+write.xlsx(Onevsall_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 # Stage 1 vs Stages 3/4 #####
 
 # Removing stage 2 samples
@@ -1403,7 +1422,7 @@ Stages_pdata_comp4 = Stages_pdata %>%
 
 # Original matrix
 design4 = model.matrix(~0 + Stages_pdata_comp4$One_vs_all + Stages_pdata_comp4$Study)
-colnames(design4) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
+colnames(design4) = c("Advanced_stage", "Early_stage", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp4_matrix = original_exprs_nonas[, Stages_pdata_comp4$GEO_accession]
@@ -1451,12 +1470,14 @@ Onevslate_ns_concordance = paste0(round(100*length(intersect(Onevslate_z_DE$Entr
 Onevslate_DE_mapped = Onevslate_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Onevslate_DE_mapped = Onevslate_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Onevslate_DE_mapped) = Onevslate_DE_mapped$EntrezGene.ID
-write.xlsx(Onevslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_DE_topTable.xlsx")
+write.xlsx(Onevslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 Onevslate_z_DE_mapped = Onevslate_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Onevslate_z_DE_mapped = Onevslate_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Onevslate_z_DE_mapped) = Onevslate_z_DE_mapped$EntrezGene.ID
-write.xlsx(Onevslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_z_DE_topTable.xlsx")
+write.xlsx(Onevslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 # Stage 2 vs Stages 3/4 #####
 
 # Removing stage 1 samples
@@ -1467,7 +1488,7 @@ Stages_pdata_comp5 = Stages_pdata %>%
 
 # Original matrix
 design5 = model.matrix(~0 + Stages_pdata_comp5$Stage_group + Stages_pdata_comp5$Study)
-colnames(design5) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
+colnames(design5) = c("Advanced_stage", "Early_stage", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp5_matrix = original_exprs_nonas[, Stages_pdata_comp5$GEO_accession]
@@ -1515,12 +1536,14 @@ Twovslate_ns_concordance = paste0(round(100*length(intersect(Twovslate_z_DE$Entr
 Twovslate_DE_mapped = Twovslate_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Twovslate_DE_mapped = Twovslate_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Twovslate_DE_mapped) = Twovslate_DE_mapped$EntrezGene.ID
-write.xlsx(Twovslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_DE_topTable.xlsx")
+write.xlsx(Twovslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 Twovslate_z_DE_mapped = Twovslate_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Twovslate_z_DE_mapped = Twovslate_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Twovslate_z_DE_mapped) = Twovslate_z_DE_mapped$EntrezGene.ID
-write.xlsx(Twovslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_z_DE_topTable.xlsx")
+write.xlsx(Twovslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 # Stage 2 vs Stage 1 #####
 
@@ -1538,7 +1561,7 @@ Stages_pdata_comp6$Stage = as.factor(Stages_pdata_comp6$Stage)
 
 # Original matrix
 design6 = model.matrix(~0 + Stages_pdata_comp6$Stage + Stages_pdata_comp6$Study)
-colnames(design6) = c("Stage_1", "Stage_2", "GSE18670", "GSE21501", 
+colnames(design6) = c("Stage_1", "Stage_2", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp6_matrix = original_exprs_nonas[, Stages_pdata_comp6$GEO_accession]
@@ -1586,12 +1609,14 @@ Twovsone_ns_concordance = paste0(round(100*length(intersect(Twovsone_z_DE$Entrez
 Twovsone_DE_mapped = Twovsone_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Twovsone_DE_mapped = Twovsone_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Twovsone_DE_mapped) = Twovsone_DE_mapped$EntrezGene.ID
-write.xlsx(Twovsone_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_DE_topTable.xlsx")
+write.xlsx(Twovsone_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 Twovsone_z_DE_mapped = Twovsone_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
 Twovsone_z_DE_mapped = Twovsone_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
 rownames(Twovsone_z_DE_mapped) = Twovsone_z_DE_mapped$EntrezGene.ID
-write.xlsx(Twovsone_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_DE_topTable.xlsx")
+write.xlsx(Twovsone_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 ##### Volcano plots #####
 # Tumor vs Normal
@@ -1756,6 +1781,7 @@ png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_Volcano.png"
 Twovsone_z_volcano
 dev.off()
 
+# The following output changes depending on the definition of full_pdata_filt
 # Writing out the z-score-normalised expression matrix for machine learning purposes
 tumor_matrix_pre = as.data.frame(z_exprs_nonas)
 tumor_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
@@ -1766,6 +1792,6 @@ rownames(tumor_matrix_pre) = tumor_matrix_pre$Gene.Symbol
 tumor_matrix = t(tumor_matrix_pre)
 tumor_frame = as.data.frame(tumor_matrix) %>%
   mutate(GEO_accession = rownames(tumor_matrix)) %>%
-  inner_join(full_pdata, by = "GEO_accession")
+  inner_join(full_pdata_filt, by = "GEO_accession")
 write.xlsx(tumor_frame, "Tumor_samples_z_expression_matrix.xlsx")
 rm(tumor_matrix, tumor_matrix_pre)
