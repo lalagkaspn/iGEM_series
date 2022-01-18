@@ -135,7 +135,7 @@ for (k in seq(2,10)){
 }
 
 cluster_corr = as.data.frame(cbind(cluster_number, chifit_stage_p, chifit_AJCC_p))
-colnames(cluster_corr) = c("No. of clusters", "Tissue_type", "AJCC_classification")
+colnames(cluster_corr) = c("No. of clusters", "Stage", "AJCC_classification")
 
 # PCA clustering
 png("ML/Tumor_stage/Cluster_PCA.png",

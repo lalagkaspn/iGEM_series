@@ -961,9 +961,9 @@ for(i in 1:length(esets)){
 # Depending on whether the poorly annotated experiment GSE102238 will be included
 # we define our full pheno data differently. Here it is excluded.
 
-full_pdata_filt = full_pdata[full_pdata$Study != "GSE102238", ]
+# full_pdata_filt = full_pdata[full_pdata$Study != "GSE102238", ]
 # In order to include GSE102238 change the previous line of code to:
-# full_pdata_filt = full_pdata
+full_pdata_filt = full_pdata
 
 # Joining in one expression matrix: original version
 for (i in 1:length(esets)){
@@ -976,7 +976,7 @@ original_exprs = esets[[1]] %>% inner_join(esets[[2]], by = "ENTREZ_GENE_ID") %>
   inner_join(esets[[3]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[4]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[5]], by = "ENTREZ_GENE_ID") %>%
-  # inner_join(esets[[6]], by = "ENTREZ_GENE_ID") %>%
+  inner_join(esets[[6]], by = "ENTREZ_GENE_ID") %>%
   inner_join(esets[[7]], by = "ENTREZ_GENE_ID") %>%
   dplyr::select(ENTREZ_GENE_ID, everything())
 
@@ -998,7 +998,7 @@ z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
   inner_join(z[[3]], by = "EntrezGene.ID") %>%
   inner_join(z[[4]], by = "EntrezGene.ID") %>%
   inner_join(z[[5]], by = "EntrezGene.ID") %>%
-  # inner_join(z[[6]], by = "EntrezGene.ID") %>%
+  inner_join(z[[6]], by = "EntrezGene.ID") %>%
   inner_join(z[[7]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, everything())
 
@@ -1082,7 +1082,7 @@ ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 12),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
-                        # rep("purple", 100), 
+                        rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
@@ -1109,7 +1109,7 @@ ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 12),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
-                        # rep("purple", 100), 
+                        rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
@@ -1152,7 +1152,7 @@ ann_colors <- list(
   Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
-            GSE62165 = "grey", #GSE102238 = "darkmagenta", 
+            GSE62165 = "grey", GSE102238 = "darkmagenta", 
             GSE84219 = "yellow")
 )
 
@@ -1182,7 +1182,7 @@ ann_colors <- list(
   Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
-            GSE62165 = "grey", #GSE102238 = "darkmagenta", 
+            GSE62165 = "grey", GSE102238 = "darkmagenta", 
             GSE84219 = "yellow")
 )
 
@@ -1206,13 +1206,13 @@ save_pheatmap_png(z_heatmap, "Plots/QC/Tumor_stage/KBZ_heatmap.png")
 #    - Stage 2 vs Stages 3/4
 #    - Stage 2 vs Stage 1
 
-full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
+# full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
 
 # Tumor vs Normal #####
 
 # Original matrix
 design1 = model.matrix(~0 + full_pdata_filt$Tissue_type + full_pdata_filt$Study)
-colnames(design1) = c("non_tumor", "tumor", "GSE21501", "GSE42952",
+colnames(design1) = c("non_tumor", "tumor", "GSE18670", "GSE21501", "GSE42952",
                       "GSE62165", "GSE62452", "GSE84219")
 rownames(design1) = colnames(original_exprs_nonas)
 cont.matrix1 = makeContrasts(tumorvsnontumor=tumor-non_tumor, levels=design1)
@@ -1294,7 +1294,7 @@ stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318 (or 4
 
 # Original matrix
 design2 = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
-colnames(design2) = c("Advanced_stage", "Early_stage", "GSE21501", 
+colnames(design2) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 rownames(design2) = colnames(stages_original_matrix)
 cont.matrix2 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design2)
@@ -1360,7 +1360,7 @@ Stages_pdata$One_vs_all = as.factor(Stages_pdata$One_vs_all)
 
 # Original matrix
 design3 = model.matrix(~0 + Stages_pdata$One_vs_all + Stages_pdata$Study)
-colnames(design3) = c("Advanced_stage", "Early_stage", "GSE21501", 
+colnames(design3) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 rownames(design3) = colnames(stages_original_matrix)
 cont.matrix3 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design3)
@@ -1422,7 +1422,7 @@ Stages_pdata_comp4 = Stages_pdata %>%
 
 # Original matrix
 design4 = model.matrix(~0 + Stages_pdata_comp4$One_vs_all + Stages_pdata_comp4$Study)
-colnames(design4) = c("Advanced_stage", "Early_stage", "GSE21501", 
+colnames(design4) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp4_matrix = original_exprs_nonas[, Stages_pdata_comp4$GEO_accession]
@@ -1488,7 +1488,7 @@ Stages_pdata_comp5 = Stages_pdata %>%
 
 # Original matrix
 design5 = model.matrix(~0 + Stages_pdata_comp5$Stage_group + Stages_pdata_comp5$Study)
-colnames(design5) = c("Advanced_stage", "Early_stage", "GSE21501", 
+colnames(design5) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp5_matrix = original_exprs_nonas[, Stages_pdata_comp5$GEO_accession]
@@ -1561,7 +1561,7 @@ Stages_pdata_comp6$Stage = as.factor(Stages_pdata_comp6$Stage)
 
 # Original matrix
 design6 = model.matrix(~0 + Stages_pdata_comp6$Stage + Stages_pdata_comp6$Study)
-colnames(design6) = c("Stage_1", "Stage_2", "GSE21501", 
+colnames(design6) = c("Stage_1", "Stage_2",  "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 
 comp6_matrix = original_exprs_nonas[, Stages_pdata_comp6$GEO_accession]
@@ -1793,5 +1793,5 @@ tumor_matrix = t(tumor_matrix_pre)
 tumor_frame = as.data.frame(tumor_matrix) %>%
   mutate(GEO_accession = rownames(tumor_matrix)) %>%
   inner_join(full_pdata_filt, by = "GEO_accession")
-write.xlsx(tumor_frame, "Tumor_samples_z_expression_matrix.xlsx")
+write.xlsx(tumor_frame, "Tumor_samples_z_expression_matrix.xlsx", overwrite = TRUE)
 rm(tumor_matrix, tumor_matrix_pre)
