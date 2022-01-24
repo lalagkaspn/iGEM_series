@@ -12,6 +12,7 @@ library(tidyr)
 library(limma)
 library(openxlsx)
 library(EnhancedVolcano)
+library(impute)
 
 ##### Downloading data #####
 datasets = c("GSE21501", "GSE42952", "GSE18670", "GSE62452", "GSE62165", 
@@ -702,7 +703,7 @@ rm(pdataGSE21501, pdataGSE42952, pdataGSE18670, pdataGSE62452, pdataGSE62165,
 ##### Expression data #####
 # GSE42952 has a lot of missing values. Certain columns (~40% of the samples)
 # have more than 80% missing values (on the same rows) and therefore imputation
-# could be yield quite biased results and is avoided in this case. The rows with
+# could yield quite biased results and is avoided in this case. The rows with
 # more than 25% missing values are removed.
 GEOsets[["GSE42952"]] = GEOsets[["GSE42952"]][rowSums(is.na(GEOsets[["GSE42952"]]@assayData[["exprs"]]))/
                               length(colnames(GEOsets[["GSE42952"]]@assayData[["exprs"]])) < 0.25, ]
@@ -864,58 +865,80 @@ rm(fdata62165)
 # No information for corresponding genes provided in GEOset
 # Two separate .fasta files were prepared based on the probe sequences
 # available at the GPL file.
-# BLASTN alignment (against RefSeq RNA sequences, "refseq_rna") was performed
+# BLASTN alignment (against Nucleotide sequences, "nt") was performed
 # to annotate probes with RefSeq gene IDs
 # https://blast.ncbi.nlm.nih.gov/Blast.cgi
 # Read csv results from BLASTN
 
-blastn_1 = read.csv(file = "GSE102238_BLASTN-1.csv", header = FALSE)
-blastn_2 = read.csv(file = "GSE102238_BLASTN-2.csv", header = FALSE)
-blastn = rbind(blastn_1, blastn_2)
+blastn_1 = read.csv(file = "Sequences_1.csv", header = FALSE)
+blastn_2 = read.csv(file = "Sequences_2.csv", header = FALSE)
+blastn_3 = read.csv(file = "Sequences_3.csv", header = FALSE)
+blastn_4 = read.csv(file = "Sequences_4.csv", header = FALSE)
+blastn = rbind(blastn_1, blastn_2, blastn_3, blastn_4)
 blastn$V2 = gsub("\\..", "", blastn$V2) # RefSeq column: keep main nomenclature - ignore variants
 blastn = blastn %>%
   dplyr::select(V1, V2, V3, V11) %>%
+  dplyr::filter(V3 == 100.00) %>%
   distinct()
-rm(blastn_1, blastn_2)
+rm(blastn_1, blastn_2, blastn_3, blastn_4)
 colnames(blastn) = c("probe", "RefSeq", "Alignment_perc", "E_value")
 blastn$Alignment_perc = as.numeric(blastn$Alignment_perc)
 blastn$E_value = as.numeric(blastn$E_value)
 blastn = blastn[order(blastn$probe, 1/blastn$E_value),]
-blastn$status = NA
 
-# Add a column to filter for best matches for each probe, in the case of ties,
-# keep them all - perhaps it's different RefSeq ID's but the same Entrez ID
-for (i in 1:nrow(blastn)){
-  if (blastn$Alignment_perc[i] == 
-      max(blastn$Alignment_perc[blastn$probe == blastn$probe[i]])) {
-    blastn$status[i] = "Keep"
+# Map through org.Hs.eg.db
+mapped_blastn = inner_join(blastn, ref_df, by = "RefSeq") %>%
+  dplyr::select(probe, RefSeq, ENTREZ_GENE_ID) %>%
+  distinct() %>%
+  dplyr::select(probe, ENTREZ_GENE_ID) # we do not use distinct() here for filtering purposes
+
+# Probes which match to multiple ID's: 
+# Check if >50% of Entrez ID's mapping to a probe are actually a unique Entrez ID
+# If yes, map the probe to that Entrez ID. If not, discard the probe
+# Process described here and suggested by Ensembl: 
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3431719/
+
+mapped_blastn = mapped_blastn[order(mapped_blastn$probe),]
+mapped_blastn$unique_Entrez_perc = NA
+
+# Add a column to filter as described previously
+for (i in 1:nrow(mapped_blastn)){
+  if (length(unique(mapped_blastn$ENTREZ_GENE_ID[mapped_blastn$probe == 
+                                                 mapped_blastn$probe[i]])) == 1) {
+    mapped_blastn$unique_Entrez_perc[i] = 100
   } else {
-    blastn$status[i] = "Discard"
+    mapped_blastn$unique_Entrez_perc[i] = 100*length(which(mapped_blastn$ENTREZ_GENE_ID[mapped_blastn$probe == 
+                                                                                          mapped_blastn$probe[i]] == mapped_blastn$ENTREZ_GENE_ID[i]))/
+      nrow(mapped_blastn[mapped_blastn$probe == mapped_blastn$probe[i],])
   }
 }
 
-blastn = blastn %>%
-  dplyr::filter(status == "Keep")
+# We now keep everything with unique Entrez mapping percentage over 50%
+# That is quaranteed to keep one Entrez ID for each probe and discard probes 
+# for which only lower mapping percentages exist
 
-# Map through org.Hs.eg.db
-mapped_blastn = inner_join(blastn, ref_df, by = "RefSeq")
 mapped_blastn_filt = mapped_blastn %>%
+  dplyr::filter(unique_Entrez_perc > 50) %>%
   dplyr::select(probe, ENTREZ_GENE_ID) %>%
   distinct()
 
-# Probes which match to multiple ID's: remove them
-mapped_dups = unique(mapped_blastn_filt$probe[which(duplicated(mapped_blastn_filt$probe))])
-annot = mapped_blastn_filt[!mapped_blastn_filt$probe %in% mapped_dups,]
-rm(blastn, mapped_blastn, mapped_blastn_filt, mapped_dups)
+# > length(which(duplicated(mapped_blastn_filt$probe)))
+# [1] 0
+# > length(which(duplicated(mapped_blastn_filt$ENTREZ_GENE_ID)))
+# [1] 4818
+
+# That means each probe is mapped to a unique Entrez ID, but multiple probes
+# may map to the same ID. These probes will be averaged after the gene expression
+# matrix is annotated, as we did in previous cases.
 
 esets[["GSE102238"]]$probe = rownames(esets[["GSE102238"]])
 esets[["GSE102238"]] = esets[["GSE102238"]] %>%
-  inner_join(annot, by = "probe") %>%
+  inner_join(mapped_blastn_filt, by = "probe") %>%
   dplyr::select(-probe) %>%
   dplyr::select(ENTREZ_GENE_ID, everything()) %>%
   group_by(ENTREZ_GENE_ID) %>%
   summarise_all(mean, na.rm = TRUE)
-rm(annot)
+rm(blastn, mapped_blastn, mapped_blastn_filt)
 
 
 # GSE84219
@@ -982,10 +1005,10 @@ original_exprs = esets[[1]] %>% inner_join(esets[[2]], by = "ENTREZ_GENE_ID") %>
 
 rows = original_exprs$ENTREZ_GENE_ID
 original_exprs = as.matrix(original_exprs %>% dplyr::select(-ENTREZ_GENE_ID))
-rownames(original_exprs) = rows; rm(rows) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
+rownames(original_exprs) = rows; rm(rows) # 2601 x 449
 # Making sure we do not have NAs in any row
 original_exprs = original_exprs[rowSums(is.na(original_exprs)) != ncol(original_exprs), ]
-original_exprs_nonas = na.omit(original_exprs) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
+original_exprs_nonas = na.omit(original_exprs) # 2601 x 449
 
 # Joining in one expression matrix: z-score normalised version
 for (i in 1:length(z)){
@@ -1003,10 +1026,10 @@ z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, everything())
 
 rownames(z_exprs) = z_exprs$EntrezGene.ID
-z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
+z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 2601 x 449
 # Making sure we do not have NAs in any row
 z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
-z_exprs_nonas = na.omit(z_exprs) # 2628 x 449 (or 4922 x 349 if we exclude GSE102238)
+z_exprs_nonas = na.omit(z_exprs) # 2601 x 449
 
 # Multidimensional scaling plot: original matrix #####
 original_mds = plotMDS(original_exprs_nonas)
@@ -1149,7 +1172,7 @@ colnames(original_dists) <- NULL
 diag(original_dists) <- NA
 
 ann_colors <- list(
-  Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
+  Tissue_type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
             GSE62165 = "grey", GSE102238 = "darkmagenta", 
@@ -1179,7 +1202,7 @@ colnames(z_dists) <- NULL
 diag(z_dists) <- NA
 
 ann_colors <- list(
-  Type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
+  Tissue_type = c(tumor = "deeppink4", non_tumor = "dodgerblue4"),
   Study = c(GSE21501 = "darkseagreen", GSE42952 = "darkorange",
             GSE18670 = "darkcyan", GSE62452 = "darkred",
             GSE62165 = "grey", GSE102238 = "darkmagenta", 
@@ -1206,7 +1229,7 @@ save_pheatmap_png(z_heatmap, "Plots/QC/Tumor_stage/KBZ_heatmap.png")
 #    - Stage 2 vs Stages 3/4
 #    - Stage 2 vs Stage 1
 
-# full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
+full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
 
 # Tumor vs Normal #####
 
@@ -1289,8 +1312,8 @@ Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == "1a" |
                            Stages_pdata$AJCC_classification == "2b"] = "Early_stage"
 Stages_pdata$Stage_group = as.factor(Stages_pdata$Stage_group)
 
-stages_original_matrix = original_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318 (or 4922 x 268 if we exclude GSE102238)
-stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2628 x 318 (or 4922 x 268 if we exclude GSE102238)
+stages_original_matrix = original_exprs_nonas[, Stages_pdata$GEO_accession] # 2601 x 318
+stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2601 x 318
 
 # Original matrix
 design2 = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
@@ -1412,6 +1435,7 @@ Onevsall_z_DE_mapped = Onevsall_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gen
 rownames(Onevsall_z_DE_mapped) = Onevsall_z_DE_mapped$EntrezGene.ID
 write.xlsx(Onevsall_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_z_DE_topTable.xlsx",
            overwrite = TRUE)
+
 # Stage 1 vs Stages 3/4 #####
 
 # Removing stage 2 samples
@@ -1478,6 +1502,7 @@ Onevslate_z_DE_mapped = Onevslate_z_DE_mapped %>% dplyr::select(EntrezGene.ID, G
 rownames(Onevslate_z_DE_mapped) = Onevslate_z_DE_mapped$EntrezGene.ID
 write.xlsx(Onevslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_z_DE_topTable.xlsx",
            overwrite = TRUE)
+
 # Stage 2 vs Stages 3/4 #####
 
 # Removing stage 1 samples
