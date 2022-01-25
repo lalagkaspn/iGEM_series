@@ -21,6 +21,45 @@ library(glmnet)
 library(MASS)
 library(LiblineaR)
 
+# Enable parallel programming
+library(doParallel)
+system <- Sys.info()['sysname']
+cores <- makeCluster(detectCores(), type='PSOCK')
+cl <- NULL
+if (system == 'Windows') {
+  cl <- makeCluster(getOption('cl.cores', cores))
+  registerDoParallel(cl)
+  registerDoSEQ()
+  on.exit(stopCluster(cl))
+} else {
+  options('mc.cores' = cores)
+  registerDoParallel(cores)
+}
+# A function that outputs performance measures
+err_metric=function(CM)
+{
+  TN =CM[1,1]
+  TP =CM[2,2]
+  FP =CM[1,2]
+  FN =CM[2,1]
+  precision =(TP)/(TP+FP)
+  recall_score =(FP)/(FP+TN)
+  
+  f1_score=2*((precision*recall_score)/(precision+recall_score))
+  accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+  False_positive_rate =(FP)/(FP+TN)
+  False_negative_rate =(FN)/(FN+TP)
+  
+  print(paste("Precision value of the model: ",round(precision,2)))
+  print(paste("Accuracy of the model: ",round(accuracy_model,2)))
+  print(paste("Recall value of the model: ",round(recall_score,2)))
+  print(paste("False Positive rate of the model: ",round(False_positive_rate,2)))
+  
+  print(paste("False Negative rate of the model: ",round(False_negative_rate,2)))
+  
+  print(paste("f1 score of the model: ",round(f1_score,2)))
+}
+
 # Importing the two expression data frames
 blood_frame = read.xlsx("Blood_samples_z_expression_matrix.xlsx")
 tumor_frame = read.xlsx("Tumor_samples_z_expression_matrix.xlsx")
@@ -354,13 +393,14 @@ grid1 = expand.grid(model = c("tree", "rule"),
                     trials = c(10,15,25,50,100),
                     winnow = c(TRUE, FALSE))
 ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 10,
-                    selectionFunction = "best")
+                    selectionFunction = "best", allowParallel = TRUE)
 grid_c50 = expand.grid(model = c("tree", "rule"),
                        trials = c(10,15,25,50,100),
                        winnow = c(TRUE, FALSE))
 ctrls = trainControl(method = "repeatedcv", number = 10, repeats = 10,
                      selectionFunction = "best", savePredictions = TRUE,
-                     classProbs = TRUE, summaryFunction = twoClassSummary)
+                     classProbs = TRUE, summaryFunction = twoClassSummary,
+                     allowParallel = TRUE)
 grid2 = expand.grid(mtry=c(2, 10, 15, 25, 50, 100, 200, 300, 400, 500))
 dtwb = createWorkbook()
 DT = list()
@@ -527,14 +567,14 @@ SVM = list()
 svmwb = createWorkbook()
 cost_values = seq(from = 0.5, to = 20, by = 0.5)
 linear_svm_ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 10,
-                               selectionFunction = "best")
+                               selectionFunction = "best", allowParallel = TRUE)
 linear_svm_tune = expand.grid(C = cost_values)
 L2_linear_svm_ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 10,
-                                  selectionFunction = "best")
+                                  selectionFunction = "best", allowParallel = TRUE)
 L2_linear_svm_tune = expand.grid(cost = cost_values,
                                  Loss = "L2")
 rbf_svm_ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 10,
-                            selectionFunction = "best")
+                            selectionFunction = "best", allowParallel = TRUE)
 rbf_svm_tune = expand.grid(C = cost_values,
                            sigma = c(0, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9))
 
@@ -634,41 +674,16 @@ saveWorkbook(svmwb, file = "ML/SVM.xlsx",
 names(SVM) = names(Training)
 
 # Evaluating the best model on the test set #####
-final_model_test_pred = predict(DT[["GS"]][["Boosting"]], test_all)
-cm_final_model_test = final_model_test_pred$confusion
+final_model_test_pred = predict(DT[["GS"]][["RForest - k"]], test_all)
+cm_final_model_test = table(final_model_test_pred, test_all$Tissue_type)
 final_model_test_accuracy = (cm_final_model_test[1] + cm_final_model_test[4])/
   sum(cm_final_model_test)
-
-# A function that outputs performance measures
-err_metric=function(CM)
-{
-  TN =CM[1,1]
-  TP =CM[2,2]
-  FP =CM[1,2]
-  FN =CM[2,1]
-  precision =(TP)/(TP+FP)
-  recall_score =(FP)/(FP+TN)
-  
-  f1_score=2*((precision*recall_score)/(precision+recall_score))
-  accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-  False_positive_rate =(FP)/(FP+TN)
-  False_negative_rate =(FN)/(FN+TP)
-  
-  print(paste("Precision value of the model: ",round(precision,2)))
-  print(paste("Accuracy of the model: ",round(accuracy_model,2)))
-  print(paste("Recall value of the model: ",round(recall_score,2)))
-  print(paste("False Positive rate of the model: ",round(False_positive_rate,2)))
-  
-  print(paste("False Negative rate of the model: ",round(False_negative_rate,2)))
-  
-  print(paste("f1 score of the model: ",round(f1_score,2)))
-}
 
 err_metric(cm_final_model_test)
 
 # "Precision value of the model:  0.93"
-# "Accuracy of the model:  0.86"
-# "Recall value of the model:  0.19"
-# "False Positive rate of the model:  0.19"
-# "False Negative rate of the model:  0.12"
-# "f1 score of the model:  0.32"
+# "Accuracy of the model:  0.85"
+# "Recall value of the model:  0.2"
+# "False Positive rate of the model:  0.2"
+# "False Negative rate of the model:  0.14"
+# "f1 score of the model:  0.33"

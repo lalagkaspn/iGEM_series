@@ -720,7 +720,7 @@ dev.off()
 tumor_stage_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx")
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
-DEG_overlap = intersect(significants_blood, significants_tumor) # 841 genes
+DEG_overlap = intersect(significants_blood, significants_tumor) # 839 genes
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -736,7 +736,7 @@ common_set$concordance = ifelse(common_set$logFC_tumor*common_set$logFC_blood > 
 concordant_set = common_set %>%
   dplyr::filter(concordance == 1)
 concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
-write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx")
+write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx", overwrite = TRUE)
 
 # Writing out the z-score-normalised expression matrix for machine learning purposes
 blood_matrix_pre = as.data.frame(z_exprs_nonas)
@@ -749,5 +749,5 @@ blood_matrix = t(blood_matrix_pre)
 blood_frame = as.data.frame(blood_matrix) %>%
   mutate(GEO_accession = rownames(blood_matrix)) %>%
   inner_join(full_pdata, by = "GEO_accession")
-write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx")
+write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx", overwrite = TRUE)
 rm(blood_matrix, blood_matrix_pre)
