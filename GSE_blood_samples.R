@@ -708,7 +708,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                y = 'adj.P.Val',
                                title = "Tumor vs. Non-tumor (z-normalised)",
                                pCutoff = 0.05,
-                               FCcutoff = 0.5,
+                               FCcutoff = 1,
                                col=c('grey', 'pink', 'purple4', 'red4'),
                                colAlpha = 0.7)
 png("DGEA/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
@@ -716,7 +716,7 @@ TN_z_volcano
 dev.off()
 
 ##### Comparisons with tumor stage analysis #####
-# Intersect of DEGs:
+# Intersect of DEGs with the tumor vs normal (all-stage tumours) DEGs:
 tumor_stage_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx")
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
@@ -737,6 +737,45 @@ concordant_set = common_set %>%
   dplyr::filter(concordance == 1)
 concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
 write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx", overwrite = TRUE)
+
+# Writing out the z-score-normalised expression matrix for machine learning purposes
+blood_matrix_pre = as.data.frame(z_exprs_nonas)
+blood_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
+blood_matrix_pre = blood_matrix_pre %>%
+  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
+  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
+rownames(blood_matrix_pre) = blood_matrix_pre$Gene.Symbol
+blood_matrix = t(blood_matrix_pre)
+blood_frame = as.data.frame(blood_matrix) %>%
+  mutate(GEO_accession = rownames(blood_matrix)) %>%
+  inner_join(full_pdata, by = "GEO_accession")
+write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx", overwrite = TRUE)
+rm(blood_matrix, blood_matrix_pre)
+
+# Intersect of DEGs with the stage 1 tumours vs normal DEGs:
+tumor_stage_1_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/one_normal_z_DE_topTable.xlsx")
+significants_tumor_stage_1 = tumor_stage_1_z_results$Gene.Symbol[tumor_stage_1_z_results$adj.P.Val < 0.05]
+DEG_overlap_stage_1 = intersect(significants_blood, significants_tumor_stage_1) # 743 genes
+
+# We also need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_1_subset1 = tumor_stage_1_z_results[tumor_stage_1_z_results$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_tumor = logFC, adj_p_val_tumor = adj.P.Val)
+stage_1_subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
+common_set_stage_1 = inner_join(stage_1_subset1, stage_1_subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set_stage_1$concordance = ifelse(common_set_stage_1$logFC_tumor*common_set_stage_1$logFC_blood > 0, 1, 0)
+concordant_set_stage_1 = common_set_stage_1 %>%
+  dplyr::filter(concordance == 1)
+concordant_set_stage_1 = concordant_set_stage_1[order(concordant_set_stage_1$adj_p_val_blood, 
+                                                      concordant_set_stage_1$adj_p_val_tumor), ]
+write.xlsx(concordant_set_stage_1, "DGEA/Blood_Tumor_Stage_1_DEG_overlap.xlsx", overwrite = TRUE)
+
+# 481 common stat. sig. diff. genes expressed in blood samples and stage 1 samples
+# vs. normal (stat. sig. diff. expressed and in the same direction)
 
 # Writing out the z-score-normalised expression matrix for machine learning purposes
 blood_matrix_pre = as.data.frame(z_exprs_nonas)
