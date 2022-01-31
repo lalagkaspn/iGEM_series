@@ -2069,7 +2069,7 @@ union_one_normal_z_DE = as.data.frame(topTable(union_one_normal_z_fit2,
                                                       adjust.method="BH", number = Inf))
 union_one_normal_z_DE$EntrezGene.ID = rownames(union_one_normal_z_DE)
 
-# 10891 stat. sig. diff. expressed genes of which 1977 (out of 2051) are also found 
+# 13394 stat. sig. diff. expressed genes of which 1977 (out of 2051) are also found 
 # as stat. sig. diff. expressed in the complete-case DGEA:
 # length(intersect(union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05],
 # one_normal_z_DE$EntrezGene.ID[one_normal_z_DE$adj.P.Val<0.05]))
@@ -2155,10 +2155,10 @@ write.xlsx(union_two_normal_z_DE_mapped, "DGEA/Union/Stage_2_vs_Normal_z_DE_topT
 # length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
 # two_normal_z_DE$EntrezGene.ID[two_normal_z_DE$adj.P.Val<0.05]))
 
-# 18694 stat. sig. diff. expressed genes of which 10621 (out of 13394) are also found as 
+# 18694 stat. sig. diff. expressed genes of which 13123 (out of 13394) are also found as 
 # stat. sig. diff. expressed in the Stage 1 vs Normal comparison:
-# length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
-# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
+# length(which(union_two_normal_z_DE_mapped$EntrezGene.ID[union_two_normal_z_DE_mapped$adj.P.Val < 0.05] 
+# %in% union_one_normal_z_DE_mapped$EntrezGene.ID[union_one_normal_z_DE_mapped$adj.P.Val < 0.05] == T))
 
 # Save differences between Stage1/Normal and Stage2/Normal DEGs
 # in a variable called "discriminators". However, the real discriminators are both
@@ -2167,19 +2167,20 @@ write.xlsx(union_two_normal_z_DE_mapped, "DGEA/Union/Stage_2_vs_Normal_z_DE_topT
 
 union_2_sig = union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val < 0.05]
 union_1_sig = union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val < 0.05]
-common_genes = intersect(union_1_sig, union_2_sig)
+common_gene_locs = which(union_two_normal_z_DE_mapped$EntrezGene.ID[union_two_normal_z_DE_mapped$adj.P.Val < 0.05]
+                         %in% union_one_normal_z_DE_mapped$EntrezGene.ID[union_one_normal_z_DE_mapped$adj.P.Val < 0.05] == T)
 
-diffDEGs = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$adj.P.Val < 0.05, ] %>%
-  dplyr::filter(!EntrezGene.ID %in% common_genes) %>%
+diffDEGs = union_one_normal_z_DE_mapped[-common_gene_locs, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID %in% common_genes, ] %>%
+stage_1_subset = union_one_normal_z_DE_mapped[common_gene_locs, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage1 = logFC, adj_p_val_stage1 = adj.P.Val)
-stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID %in% common_genes, ] %>%
+stage_2_subset = union_two_normal_z_DE_mapped[common_gene_locs, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage2 = logFC, adj_p_val_stage2 = adj.P.Val)
 common_set = inner_join(stage_1_subset, stage_2_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
@@ -2207,6 +2208,15 @@ saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_2_union_comparison.xlsx",
 discordants = discordant_set %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 discriminators = rbind(discordants, diffDEGs)
+discriminators = discriminators %>%
+  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
+  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val)
+
+write.xlsx(discriminators, "DGEA/Union/discriminators.xlsx", overwrite = TRUE)
 
 # Union volcanoes #####
 union_stages_volcano = EnhancedVolcano(union_Stages_z_DE_mapped,
