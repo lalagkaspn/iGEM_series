@@ -1978,7 +1978,7 @@ for(i in 1:nrow(union_Stages_z_DE_mapped)){
     union_Stages_z_DE_mapped$Filter[i] = "Keep"
     union_Stages_z_DE_mapped$Gene.Symbol[i] = union_Stages_z_DE_mapped$EntrezGene.ID[i]
   } else if(union_Stages_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_Stages_z_DE_mapped$Filter[i] = union_Stages_z_DE_mapped$EntrezGene.ID[i]
+    union_Stages_z_DE_mapped$Gene.Symbol[i] = union_Stages_z_DE_mapped$EntrezGene.ID[i]
     union_Stages_z_DE_mapped$Filter[i] = "Keep"
   }
 }
@@ -2042,7 +2042,7 @@ for(i in 1:nrow(union_one_four_Stages_z_DE_mapped)){
     union_one_four_Stages_z_DE_mapped$Filter[i] = "Keep"
     union_one_four_Stages_z_DE_mapped$Gene.Symbol[i] = union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]
   } else if(union_one_four_Stages_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_one_four_Stages_z_DE_mapped$Filter[i] = union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]
+    union_one_four_Stages_z_DE_mapped$Gene.Symbol[i] = union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]
     union_one_four_Stages_z_DE_mapped$Filter[i] = "Keep"
   }
 }
@@ -2069,7 +2069,7 @@ union_one_normal_z_DE = as.data.frame(topTable(union_one_normal_z_fit2,
                                                       adjust.method="BH", number = Inf))
 union_one_normal_z_DE$EntrezGene.ID = rownames(union_one_normal_z_DE)
 
-# 13394 stat. sig. diff. expressed genes of which 1977 (out of 2051) are also found 
+# 10891 stat. sig. diff. expressed genes of which 1977 (out of 2051) are also found 
 # as stat. sig. diff. expressed in the complete-case DGEA:
 # length(intersect(union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05],
 # one_normal_z_DE$EntrezGene.ID[one_normal_z_DE$adj.P.Val<0.05]))
@@ -2091,7 +2091,7 @@ for(i in 1:nrow(union_one_normal_z_DE_mapped)){
     union_one_normal_z_DE_mapped$Filter[i] = "Keep"
     union_one_normal_z_DE_mapped$Gene.Symbol[i] = union_one_normal_z_DE_mapped$EntrezGene.ID[i]
   } else if(union_one_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_one_normal_z_DE_mapped$Filter[i] = union_one_normal_z_DE_mapped$EntrezGene.ID[i]
+    union_one_normal_z_DE_mapped$Gene.Symbol[i] = union_one_normal_z_DE_mapped$EntrezGene.ID[i]
     union_one_normal_z_DE_mapped$Filter[i] = "Keep"
   }
 }
@@ -2135,7 +2135,7 @@ for(i in 1:nrow(union_two_normal_z_DE_mapped)){
     union_two_normal_z_DE_mapped$Filter[i] = "Keep"
     union_two_normal_z_DE_mapped$Gene.Symbol[i] = union_two_normal_z_DE_mapped$EntrezGene.ID[i]
   } else if(union_two_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_two_normal_z_DE_mapped$Filter[i] = union_two_normal_z_DE_mapped$EntrezGene.ID[i]
+    union_two_normal_z_DE_mapped$Gene.Symbol[i] = union_two_normal_z_DE_mapped$EntrezGene.ID[i]
     union_two_normal_z_DE_mapped$Filter[i] = "Keep"
   }
 }
@@ -2150,37 +2150,38 @@ rownames(union_two_normal_z_DE_mapped) = union_two_normal_z_DE_mapped$EntrezGene
 write.xlsx(union_two_normal_z_DE_mapped, "DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx",
            overwrite = TRUE)
 
-# 18694 stat. sig. diff. expressed genes of which 2285 (out of 2305) are also found as 
+# 16191 stat. sig. diff. expressed genes of which 2285 (out of 2305) are also found as 
 # stat. sig. diff. expressed in the complete-case DGEA:
 # length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
 # two_normal_z_DE$EntrezGene.ID[two_normal_z_DE$adj.P.Val<0.05]))
 
-# 18694 stat. sig. diff. expressed genes of which 13123 (out of 13394) are also found as 
+# 16191 stat. sig. diff. expressed genes of which 10621 (out of 10891) are also found as 
 # stat. sig. diff. expressed in the Stage 1 vs Normal comparison:
-# length(which(union_two_normal_z_DE_mapped$EntrezGene.ID[union_two_normal_z_DE_mapped$adj.P.Val < 0.05] 
-# %in% union_one_normal_z_DE_mapped$EntrezGene.ID[union_one_normal_z_DE_mapped$adj.P.Val < 0.05] == T))
+# length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
+# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
 
 # Save differences between Stage1/Normal and Stage2/Normal DEGs
 # in a variable called "discriminators". However, the real discriminators are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-union_2_sig = union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val < 0.05]
-union_1_sig = union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val < 0.05]
-common_gene_locs = which(union_two_normal_z_DE_mapped$EntrezGene.ID[union_two_normal_z_DE_mapped$adj.P.Val < 0.05]
-                         %in% union_one_normal_z_DE_mapped$EntrezGene.ID[union_one_normal_z_DE_mapped$adj.P.Val < 0.05] == T)
+common_genes = intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
+                         union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
 
-diffDEGs = union_one_normal_z_DE_mapped[-common_gene_locs, ] %>%
+diffDEGs = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
+                                        %in% common_genes, ] %>%
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_1_subset = union_one_normal_z_DE_mapped[common_gene_locs, ] %>%
+stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage1 = logFC, adj_p_val_stage1 = adj.P.Val)
-stage_2_subset = union_two_normal_z_DE_mapped[common_gene_locs, ] %>%
+stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage2 = logFC, adj_p_val_stage2 = adj.P.Val)
 common_set = inner_join(stage_1_subset, stage_2_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
