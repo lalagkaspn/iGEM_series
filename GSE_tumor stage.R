@@ -981,6 +981,8 @@ for(i in 1:length(esets)){
 
 ##### Quality Control #####
 
+# We keep the complete-case join for these plots (intersection)
+
 # Depending on whether the poorly annotated experiment GSE102238 will be included
 # we define our full pheno data differently. Here it is excluded.
 
@@ -1221,60 +1223,13 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
 save_pheatmap_png(z_heatmap, "Plots/QC/Tumor_stage/KBZ_heatmap.png")
 
 ##### Differential Gene Expression (DGEA) #####
-# 6 types of DGEA:
-#    - Tumor vs Normal
+# 4 types of DGEA:l
 #    - Stages 1/2 vs Stages 3/4
-#    - Stage 1 vs Stages 2/3/4
-#    - Stage 1 vs Stages 3/4
-#    - Stage 2 vs Stages 3/4
-#    - Stage 2 vs Stage 1
+#    - Stage 1 vs Stage 4
+#    - Stage 1 vs normal
+#    - Stage 2 vs normal
 
 full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
-
-# Tumor vs Normal #####
-
-# Original matrix
-design1 = model.matrix(~0 + full_pdata_filt$Tissue_type + full_pdata_filt$Study)
-colnames(design1) = c("non_tumor", "tumor", "GSE18670", "GSE21501", "GSE42952",
-                      "GSE62165", "GSE62452", "GSE84219")
-rownames(design1) = colnames(original_exprs_nonas)
-cont.matrix1 = makeContrasts(tumorvsnontumor=tumor-non_tumor, levels=design1)
-
-TN_fit = lmFit(original_exprs_nonas, design1)
-TN_fit2 = contrasts.fit(TN_fit, cont.matrix1)
-TN_fit2 = eBayes(TN_fit2, robust = TRUE)
-TN_results = decideTests(TN_fit2)
-summary(TN_results)
-TN_DE = as.data.frame(topTable(TN_fit2, adjust.method ="BH", number = Inf))
-TN_DE$EntrezGene.ID = rownames(TN_DE)
-
-# z-score-normalised matrix
-TN_z_fit = lmFit(z_exprs_nonas, design1)
-TN_z_fit2 = contrasts.fit(TN_z_fit, cont.matrix1)
-TN_z_fit2 = eBayes(TN_z_fit2, robust = TRUE)
-TN_z_results = decideTests(TN_z_fit2)
-summary(TN_z_results)
-TN_z_DE = as.data.frame(topTable(TN_z_fit2, adjust.method="BH", number = Inf))
-TN_z_DE$EntrezGene.ID = rownames(TN_z_DE)
-
-# Concordance of results (%)
-up_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
-                                                                           TN_z_DE$logFC > 0],
-                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0]))/
-                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC > 0]), 
-                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0])),2), "%")
-down_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
-                                                                             TN_z_DE$logFC < 0],
-                                                     TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0]))/
-                                  max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC < 0]), 
-                                      length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0])),2), "%")
-ns_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05],
-                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05]))/
-                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05]), 
-                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05])),2), "%")
-
-# 3 (all) up-DEGs from original matrix are also found as up-DEGs in the z-matrix
-# 1 (only) down-DEG from original matrix is also found as down-DEG in the z-matrix
 
 # Annotation with official gene symbols
 # official_df, Aliases, ID_Map
@@ -1311,621 +1266,6 @@ Aliases = official_df %>% inner_join(aliases_for_join,
 rm(alias, alias_df, aliases_for_join, official,
    mapped_genes_alias, mapped_genes_official)
 
-TN_DE_mapped = TN_DE %>% left_join(official_df, by = "EntrezGene.ID")
-TN_DE_mapped = TN_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(TN_DE_mapped) = TN_DE_mapped$EntrezGene.ID
-write.xlsx(TN_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-TN_z_DE_mapped = TN_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(TN_z_DE_mapped) = TN_z_DE_mapped$EntrezGene.ID
-write.xlsx(TN_z_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stages 1/2 vs stages 3/4 #####
-
-# Filtering the matrices for tumor samples only (the ones with available
-# AJCC classification info):
-Stages_pdata = full_pdata_filt %>%
-  dplyr::filter(Tissue_type == "tumor") %>%
-  dplyr::filter(is.na(AJCC_classification) == FALSE) %>%
-  mutate(Stage_group = NA)
-Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == 3 | 
-                           Stages_pdata$AJCC_classification == 4] = "Advanced_stage"
-Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == "1a" |
-                           Stages_pdata$AJCC_classification == "1b" |
-                           Stages_pdata$AJCC_classification == "2a" |
-                           Stages_pdata$AJCC_classification == "2b"] = "Early_stage"
-Stages_pdata$Stage_group = as.factor(Stages_pdata$Stage_group)
-
-stages_original_matrix = original_exprs_nonas[, Stages_pdata$GEO_accession] # 2601 x 318
-stages_z_matrix = z_exprs_nonas[, Stages_pdata$GEO_accession] # 2601 x 318
-
-# Original matrix
-design2 = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
-colnames(design2) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design2) = colnames(stages_original_matrix)
-cont.matrix2 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design2)
-
-Stages_fit = lmFit(stages_original_matrix, design2)
-Stages_fit2 = contrasts.fit(Stages_fit, cont.matrix2)
-Stages_fit2 = eBayes(Stages_fit2, robust = TRUE)
-Stages_results = decideTests(Stages_fit2)
-summary(Stages_results)
-Stages_DE = as.data.frame(topTable(Stages_fit2, adjust.method ="BH", number = Inf))
-Stages_DE$EntrezGene.ID = rownames(Stages_DE)
-
-# z-score-normalised matrix
-Stages_z_fit = lmFit(stages_z_matrix, design2)
-Stages_z_fit2 = contrasts.fit(Stages_z_fit, cont.matrix2)
-Stages_z_fit2 = eBayes(Stages_z_fit2, robust = TRUE)
-Stages_z_results = decideTests(Stages_z_fit2)
-summary(Stages_z_results)
-Stages_z_DE = as.data.frame(topTable(Stages_z_fit2, adjust.method="BH", number = Inf))
-Stages_z_DE$EntrezGene.ID = rownames(Stages_z_DE)
-
-# Concordance of results (%)
-stages_up_concordance = paste0(round(100*length(intersect(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val < 0.05 &
-                                                                               Stages_z_DE$logFC > 0],
-                                                   Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val < 0.05 & Stages_DE$logFC > 0]))/
-                                max(length(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val < 0.05 & Stages_z_DE$logFC > 0]), 
-                                    length(Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val < 0.05 & Stages_DE$logFC > 0])),2), "%")
-stages_down_concordance = paste0(round(100*length(intersect(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val < 0.05 &
-                                                                                 Stages_z_DE$logFC < 0],
-                                                     Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val < 0.05 & Stages_DE$logFC < 0]))/
-                                  max(length(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val < 0.05 & Stages_z_DE$logFC < 0]), 
-                                      length(Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val < 0.05 & Stages_DE$logFC < 0])),2), "%")
-stages_ns_concordance = paste0(round(100*length(intersect(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val > 0.05],
-                                                   Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val > 0.05]))/
-                                max(length(Stages_z_DE$EntrezGene.ID[Stages_z_DE$adj.P.Val > 0.05]), 
-                                    length(Stages_DE$EntrezGene.ID[Stages_DE$adj.P.Val > 0.05])),2), "%")
-
-# No significant results are output by limma on either of the two matrices
-
-# Annotation with official gene symbols
-Stages_DE_mapped = Stages_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Stages_DE_mapped = Stages_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Stages_DE_mapped) = Stages_DE_mapped$EntrezGene.ID
-write.xlsx(Stages_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-Stages_z_DE_mapped = Stages_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Stages_z_DE_mapped = Stages_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Stages_z_DE_mapped) = Stages_z_DE_mapped$EntrezGene.ID
-write.xlsx(Stages_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 1 vs Stages 2/3/4 #####
-
-# Adding a column for our comparison in Stages_pdata
-Stages_pdata$One_vs_all[Stages_pdata$AJCC_classification == "2a" |
-                          Stages_pdata$AJCC_classification == "2b" |
-                          Stages_pdata$AJCC_classification == 3 | 
-                          Stages_pdata$AJCC_classification == 4] = "Advanced_stage"
-Stages_pdata$One_vs_all[Stages_pdata$AJCC_classification == "1a" |
-                          Stages_pdata$AJCC_classification == "1b"] = "Early_stage"
-Stages_pdata$One_vs_all = as.factor(Stages_pdata$One_vs_all)
-
-# Original matrix
-design3 = model.matrix(~0 + Stages_pdata$One_vs_all + Stages_pdata$Study)
-colnames(design3) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design3) = colnames(stages_original_matrix)
-cont.matrix3 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design3)
-
-Onevsall_fit = lmFit(stages_original_matrix, design3)
-Onevsall_fit2 = contrasts.fit(Onevsall_fit, cont.matrix3)
-Onevsall_fit2 = eBayes(Onevsall_fit2, robust = TRUE)
-Onevsall_results = decideTests(Onevsall_fit2)
-summary(Onevsall_results)
-Onevsall_DE = as.data.frame(topTable(Onevsall_fit2, adjust.method ="BH", number = Inf))
-Onevsall_DE$EntrezGene.ID = rownames(Onevsall_DE)
-
-# z-score-normalised matrix
-Onevsall_z_fit = lmFit(stages_z_matrix, design3)
-Onevsall_z_fit2 = contrasts.fit(Onevsall_z_fit, cont.matrix3)
-Onevsall_z_fit2 = eBayes(Onevsall_z_fit2, robust = TRUE)
-Onevsall_z_results = decideTests(Onevsall_z_fit2)
-summary(Onevsall_z_results)
-Onevsall_z_DE = as.data.frame(topTable(Onevsall_z_fit2, adjust.method="BH", number = Inf))
-Onevsall_z_DE$EntrezGene.ID = rownames(Onevsall_z_DE)
-
-# Concordance of results (%)
-Onevsall_up_concordance = paste0(round(100*length(intersect(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val < 0.05 &
-                                                                                          Onevsall_z_DE$logFC > 0],
-                                                            Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val < 0.05 & Onevsall_DE$logFC > 0]))/
-                                         max(length(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val < 0.05 & Onevsall_z_DE$logFC > 0]), 
-                                             length(Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val < 0.05 & Onevsall_DE$logFC > 0])),2), "%")
-Onevsall_down_concordance = paste0(round(100*length(intersect(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val < 0.05 &
-                                                                                            Onevsall_z_DE$logFC < 0],
-                                                              Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val < 0.05 & Onevsall_DE$logFC < 0]))/
-                                           max(length(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val < 0.05 & Onevsall_z_DE$logFC < 0]), 
-                                               length(Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val < 0.05 & Onevsall_DE$logFC < 0])),2), "%")
-Onevsall_ns_concordance = paste0(round(100*length(intersect(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val > 0.05],
-                                                            Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val > 0.05]))/
-                                         max(length(Onevsall_z_DE$EntrezGene.ID[Onevsall_z_DE$adj.P.Val > 0.05]), 
-                                             length(Onevsall_DE$EntrezGene.ID[Onevsall_DE$adj.P.Val > 0.05])),2), "%")
-
-# No significant results are output by limma on the z-score-transformed matrix
-
-# Annotation with official gene symbols
-Onevsall_DE_mapped = Onevsall_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Onevsall_DE_mapped = Onevsall_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Onevsall_DE_mapped) = Onevsall_DE_mapped$EntrezGene.ID
-write.xlsx(Onevsall_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-Onevsall_z_DE_mapped = Onevsall_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Onevsall_z_DE_mapped = Onevsall_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Onevsall_z_DE_mapped) = Onevsall_z_DE_mapped$EntrezGene.ID
-write.xlsx(Onevsall_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 1 vs Stages 3/4 #####
-
-# Removing stage 2 samples
-Stages_pdata_comp4 = Stages_pdata %>%
-  dplyr::filter(AJCC_classification != "2a") %>%
-  dplyr::filter(AJCC_classification != "2b")
-# 80 x 6 pdata frame 
-
-# Original matrix
-design4 = model.matrix(~0 + Stages_pdata_comp4$One_vs_all + Stages_pdata_comp4$Study)
-colnames(design4) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-
-comp4_matrix = original_exprs_nonas[, Stages_pdata_comp4$GEO_accession]
-z_comp4_matrix = z_exprs_nonas[, Stages_pdata_comp4$GEO_accession]
-
-rownames(design4) = colnames(comp4_matrix)
-cont.matrix4 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design4)
-
-Onevslate_fit = lmFit(comp4_matrix, design4)
-Onevslate_fit2 = contrasts.fit(Onevslate_fit, cont.matrix4)
-Onevslate_fit2 = eBayes(Onevslate_fit2, robust = TRUE)
-Onevslate_results = decideTests(Onevslate_fit2)
-summary(Onevslate_results)
-Onevslate_DE = as.data.frame(topTable(Onevslate_fit2, adjust.method ="BH", number = Inf))
-Onevslate_DE$EntrezGene.ID = rownames(Onevslate_DE)
-
-# z-score-normalised matrix
-Onevslate_z_fit = lmFit(z_comp4_matrix, design4)
-Onevslate_z_fit2 = contrasts.fit(Onevslate_z_fit, cont.matrix4)
-Onevslate_z_fit2 = eBayes(Onevslate_z_fit2, robust = TRUE)
-Onevslate_z_results = decideTests(Onevslate_z_fit2)
-summary(Onevslate_z_results)
-Onevslate_z_DE = as.data.frame(topTable(Onevslate_z_fit2, adjust.method="BH", number = Inf))
-Onevslate_z_DE$EntrezGene.ID = rownames(Onevslate_z_DE)
-
-# Concordance of results (%)
-Onevslate_up_concordance = paste0(round(100*length(intersect(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val < 0.05 &
-                                                                                            Onevslate_z_DE$logFC > 0],
-                                                             Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val < 0.05 & Onevslate_DE$logFC > 0]))/
-                                          max(length(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val < 0.05 & Onevslate_z_DE$logFC > 0]), 
-                                              length(Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val < 0.05 & Onevslate_DE$logFC > 0])),2), "%")
-Onevslate_down_concordance = paste0(round(100*length(intersect(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val < 0.05 &
-                                                                                              Onevslate_z_DE$logFC < 0],
-                                                               Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val < 0.05 & Onevslate_DE$logFC < 0]))/
-                                            max(length(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val < 0.05 & Onevslate_z_DE$logFC < 0]), 
-                                                length(Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val < 0.05 & Onevslate_DE$logFC < 0])),2), "%")
-Onevslate_ns_concordance = paste0(round(100*length(intersect(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val > 0.05],
-                                                             Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val > 0.05]))/
-                                          max(length(Onevslate_z_DE$EntrezGene.ID[Onevslate_z_DE$adj.P.Val > 0.05]), 
-                                              length(Onevslate_DE$EntrezGene.ID[Onevslate_DE$adj.P.Val > 0.05])),2), "%")
-
-# No significant results are output by limma on either matrix
-
-# Annotation with official gene symbols
-Onevslate_DE_mapped = Onevslate_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Onevslate_DE_mapped = Onevslate_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Onevslate_DE_mapped) = Onevslate_DE_mapped$EntrezGene.ID
-write.xlsx(Onevslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-Onevslate_z_DE_mapped = Onevslate_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Onevslate_z_DE_mapped = Onevslate_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Onevslate_z_DE_mapped) = Onevslate_z_DE_mapped$EntrezGene.ID
-write.xlsx(Onevslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 2 vs Stages 3/4 #####
-
-# Removing stage 1 samples
-Stages_pdata_comp5 = Stages_pdata %>%
-  dplyr::filter(AJCC_classification != "1a") %>%
-  dplyr::filter(AJCC_classification != "1b")
-# 283 x 6 pdata frame 
-
-# Original matrix
-design5 = model.matrix(~0 + Stages_pdata_comp5$Stage_group + Stages_pdata_comp5$Study)
-colnames(design5) = c("Advanced_stage", "Early_stage",  "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-
-comp5_matrix = original_exprs_nonas[, Stages_pdata_comp5$GEO_accession]
-z_comp5_matrix = z_exprs_nonas[, Stages_pdata_comp5$GEO_accession]
-
-rownames(design5) = colnames(comp5_matrix)
-cont.matrix5 = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design5)
-
-Twovslate_fit = lmFit(comp5_matrix, design5)
-Twovslate_fit2 = contrasts.fit(Twovslate_fit, cont.matrix5)
-Twovslate_fit2 = eBayes(Twovslate_fit2, robust = TRUE)
-Twovslate_results = decideTests(Twovslate_fit2)
-summary(Twovslate_results)
-Twovslate_DE = as.data.frame(topTable(Twovslate_fit2, adjust.method ="BH", number = Inf))
-Twovslate_DE$EntrezGene.ID = rownames(Twovslate_DE)
-
-# z-score-normalised matrix
-Twovslate_z_fit = lmFit(z_comp5_matrix, design5)
-Twovslate_z_fit2 = contrasts.fit(Twovslate_z_fit, cont.matrix5)
-Twovslate_z_fit2 = eBayes(Twovslate_z_fit2, robust = TRUE)
-Twovslate_z_results = decideTests(Twovslate_z_fit2)
-summary(Twovslate_z_results)
-Twovslate_z_DE = as.data.frame(topTable(Twovslate_z_fit2, adjust.method="BH", number = Inf))
-Twovslate_z_DE$EntrezGene.ID = rownames(Twovslate_z_DE)
-
-# Concordance of results (%)
-Twovslate_up_concordance = paste0(round(100*length(intersect(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val < 0.05 &
-                                                                                            Twovslate_z_DE$logFC > 0],
-                                                             Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val < 0.05 & Twovslate_DE$logFC > 0]))/
-                                          max(length(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val < 0.05 & Twovslate_z_DE$logFC > 0]), 
-                                              length(Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val < 0.05 & Twovslate_DE$logFC > 0])),2), "%")
-Twovslate_down_concordance = paste0(round(100*length(intersect(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val < 0.05 &
-                                                                                              Twovslate_z_DE$logFC < 0],
-                                                               Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val < 0.05 & Twovslate_DE$logFC < 0]))/
-                                            max(length(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val < 0.05 & Twovslate_z_DE$logFC < 0]), 
-                                                length(Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val < 0.05 & Twovslate_DE$logFC < 0])),2), "%")
-Twovslate_ns_concordance = paste0(round(100*length(intersect(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val > 0.05],
-                                                             Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val > 0.05]))/
-                                          max(length(Twovslate_z_DE$EntrezGene.ID[Twovslate_z_DE$adj.P.Val > 0.05]), 
-                                              length(Twovslate_DE$EntrezGene.ID[Twovslate_DE$adj.P.Val > 0.05])),2), "%")
-
-# No significant results are output by limma on either matrix
-
-# Annotation with official gene symbols
-Twovslate_DE_mapped = Twovslate_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Twovslate_DE_mapped = Twovslate_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Twovslate_DE_mapped) = Twovslate_DE_mapped$EntrezGene.ID
-write.xlsx(Twovslate_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-Twovslate_z_DE_mapped = Twovslate_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Twovslate_z_DE_mapped = Twovslate_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Twovslate_z_DE_mapped) = Twovslate_z_DE_mapped$EntrezGene.ID
-write.xlsx(Twovslate_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 2 vs Stage 1 #####
-
-# Removing stage 3/4 samples
-Stages_pdata_comp6 = Stages_pdata %>%
-  dplyr::filter(AJCC_classification != 3) %>%
-  dplyr::filter(AJCC_classification != 4)
-Stages_pdata_comp6$Stage = NA
-Stages_pdata_comp6$Stage[Stages_pdata_comp6$AJCC_classification == "1a" |
-                           Stages_pdata_comp6$AJCC_classification == "1b"] = "Stage_1"
-Stages_pdata_comp6$Stage[Stages_pdata_comp6$AJCC_classification == "2a" |
-                           Stages_pdata_comp6$AJCC_classification == "2b"] = "Stage_2"
-Stages_pdata_comp6$Stage = as.factor(Stages_pdata_comp6$Stage)
-# 273 x 7 pdata frame 
-
-# Original matrix
-design6 = model.matrix(~0 + Stages_pdata_comp6$Stage + Stages_pdata_comp6$Study)
-colnames(design6) = c("Stage_1", "Stage_2",  "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-
-comp6_matrix = original_exprs_nonas[, Stages_pdata_comp6$GEO_accession]
-z_comp6_matrix = z_exprs_nonas[, Stages_pdata_comp6$GEO_accession]
-
-rownames(design6) = colnames(comp6_matrix)
-cont.matrix6 = makeContrasts(TwovsOne=Stage_2-Stage_1, levels=design6)
-
-Twovsone_fit = lmFit(comp6_matrix, design6)
-Twovsone_fit2 = contrasts.fit(Twovsone_fit, cont.matrix6)
-Twovsone_fit2 = eBayes(Twovsone_fit2, robust = TRUE)
-Twovsone_results = decideTests(Twovsone_fit2)
-summary(Twovsone_results)
-Twovsone_DE = as.data.frame(topTable(Twovsone_fit2, adjust.method ="BH", number = Inf))
-Twovsone_DE$EntrezGene.ID = rownames(Twovsone_DE)
-
-# z-score-normalised matrix
-Twovsone_z_fit = lmFit(z_comp6_matrix, design6)
-Twovsone_z_fit2 = contrasts.fit(Twovsone_z_fit, cont.matrix6)
-Twovsone_z_fit2 = eBayes(Twovsone_z_fit2, robust = TRUE)
-Twovsone_z_results = decideTests(Twovsone_z_fit2)
-summary(Twovsone_z_results)
-Twovsone_z_DE = as.data.frame(topTable(Twovsone_z_fit2, adjust.method="BH", number = Inf))
-Twovsone_z_DE$EntrezGene.ID = rownames(Twovsone_z_DE)
-
-# Concordance of results (%)
-Twovsone_up_concordance = paste0(round(100*length(intersect(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val < 0.05 &
-                                                                                          Twovsone_z_DE$logFC > 0],
-                                                            Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val < 0.05 & Twovsone_DE$logFC > 0]))/
-                                         max(length(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val < 0.05 & Twovsone_z_DE$logFC > 0]), 
-                                             length(Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val < 0.05 & Twovsone_DE$logFC > 0])),2), "%")
-Twovsone_down_concordance = paste0(round(100*length(intersect(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val < 0.05 &
-                                                                                            Twovsone_z_DE$logFC < 0],
-                                                              Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val < 0.05 & Twovsone_DE$logFC < 0]))/
-                                           max(length(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val < 0.05 & Twovsone_z_DE$logFC < 0]), 
-                                               length(Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val < 0.05 & Twovsone_DE$logFC < 0])),2), "%")
-Twovsone_ns_concordance = paste0(round(100*length(intersect(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val > 0.05],
-                                                            Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val > 0.05]))/
-                                         max(length(Twovsone_z_DE$EntrezGene.ID[Twovsone_z_DE$adj.P.Val > 0.05]), 
-                                             length(Twovsone_DE$EntrezGene.ID[Twovsone_DE$adj.P.Val > 0.05])),2), "%")
-
-# No significant results are output by limma on the z-score-normalised matrix
-
-# Annotation with official gene symbols
-Twovsone_DE_mapped = Twovsone_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Twovsone_DE_mapped = Twovsone_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Twovsone_DE_mapped) = Twovsone_DE_mapped$EntrezGene.ID
-write.xlsx(Twovsone_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-Twovsone_z_DE_mapped = Twovsone_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-Twovsone_z_DE_mapped = Twovsone_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(Twovsone_z_DE_mapped) = Twovsone_z_DE_mapped$EntrezGene.ID
-write.xlsx(Twovsone_z_DE_mapped, "DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 1 vs normal #####
-# Filtered full_pdata_filt can be used here for phenotypic data
-one_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "1a" |
-                  AJCC_classification == "1b" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-one_normal_z_matrix = z_exprs[, one_normal_pdata$GEO_accession] # 2601 x 165
-
-# Design and contrast matrices
-design_1_normal = model.matrix(~0 + one_normal_pdata$Tissue_type + one_normal_pdata$Study)
-colnames(design_1_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_1_normal) = colnames(one_normal_z_matrix)
-cont.matrix_1_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
-                                     levels = design_1_normal)
-
-one_normal_z_fit = lmFit(one_normal_z_matrix, design_1_normal)
-one_normal_z_fit2 = contrasts.fit(one_normal_z_fit, cont.matrix_1_normal)
-one_normal_z_fit2 = eBayes(one_normal_z_fit2, robust = TRUE)
-one_normal_z_results = decideTests(one_normal_z_fit2)
-summary(one_normal_z_results)
-one_normal_z_DE = as.data.frame(topTable(one_normal_z_fit2, 
-                                               adjust.method="BH", number = Inf))
-one_normal_z_DE$EntrezGene.ID = rownames(one_normal_z_DE)
-
-one_normal_z_DE_mapped = one_normal_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-one_normal_z_DE_mapped = one_normal_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(one_normal_z_DE_mapped) = one_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(one_normal_z_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/one_normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 2 vs normal #####
-# Filtered full_pdata_filt can be used here for phenotypic data
-two_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "2a" |
-                  AJCC_classification == "2b" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-two_normal_z_matrix = z_exprs[, two_normal_pdata$GEO_accession] # 2601 x 368
-
-# Design and contrast matrices
-design_2_normal = model.matrix(~0 + two_normal_pdata$Tissue_type + two_normal_pdata$Study)
-colnames(design_2_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_2_normal) = colnames(two_normal_z_matrix)
-cont.matrix_2_normal = makeContrasts(Twovsnormal = tumor - non_tumor, 
-                                     levels = design_2_normal)
-
-two_normal_z_fit = lmFit(two_normal_z_matrix, design_2_normal)
-two_normal_z_fit2 = contrasts.fit(two_normal_z_fit, cont.matrix_2_normal)
-two_normal_z_fit2 = eBayes(two_normal_z_fit2, robust = TRUE)
-two_normal_z_results = decideTests(two_normal_z_fit2)
-summary(two_normal_z_results)
-two_normal_z_DE = as.data.frame(topTable(two_normal_z_fit2, 
-                                         adjust.method="BH", number = Inf))
-two_normal_z_DE$EntrezGene.ID = rownames(two_normal_z_DE)
-
-two_normal_z_DE_mapped = two_normal_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-two_normal_z_DE_mapped = two_normal_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(two_normal_z_DE_mapped) = two_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(two_normal_z_DE_mapped, "DGEA/Tumor_stage_analysis/Tumor_vs_Normal/two_normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-##### Volcano plots #####
-# Tumor vs Normal
-TN_volcano = EnhancedVolcano(one_normal_z_DE_mapped,
-                             lab = one_normal_z_DE_mapped[, "Gene.Symbol"],
-                             x = 'logFC',
-                             y = 'adj.P.Val',
-                             title = "Tumor vs. Non-tumor",
-                             pCutoff = 0.05,
-                             FCcutoff = 2,
-                             col=c('grey', 'pink', 'purple4', 'red4'),
-                             colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_Volcano.png", width = 1920, height = 1080)
-TN_volcano
-dev.off()
-
-TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
-                               lab = TN_z_DE_mapped[, "Gene.Symbol"],
-                               x = 'logFC',
-                               y = 'adj.P.Val',
-                               title = "Tumor vs. Non-tumor (z-normalised)",
-                               pCutoff = 0.05,
-                               FCcutoff = 1,
-                               col=c('grey', 'pink', 'purple4', 'red4'),
-                               colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_Volcano.png", width = 1920, height = 1080)
-TN_z_volcano
-dev.off()
-
-# Stage 1 vs Normal
-one_normal_volcano = EnhancedVolcano(one_normal_z_DE_mapped,
-                                     lab = one_normal_z_DE_mapped[, "Gene.Symbol"],
-                                     x = 'logFC',
-                                     y = 'adj.P.Val',
-                                     title = "Stage 1 vs. Normal",
-                                     pCutoff = 0.05,
-                                     FCcutoff = 1,
-                                     col=c('grey', 'pink', 'purple4', 'red4'),
-                                     colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/Stage_1_vs_Normal_Volcano.png", width = 1920, height = 1080)
-one_normal_volcano
-dev.off()
-
-# Stages 1/2 vs Stages 3/4
-Stages_volcano = EnhancedVolcano(Stages_DE_mapped,
-                                 lab = Stages_DE_mapped[, "Gene.Symbol"],
-                                 x = 'logFC',
-                                 y = 'adj.P.Val',
-                                 title = "Stages 3/4 vs. Stages 1/2",
-                                 pCutoff = 0.05,
-                                 FCcutoff = 2,
-                                 col=c('grey', 'pink', 'purple4', 'red4'),
-                                 colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_Volcano.png", width = 1920, height = 1080)
-Stages_volcano
-dev.off()
-
-Stages_z_volcano = EnhancedVolcano(Stages_z_DE_mapped,
-                                   lab = Stages_z_DE_mapped[, "Gene.Symbol"],
-                                   x = 'logFC',
-                                   y = 'adj.P.Val',
-                                   title = "Stages 3/4 vs. Stages 1/2 (z-normalised)",
-                                   pCutoff = 0.05,
-                                   FCcutoff = 1,
-                                   col=c('grey', 'pink', 'purple4', 'red4'),
-                                   colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Stages_z_Volcano.png", width = 1920, height = 1080)
-Stages_z_volcano
-dev.off()
-
-# Stage 1 vs Stages 2/3/4
-Onevsall_volcano = EnhancedVolcano(Onevsall_DE_mapped,
-                                   lab = Onevsall_DE_mapped[, "Gene.Symbol"],
-                                   x = 'logFC',
-                                   y = 'adj.P.Val',
-                                   title = "Stages 2/3/4 vs. Stage 1",
-                                   pCutoff = 0.05,
-                                   FCcutoff = 2,
-                                   col=c('grey', 'pink', 'purple4', 'red4'),
-                                   colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_Volcano.png", width = 1920, height = 1080)
-Onevsall_volcano
-dev.off()
-
-Onevsall_z_volcano = EnhancedVolcano(Onevsall_z_DE_mapped,
-                                     lab = Onevsall_z_DE_mapped[, "Gene.Symbol"],
-                                     x = 'logFC',
-                                     y = 'adj.P.Val',
-                                     title = "Stages 2/3/4 vs. Stage 1 (z-normalised)",
-                                     pCutoff = 0.05,
-                                     FCcutoff = 1,
-                                     col=c('grey', 'pink', 'purple4', 'red4'),
-                                     colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevsall_z_Volcano.png", width = 1920, height = 1080)
-Onevsall_z_volcano
-dev.off()
-
-# Stage 1 vs Stages 3/4
-Onevslate_volcano = EnhancedVolcano(Onevslate_DE_mapped,
-                                    lab = Onevslate_DE_mapped[, "Gene.Symbol"],
-                                    x = 'logFC',
-                                    y = 'adj.P.Val',
-                                    title = "Stages 3/4 vs. Stage 1",
-                                    pCutoff = 0.05,
-                                    FCcutoff = 2,
-                                    col=c('grey', 'pink', 'purple4', 'red4'),
-                                    colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_Volcano.png", width = 1920, height = 1080)
-Onevslate_volcano
-dev.off()
-
-Onevslate_z_volcano = EnhancedVolcano(Onevslate_z_DE_mapped,
-                                      lab = Onevslate_z_DE_mapped[, "Gene.Symbol"],
-                                      x = 'logFC',
-                                      y = 'adj.P.Val',
-                                      title = "Stages 3/4 vs. Stage 1 (z-normalised)",
-                                      pCutoff = 0.05,
-                                      FCcutoff = 1,
-                                      col=c('grey', 'pink', 'purple4', 'red4'),
-                                      colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Onevslate_z_Volcano.png", width = 1920, height = 1080)
-Onevslate_z_volcano
-dev.off()
-
-# Stage 2 vs Stages 3/4
-Twovslate_volcano = EnhancedVolcano(Twovslate_DE_mapped,
-                                    lab = Twovslate_DE_mapped[, "Gene.Symbol"],
-                                    x = 'logFC',
-                                    y = 'adj.P.Val',
-                                    title = "Stages 3/4 vs. Stage 2",
-                                    pCutoff = 0.05,
-                                    FCcutoff = 2,
-                                    col=c('grey', 'pink', 'purple4', 'red4'),
-                                    colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_Volcano.png", width = 1920, height = 1080)
-Twovslate_volcano
-dev.off()
-
-Twovslate_z_volcano = EnhancedVolcano(Twovslate_z_DE_mapped,
-                                      lab = Twovslate_z_DE_mapped[, "Gene.Symbol"],
-                                      x = 'logFC',
-                                      y = 'adj.P.Val',
-                                      title = "Stages 3/4 vs. Stage 2 (z-normalised)",
-                                      pCutoff = 0.05,
-                                      FCcutoff = 1,
-                                      col=c('grey', 'pink', 'purple4', 'red4'),
-                                      colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovslate_z_Volcano.png", width = 1920, height = 1080)
-Twovslate_z_volcano
-dev.off()
-
-# Stage 2 vs Stage 1
-Twovsone_volcano = EnhancedVolcano(Twovsone_DE_mapped,
-                                   lab = Twovsone_DE_mapped[, "Gene.Symbol"],
-                                   x = 'logFC',
-                                   y = 'adj.P.Val',
-                                   title = "Stage 2 vs. Stage 1",
-                                   pCutoff = 0.05,
-                                   FCcutoff = 2,
-                                   col=c('grey', 'pink', 'purple4', 'red4'),
-                                   colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_Volcano.png", width = 1920, height = 1080)
-Twovsone_volcano
-dev.off()
-
-Twovsone_z_volcano = EnhancedVolcano(Twovsone_z_DE_mapped,
-                                     lab = Twovsone_z_DE_mapped[, "Gene.Symbol"],
-                                     x = 'logFC',
-                                     y = 'adj.P.Val',
-                                     title = "Stage 2 vs. Stage 1 (z-normalised)",
-                                     pCutoff = 0.05,
-                                     FCcutoff = 1,
-                                     col=c('grey', 'pink', 'purple4', 'red4'),
-                                     colAlpha = 0.7)
-png("DGEA/Tumor_stage_analysis/Late_stage_vs_Early_stage/Twovsone_z_Volcano.png", width = 1920, height = 1080)
-Twovsone_z_volcano
-dev.off()
-
-# The following output changes depending on the definition of full_pdata_filt
-# Writing out the z-score-normalised expression matrix for machine learning purposes
-tumor_matrix_pre = as.data.frame(z_exprs_nonas)
-tumor_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
-tumor_matrix_pre = tumor_matrix_pre %>%
-  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
-  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
-rownames(tumor_matrix_pre) = tumor_matrix_pre$Gene.Symbol
-tumor_matrix = t(tumor_matrix_pre)
-tumor_frame = as.data.frame(tumor_matrix) %>%
-  mutate(GEO_accession = rownames(tumor_matrix)) %>%
-  inner_join(full_pdata_filt, by = "GEO_accession")
-write.xlsx(tumor_frame, "Tumor_samples_z_expression_matrix.xlsx", overwrite = TRUE)
-rm(tumor_matrix, tumor_matrix_pre)
-
 ##### Union #####
 # In this section we perform DGEA on the union of the gene expression matrices,
 # no the intersection (as we did before), in order to keep all genes from all
@@ -1945,13 +1285,31 @@ rownames(union_z_exprs) = union_z_exprs$EntrezGene.ID
 union_z_exprs = as.matrix(union_z_exprs %>% dplyr::select(-EntrezGene.ID)) # 25699 x 449
 
 # Stages 1/2 vs stages 3/4 #####
+Stages_pdata = full_pdata_filt %>%
+  dplyr::filter(Tissue_type == "tumor") %>%
+  dplyr::filter(is.na(AJCC_classification) == FALSE) %>%
+  mutate(Stage_group = NA)
+Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == 3 | 
+                           Stages_pdata$AJCC_classification == 4] = "Advanced_stage"
+Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == "1a" |
+                           Stages_pdata$AJCC_classification == "1b" |
+                           Stages_pdata$AJCC_classification == "2a" |
+                           Stages_pdata$AJCC_classification == "2b"] = "Early_stage"
+Stages_pdata$Stage_group = as.factor(Stages_pdata$Stage_group)
 
 # Stages_pdata can be used here for phenotypic data
 union_stages_z_matrix = union_z_exprs[, Stages_pdata$GEO_accession] # 25699 x 318
 
+# Design and contrast matrices
+design = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
+colnames(design) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
+                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
+rownames(design) = colnames(union_stages_z_matrix)
+cont.matrix = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design)
+
 # The design2 design matrix can be used here, along with cont.matrix2
-union_Stages_z_fit = lmFit(union_stages_z_matrix, design2)
-union_Stages_z_fit2 = contrasts.fit(union_Stages_z_fit, cont.matrix2)
+union_Stages_z_fit = lmFit(union_stages_z_matrix, design)
+union_Stages_z_fit2 = contrasts.fit(union_Stages_z_fit, cont.matrix)
 union_Stages_z_fit2 = eBayes(union_Stages_z_fit2, robust = TRUE)
 union_Stages_z_results = decideTests(union_Stages_z_fit2)
 summary(union_Stages_z_results)
@@ -1960,7 +1318,6 @@ union_Stages_z_DE = as.data.frame(topTable(union_Stages_z_fit2, adjust.method="B
 union_Stages_z_DE$EntrezGene.ID = rownames(union_Stages_z_DE)
 
 # Annotation with official gene symbols
-ID_Map = ID_Map %>% dplyr::rename(Gene.Symbol = probe)
 ID_Map$EntrezGene.ID = as.character(ID_Map$EntrezGene.ID)
 union_Stages_z_DE_mapped = union_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
 union_Stages_z_DE_mapped$Filter = NA
@@ -2000,21 +1357,20 @@ one_four_pdata = Stages_pdata %>%
   dplyr::filter(AJCC_classification == "1a" |
                   AJCC_classification == "1b" |
                   AJCC_classification == "4") %>%
-  dplyr::select(-Stage_group, -One_vs_all)
+  dplyr::select(-Stage_group)
 one_four_pdata$Stage = NA
 one_four_pdata$Stage[one_four_pdata$AJCC_classification == "1a"] = "Stage_one"
 one_four_pdata$Stage[one_four_pdata$AJCC_classification == "1b"] = "Stage_one"
 one_four_pdata$Stage[one_four_pdata$AJCC_classification == "4"] = "Stage_four"
 
 # Design and contrast matrices
+union_one_four_stages_z_matrix = union_z_exprs[, one_four_pdata$GEO_accession] # 25699 x 57
 design_1_4 = model.matrix(~0 + one_four_pdata$Stage + one_four_pdata$Study)
 colnames(design_1_4) = c("Stage_four", "Stage_one", "GSE18670", "GSE21501", 
                       "GSE42952", "GSE62165", "GSE62452", "GSE84219")
 rownames(design_1_4) = colnames(union_one_four_stages_z_matrix)
 cont.matrix_1_4 = makeContrasts(Onevsfour = Stage_one - Stage_four, 
                                 levels = design_1_4)
-union_one_four_stages_z_matrix = union_z_exprs[, one_four_pdata$GEO_accession] # 25699 x 57
-
 
 union_one_four_Stages_z_fit = lmFit(union_one_four_stages_z_matrix, design_1_4)
 union_one_four_Stages_z_fit2 = contrasts.fit(union_one_four_Stages_z_fit, cont.matrix_1_4)
@@ -2058,7 +1414,23 @@ write.xlsx(union_one_four_Stages_z_DE_mapped, "DGEA/Union/Stage_1_vs_Stage_4_z_D
            overwrite = TRUE)
 
 # Stage 1 vs normal #####
+one_normal_pdata = full_pdata_filt %>%
+  dplyr::filter(AJCC_classification == "1a" |
+                  AJCC_classification == "1b" |
+                  is.na(AJCC_classification) == TRUE) %>%
+  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
+one_normal_z_matrix = z_exprs[, one_normal_pdata$GEO_accession] # 2601 x 165
+
 union_one_normal_z_matrix = union_z_exprs[, one_normal_pdata$GEO_accession] # 25699 x 165
+
+# Design and contrast matrices
+design_1_normal = model.matrix(~0 + one_normal_pdata$Tissue_type + one_normal_pdata$Study)
+colnames(design_1_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
+                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
+rownames(design_1_normal) = colnames(union_one_normal_z_matrix)
+cont.matrix_1_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
+                                     levels = design_1_normal)
+
 union_one_normal_z_fit = lmFit(union_one_normal_z_matrix, design_1_normal)
 union_one_normal_z_fit2 = contrasts.fit(union_one_normal_z_fit, cont.matrix_1_normal)
 union_one_normal_z_fit2 = eBayes(union_one_normal_z_fit2, robust = TRUE)
@@ -2107,7 +1479,21 @@ write.xlsx(union_one_normal_z_DE_mapped, "DGEA/Union/Stage_1_vs_Normal_z_DE_topT
            overwrite = TRUE)
 
 # Stage 2 vs normal #####
+two_normal_pdata = full_pdata_filt %>%
+  dplyr::filter(AJCC_classification == "2a" |
+                  AJCC_classification == "2b" |
+                  is.na(AJCC_classification) == TRUE) %>%
+  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
 union_two_normal_z_matrix = union_z_exprs[, two_normal_pdata$GEO_accession] # 25699 x 368
+
+# Design and contrast matrices
+design_2_normal = model.matrix(~0 + two_normal_pdata$Tissue_type + two_normal_pdata$Study)
+colnames(design_2_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
+                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
+rownames(design_2_normal) = colnames(union_two_normal_z_matrix)
+cont.matrix_2_normal = makeContrasts(Twovsnormal = tumor - non_tumor, 
+                                     levels = design_2_normal)
+
 union_two_normal_z_fit = lmFit(union_two_normal_z_matrix, design_2_normal)
 union_two_normal_z_fit2 = contrasts.fit(union_two_normal_z_fit, cont.matrix_2_normal)
 union_two_normal_z_fit2 = eBayes(union_two_normal_z_fit2, robust = TRUE)
