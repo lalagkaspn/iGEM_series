@@ -623,27 +623,26 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      main = "Z-score normalisation heatmap")
 save_pheatmap_png(z_heatmap, "Plots/QC/Blood_samples/KBZ_heatmap.png")
 
-##### Differential Gene Expression (DGEA) #####
+##### Differential Gene Expression (DGEA) - Union #####
+# Joining in one expression matrix: z-score normalised version
+z_exprs_blood = z[[1]] %>% full_join(z[[2]], by = "EntrezGene.ID") %>%
+  full_join(z[[3]], by = "EntrezGene.ID") %>%
+  full_join(z[[4]], by = "EntrezGene.ID") %>%
+  dplyr::select(EntrezGene.ID, everything())
+
+rownames(z_exprs_blood) = z_exprs_blood$EntrezGene.ID
+z_exprs_blood = as.matrix(z_exprs_blood %>% dplyr::select(-EntrezGene.ID)) # 31581 x 128
 
 full_pdata$Study = as.factor(full_pdata$Study)
 
-# Tumor vs Normal #####
-# Original matrix
+# Design and contrast matrix
 design = model.matrix(~0 + full_pdata$Tissue_type + full_pdata$Study)
 colnames(design) = c("non_tumor", "tumor", "GSE18670", "GSE49641", "GSE74629")
-rownames(design) = colnames(original_exprs_nonas)
+rownames(design) = colnames(z_exprs_blood)
 cont.matrix = makeContrasts(tumorvsnontumor=tumor-non_tumor, levels=design)
 
-TN_fit = lmFit(original_exprs_nonas, design)
-TN_fit2 = contrasts.fit(TN_fit, cont.matrix)
-TN_fit2 = eBayes(TN_fit2, robust = TRUE)
-TN_results = decideTests(TN_fit2)
-summary(TN_results)
-TN_DE = as.data.frame(topTable(TN_fit2, adjust.method = "BH", number = Inf))
-TN_DE$EntrezGene.ID = rownames(TN_DE)
-
-# z-score-normalised matrix
-TN_z_fit = lmFit(z_exprs_nonas, design)
+# DGEA
+TN_z_fit = lmFit(z_exprs_blood, design)
 TN_z_fit2 = contrasts.fit(TN_z_fit, cont.matrix)
 TN_z_fit2 = eBayes(TN_z_fit2, robust = TRUE)
 TN_z_results = decideTests(TN_z_fit2)
@@ -651,57 +650,78 @@ summary(TN_z_results)
 TN_z_DE = as.data.frame(topTable(TN_z_fit2, adjust.method = "BH", number = Inf))
 TN_z_DE$EntrezGene.ID = rownames(TN_z_DE)
 
-# Concordance of results (%)
-up_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
-                                                                           TN_z_DE$logFC > 0],
-                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0]))/
-                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC > 0]), 
-                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC > 0])),2), "%")
-down_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 &
-                                                                             TN_z_DE$logFC < 0],
-                                                     TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0]))/
-                                  max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val < 0.05 & TN_z_DE$logFC < 0]), 
-                                      length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val < 0.05 & TN_DE$logFC < 0])),2), "%")
-ns_concordance = paste0(round(100*length(intersect(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05],
-                                                   TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05]))/
-                                max(length(TN_z_DE$EntrezGene.ID[TN_z_DE$adj.P.Val > 0.05]), 
-                                    length(TN_DE$EntrezGene.ID[TN_DE$adj.P.Val > 0.05])),2), "%")
-
-# up-concordance: 46.64%, down_concordance: 48.78%, ns_concordance: 79.27%
+# 7437 DEGs
 
 # Annotation with official gene symbols
 official = org.Hs.egSYMBOL
 mapped_genes_official = mappedkeys(official)
 official_df = as.data.frame(official[mapped_genes_official])
 official_df = official_df %>% dplyr::rename(EntrezGene.ID = gene_id, Gene.Symbol = symbol)
+official_df$HGNC_Official = "Yes"
 official_df = official_df[-which(duplicated(official_df$Gene.Symbol)==T),]
 official_df = distinct(official_df)
 
-TN_DE_mapped = TN_DE %>% left_join(official_df, by = "EntrezGene.ID")
-TN_DE_mapped = TN_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-rownames(TN_DE_mapped) = TN_DE_mapped$EntrezGene.ID
-write.xlsx(TN_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_DE_topTable.xlsx")
+alias = org.Hs.egALIAS2EG
+mapped_genes_alias = mappedkeys(alias)
+alias_df = as.data.frame(alias[mapped_genes_alias])
+alias_df = alias_df %>% dplyr::rename(EntrezGene.ID = gene_id, Gene.Symbol = alias_symbol)
+alias_df = alias_df[-which(alias_df$Gene.Symbol %in% official_df$Gene.Symbol),]
+alias_df$HGNC_Official = "No"
 
-TN_z_DE_mapped = TN_z_DE %>% left_join(official_df, by = "EntrezGene.ID")
-TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
+ID_Map = rbind(official_df, alias_df) %>% distinct()
+ID_Map$EntrezGene.ID = as.numeric(ID_Map$EntrezGene.ID)
+ID_Map = ID_Map[order(ID_Map$EntrezGene.ID),] %>%
+  dplyr::rename(probe=Gene.Symbol) %>%
+  dplyr::select(probe, EntrezGene.ID, HGNC_Official)
+
+# Aliases
+aliases_for_join = alias_df %>% dplyr::rename(Alias = Gene.Symbol)
+Aliases = official_df %>% inner_join(aliases_for_join,
+                                     by = "EntrezGene.ID") %>%
+  dplyr::select(Alias, Gene.Symbol, EntrezGene.ID) %>%
+  dplyr::rename(probe = Alias, HGNC_Symbol = Gene.Symbol,
+                Entrez = EntrezGene.ID) %>%
+  distinct()
+
+rm(alias, alias_df, aliases_for_join, official,
+   mapped_genes_alias, mapped_genes_official)
+
+ID_Map = ID_Map %>% dplyr::rename(Gene.Symbol = probe)
+ID_Map$EntrezGene.ID = as.character(ID_Map$EntrezGene.ID)
+TN_z_DE_mapped = TN_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
+TN_z_DE_mapped$Filter = NA
+unmapped = which(is.na(TN_z_DE_mapped$HGNC_Official))
+TN_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
+for(i in 1:nrow(TN_z_DE_mapped)){
+  if(TN_z_DE_mapped$HGNC_Official[i] == "Yes"){
+    TN_z_DE_mapped$Filter[i] = "Keep"
+  } else if(length(unique(TN_z_DE_mapped$HGNC_Official[TN_z_DE_mapped$EntrezGene.ID ==
+                                                       TN_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
+            TN_z_DE_mapped$HGNC_Official[i] == "No"){
+    TN_z_DE_mapped$Filter[i] = "Discard"
+  } else if(unique(TN_z_DE_mapped$HGNC_Official[TN_z_DE_mapped$EntrezGene.ID ==
+                                                TN_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
+    TN_z_DE_mapped$Filter[i] = "Keep"
+    TN_z_DE_mapped$Gene.Symbol[i] = TN_z_DE_mapped$EntrezGene.ID[i]
+  } else if(TN_z_DE_mapped$HGNC_Official[i] == "unmapped"){
+    TN_z_DE_mapped$Gene.Symbol[i] = TN_z_DE_mapped$EntrezGene.ID[i]
+    TN_z_DE_mapped$Filter[i] = "Keep"
+  }
+}
+
+TN_z_DE_mapped = TN_z_DE_mapped %>% 
+  dplyr::filter(Filter == "Keep") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
+  dplyr::select(-Filter) %>%
+  distinct()
+TN_z_DE_mapped = TN_z_DE_mapped[order(TN_z_DE_mapped$adj.P.Val),]
 rownames(TN_z_DE_mapped) = TN_z_DE_mapped$EntrezGene.ID
-write.xlsx(TN_z_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx")
+TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
+write.xlsx(TN_z_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx",
+           overwrite = TRUE)
 
 ##### Volcano plots #####
 # Tumor vs Normal
-TN_volcano = EnhancedVolcano(TN_DE_mapped,
-                             lab = TN_DE_mapped[, "Gene.Symbol"],
-                             x = 'logFC',
-                             y = 'adj.P.Val',
-                             title = "Tumor vs. Non-tumor",
-                             pCutoff = 0.05,
-                             FCcutoff = 2,
-                             col=c('grey', 'pink', 'purple4', 'red4'),
-                             colAlpha = 0.7)
-png("DGEA/Blood_samples_analysis/Blood_TN_Volcano.png", width = 1920, height = 1080)
-TN_volcano
-dev.off()
-
 TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                lab = TN_z_DE_mapped[, "Gene.Symbol"],
                                x = 'logFC',
@@ -715,12 +735,12 @@ png("DGEA/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height =
 TN_z_volcano
 dev.off()
 
-##### Comparisons with tumor stage analysis #####
-# Intersect of DEGs with the tumor vs normal (all-stage tumours) DEGs:
-tumor_stage_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/TN_z_DE_topTable.xlsx")
+##### Comparisons with Stage 1 vs normal analysis #####
+# Intersect of DEGs with the tumor vs normal (stage 1 tumours) DEGs:
+tumor_stage_z_results = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx")
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
-DEG_overlap = intersect(significants_blood, significants_tumor) # 839 genes
+DEG_overlap = intersect(significants_blood, significants_tumor) # 2355 genes
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -736,46 +756,8 @@ common_set$concordance = ifelse(common_set$logFC_tumor*common_set$logFC_blood > 
 concordant_set = common_set %>%
   dplyr::filter(concordance == 1)
 concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
-write.xlsx(concordant_set, "DGEA/Blood_Tumor_DEG_overlap.xlsx", overwrite = TRUE)
-
-# Writing out the z-score-normalised expression matrix for machine learning purposes
-blood_matrix_pre = as.data.frame(z_exprs_nonas)
-blood_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
-blood_matrix_pre = blood_matrix_pre %>%
-  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
-  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
-rownames(blood_matrix_pre) = blood_matrix_pre$Gene.Symbol
-blood_matrix = t(blood_matrix_pre)
-blood_frame = as.data.frame(blood_matrix) %>%
-  mutate(GEO_accession = rownames(blood_matrix)) %>%
-  inner_join(full_pdata, by = "GEO_accession")
-write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx", overwrite = TRUE)
-rm(blood_matrix, blood_matrix_pre)
-
-# Intersect of DEGs with the stage 1 tumours vs normal DEGs:
-tumor_stage_1_z_results = read.xlsx("DGEA/Tumor_stage_analysis/Tumor_vs_Normal/one_normal_z_DE_topTable.xlsx")
-significants_tumor_stage_1 = tumor_stage_1_z_results$Gene.Symbol[tumor_stage_1_z_results$adj.P.Val < 0.05]
-DEG_overlap_stage_1 = intersect(significants_blood, significants_tumor_stage_1) # 743 genes
-
-# We also need to establish which of the overlapping genes are differentially expressed
-# towards the same direction (up-/down-regulated):
-
-stage_1_subset1 = tumor_stage_1_z_results[tumor_stage_1_z_results$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
-  dplyr::rename(logFC_tumor = logFC, adj_p_val_tumor = adj.P.Val)
-stage_1_subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
-  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
-common_set_stage_1 = inner_join(stage_1_subset1, stage_1_subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
-common_set_stage_1$concordance = ifelse(common_set_stage_1$logFC_tumor*common_set_stage_1$logFC_blood > 0, 1, 0)
-concordant_set_stage_1 = common_set_stage_1 %>%
-  dplyr::filter(concordance == 1)
-concordant_set_stage_1 = concordant_set_stage_1[order(concordant_set_stage_1$adj_p_val_blood, 
-                                                      concordant_set_stage_1$adj_p_val_tumor), ]
-write.xlsx(concordant_set_stage_1, "DGEA/Blood_Tumor_Stage_1_DEG_overlap.xlsx", overwrite = TRUE)
-
-# 481 common stat. sig. diff. genes expressed in blood samples and stage 1 samples
-# vs. normal (stat. sig. diff. expressed and in the same direction)
+write.xlsx(concordant_set, "DGEA/Blood_Stage_1_DEG_overlap.xlsx", overwrite = TRUE)
+# 1371 final genes
 
 # Writing out the z-score-normalised expression matrix for machine learning purposes
 blood_matrix_pre = as.data.frame(z_exprs_nonas)
