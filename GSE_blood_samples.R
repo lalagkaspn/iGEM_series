@@ -738,9 +738,13 @@ dev.off()
 ##### Comparisons with Stage 1 vs normal analysis #####
 # Intersect of DEGs with the tumor vs normal (stage 1 tumours) DEGs:
 tumor_stage_z_results = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx")
+discriminators = read.xlsx("DGEA/Union/discriminators.xlsx")
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
-DEG_overlap = intersect(significants_blood, significants_tumor) # 2355 genes
+DEG_overlap = intersect(significants_blood, significants_tumor)
+
+discriminators_overlap = intersect(DEG_overlap, discriminators$Gene.Symbol)
+# 2355 genes, 65 of which are included in the discriminators
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -757,18 +761,7 @@ concordant_set = common_set %>%
   dplyr::filter(concordance == 1)
 concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
 write.xlsx(concordant_set, "DGEA/Blood_Stage_1_DEG_overlap.xlsx", overwrite = TRUE)
-# 1371 final genes
 
-# Writing out the z-score-normalised expression matrix for machine learning purposes
-blood_matrix_pre = as.data.frame(z_exprs_nonas)
-blood_matrix_pre$EntrezGene.ID = rownames(z_exprs_nonas)
-blood_matrix_pre = blood_matrix_pre %>%
-  inner_join(TN_z_DE_mapped, by = "EntrezGene.ID") %>%
-  dplyr::select(-logFC, -AveExpr, -t, -P.Value, -adj.P.Val, -B, -EntrezGene.ID)
-rownames(blood_matrix_pre) = blood_matrix_pre$Gene.Symbol
-blood_matrix = t(blood_matrix_pre)
-blood_frame = as.data.frame(blood_matrix) %>%
-  mutate(GEO_accession = rownames(blood_matrix)) %>%
-  inner_join(full_pdata, by = "GEO_accession")
-write.xlsx(blood_frame, "Blood_samples_z_expression_matrix.xlsx", overwrite = TRUE)
-rm(blood_matrix, blood_matrix_pre)
+concordant_discriminators_overlap = intersect(concordant_set$Gene.Symbol, 
+                                              discriminators$Gene.Symbol)
+# 1376 final genes, 38 of which are included in the discriminators
