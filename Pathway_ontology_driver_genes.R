@@ -4,6 +4,7 @@
 library(pathfindR)
 library(openxlsx)
 library(dplyr)
+library(ggplot2)
 
 # Visualisations of pathways have been moved to a folder outside the repository
 # due to large size and difficulties with uploading to GitHub
@@ -13,7 +14,7 @@ Stage_1_tT = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %>%
   dplyr::select(Gene.Symbol, logFC, adj.P.Val) %>%
   na.omit()
 
-# Preparing a time-expensive pathfindR loop
+# Preparing a time-expensive pathfindR loop for enrichment analysis
 gene_sets = c("BioCarta", "GO-All", "KEGG", "Reactome")
 dirs = paste0("pathfindR/", gene_sets)
 pathfindR_outputs = list()
@@ -45,26 +46,32 @@ names(clustered_results) = c("BioCarta", "NULL", "KEGG")
 # BioCarta: The maximum average silhouette width was 0.17 for k = 66
 # KEGG    : The maximum average silhouette width was 0.14 for k = 66
 
+enrichment_dotplots = list()
+cluster_enrichment_dotplots = list()
+
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs)){
   # unclustered results
-  plot = enrichment_chart(result_df = pathfindR_outputs[[i]], top_terms = 10)
+  enrichment_dotplots[[i]] = enrichment_chart(result_df = pathfindR_outputs[[i]], top_terms = 10)
   png(paste0("pathfindR/", names(pathfindR_outputs)[i], "/",
              names(pathfindR_outputs)[i], "_top10_dotplot.png"), width = 1024, height = 768)
-  print(plot)
-  dev.off(); rm(plot)
+  print(enrichment_dotplots[[i]])
+  dev.off()
   
   if (i == 1 | i == 3){
     # clustered results
-    plot = enrichment_chart(result_df = clustered_results[[i]], top_terms = 10,
+    cluster_enrichment_dotplots[[i]] = enrichment_chart(result_df = clustered_results[[i]], top_terms = 10,
                             plot_by_cluster = TRUE)
     png(paste0("pathfindR/", names(pathfindR_outputs)[i], "/",
                names(pathfindR_outputs)[i], "_top10_dotplot_clustered.png"), width = 1024, 
         height = 768)
-    print(plot)
-    dev.off(); rm(plot)
+    print(cluster_enrichment_dotplots[[i]])
+    dev.off()
   }
 }
+
+names(enrichment_dotplots) = names(pathfindR_outputs)
+names(cluster_enrichment_dotplots) = names(clustered_results)
 
 # Write out results in a comprehensive .xlsx file
 wb = createWorkbook()
@@ -78,3 +85,67 @@ addWorksheet(wb, "Reactome")
 writeData(wb, "Reactome", pathfindR_outputs[["Reactome"]])
 saveWorkbook(wb, file = "pathfindR/Comprehensive_pathfindR_output.xlsx",
              overwrite = TRUE); rm(wb)
+
+# Representative terms output file (BioCarta & KEGG)
+wb2 = createWorkbook()
+addWorksheet(wb2, "BioCarta - rep")
+writeData(wb2, "BioCarta - rep", clustered_results[["BioCarta"]][clustered_results[["BioCarta"]]$Status
+                                                                 == "Representative", ])
+addWorksheet(wb2, "KEGG - rep")
+writeData(wb2, "KEGG - rep", clustered_results[["KEGG"]][clustered_results[["KEGG"]]$Status
+                                                                 == "Representative", ])
+saveWorkbook(wb2, file = "pathfindR/Representative_terms.xlsx",
+             overwrite = TRUE); rm(wb2)
+
+# Term-gene heatmaps and term-gene graphs #####
+term_gene_heatmaps = list()
+term_gene_graphs = list()
+
+for (i in 1:length(pathfindR_outputs)){
+  # term-gene heatmaps
+  term_gene_heatmaps[[i]] = term_gene_heatmap(result_df = pathfindR_outputs[[i]],
+                                              genes_df = Stage_1_tT,
+                                              num_terms = 5,
+                                              use_description = TRUE,
+                                              low = "midnightblue",
+                                              high = "hotpink4",
+                                              mid = "white")
+  png(paste0("pathfindR/", names(pathfindR_outputs)[i], "/",
+             names(pathfindR_outputs)[i], "_top5_term_gene_heatmap.png"), 
+      width = 1920, height = 1080)
+  print(term_gene_heatmaps[[i]])
+  dev.off()
+  
+  # term-gene graphs
+  term_gene_graphs[[i]] = term_gene_graph(result_df = pathfindR_outputs[[i]],
+                                              num_terms = 3,
+                                              use_description = TRUE,
+                                          node_size = "p_val")
+  png(paste0("pathfindR/", names(pathfindR_outputs)[i], "/",
+             names(pathfindR_outputs)[i], "_top3_term_gene_graph.png"), 
+      width = 1024, height = 768)
+  print(term_gene_graphs[[i]])
+  dev.off()
+}
+
+# UpSet plots #####
+UpSet_plots = list()
+for (i in 1:length(pathfindR_outputs)){
+  # term-gene heatmaps
+  UpSet_plots[[i]] = UpSet_plot(result_df = pathfindR_outputs[[i]],
+                                genes_df = Stage_1_tT,
+                                num_terms = 5,
+                                use_description = TRUE,
+                                low = "midnightblue",
+                                high = "hotpink4",
+                                mid = "white")
+  png(paste0("pathfindR/", names(pathfindR_outputs)[i], "/",
+             names(pathfindR_outputs)[i], "_top5_UpSet_plot.png"), 
+      width = 1920, height = 1080)
+  print(UpSet_plots[[i]])
+  dev.off()
+}
+
+names(term_gene_graphs) = names(pathfindR_outputs)
+names(term_gene_heatmaps) = names(pathfindR_outputs)
+names(UpSet_plots) = names(pathfindR_outputs)
