@@ -149,3 +149,29 @@ for (i in 1:length(pathfindR_outputs)){
 names(term_gene_graphs) = names(pathfindR_outputs)
 names(term_gene_heatmaps) = names(pathfindR_outputs)
 names(UpSet_plots) = names(pathfindR_outputs)
+
+# Driver genes from CIRCOS census list #####
+census = read.csv("COSMIC_census_09_02_2022.csv") %>%
+  dplyr::rename(EntrezGene.ID = Entrez.GeneId, Gene.Symbol_COSMIC = Gene.Symbol) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol_COSMIC, Name, everything())
+census$EntrezGene.ID = as.character(census$EntrezGene.ID)
+
+sig_DGEA_subset = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
+
+general_drivers = inner_join(census, sig_DGEA_subset, by= "EntrezGene.ID") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol_pre, Gene.Symbol_COSMIC, Name, logFC, 
+                P.Value, B, HGNC_Official, adj.P.Val, everything())
+PDAC_drivers = inner_join(census, sig_DGEA_subset, by= "EntrezGene.ID") %>%
+  dplyr::filter(grepl("pancr", Tumour.Types.Somatic.) | grepl("pancr", Tumour.Types.Germline.)) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol_pre, Gene.Symbol_COSMIC, Name, logFC, 
+                P.Value, B, HGNC_Official, adj.P.Val, everything())
+
+# Writing out
+drivers = createWorkbook()
+addWorksheet(drivers, "General")
+writeData(drivers, "General", general_drivers)
+addWorksheet(drivers, "Pancreas")
+writeData(drivers, "Pancreas", PDAC_drivers)
+saveWorkbook(drivers, "Drivers.xlsx", overwrite = TRUE); rm(drivers); gc()
