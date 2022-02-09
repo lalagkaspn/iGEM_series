@@ -160,10 +160,10 @@ sig_DGEA_subset = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
 
-general_drivers = inner_join(census, sig_DGEA_subset, by= "EntrezGene.ID") %>%
+general_drivers = inner_join(census, sig_DGEA_subset, by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol_pre, Gene.Symbol_COSMIC, Name, logFC, 
                 P.Value, B, HGNC_Official, adj.P.Val, everything())
-PDAC_drivers = inner_join(census, sig_DGEA_subset, by= "EntrezGene.ID") %>%
+PDAC_drivers = inner_join(census, sig_DGEA_subset, by = "EntrezGene.ID") %>%
   dplyr::filter(grepl("pancr", Tumour.Types.Somatic.) | grepl("pancr", Tumour.Types.Germline.)) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol_pre, Gene.Symbol_COSMIC, Name, logFC, 
                 P.Value, B, HGNC_Official, adj.P.Val, everything())
