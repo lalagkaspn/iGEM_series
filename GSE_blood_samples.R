@@ -190,9 +190,9 @@ filt_pdata[["GSE18670"]] = pdata$GSE18670 %>%
          T_stage = "t-stage:ch1",
          Tumor_grade = "tumor grade:ch1")
 
-# Keep only circulating tumor (CTC) and control (P) samples
+# Keep only circulating tumor (CTC)
+# We do not keep the control samples here because they derive from pancreatic tissue
 patients_keep = grep("_CTC_",x = filt_pdata$GSE18670$Tissue_type)
-patients_keep = c(patients_keep, grep("_P_",x = filt_pdata$GSE18670$Tissue_type))
 
 filt_pdata$GSE18670 = filt_pdata$GSE18670[patients_keep, ] ; rm(patients_keep)
 
@@ -419,10 +419,10 @@ original_exprs = esets[[1]] %>% inner_join(esets[[2]], by = "ENTREZ_GENE_ID") %>
 
 rows = original_exprs$ENTREZ_GENE_ID
 original_exprs = as.matrix(original_exprs %>% dplyr::select(-ENTREZ_GENE_ID))
-rownames(original_exprs) = rows; rm(rows) # 5016 x 128
+rownames(original_exprs) = rows; rm(rows) # 5016 x 122
 # Making sure we do not have NAs in any row
 original_exprs = original_exprs[rowSums(is.na(original_exprs)) != ncol(original_exprs), ]
-original_exprs_nonas = na.omit(original_exprs) # 5016 x 128
+original_exprs_nonas = na.omit(original_exprs) # 5016 x 122
 
 for (i in 1:length(z)){
   z[[i]]$EntrezGene.ID = as.character(z[[i]]$EntrezGene.ID)
@@ -437,10 +437,10 @@ z_exprs = z[[1]] %>% inner_join(z[[2]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, everything())
 
 rownames(z_exprs) = z_exprs$EntrezGene.ID
-z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 5016 x 128
+z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 5016 x 122
 # Making sure we do not have NAs in any row
 z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
-z_exprs_nonas = na.omit(z_exprs) # 5015 x 128
+z_exprs_nonas = na.omit(z_exprs) # 5015 x 122
 # ENTREZ_ID 2597 had some NAs. It was removed from z_exprs_nonas
 
 # Multidimensional scaling plot: original matrix #####
@@ -515,7 +515,7 @@ png("Plots/QC/Blood_samples/Original_boxplot.png", width = 1920, height = 1080)
 ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 30), rep("chartreuse", 36),
-                        rep("orange", 50), rep("red", 12)), outlier.alpha = 0.1)+
+                        rep("orange", 50), rep("red", 6)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -540,7 +540,7 @@ png("Plots/QC/Blood_samples/KBZ_boxplot.png", width = 1920, height = 1080)
 ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 30), rep("chartreuse", 36),
-                        rep("orange", 50), rep("red", 12)), outlier.alpha = 0.1)+
+                        rep("orange", 50), rep("red", 6)), outlier.alpha = 0.1)+
   scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
                      breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -650,7 +650,7 @@ summary(TN_z_results)
 TN_z_DE = as.data.frame(topTable(TN_z_fit2, adjust.method = "BH", number = Inf))
 TN_z_DE$EntrezGene.ID = rownames(TN_z_DE)
 
-# 7437 DEGs
+# 7145 DEGs
 
 # Annotation with official gene symbols
 official = org.Hs.egSYMBOL
@@ -717,7 +717,7 @@ TN_z_DE_mapped = TN_z_DE_mapped %>%
 TN_z_DE_mapped = TN_z_DE_mapped[order(TN_z_DE_mapped$adj.P.Val),]
 rownames(TN_z_DE_mapped) = TN_z_DE_mapped$EntrezGene.ID
 TN_z_DE_mapped = TN_z_DE_mapped %>% dplyr::select(EntrezGene.ID, Gene.Symbol, everything())
-write.xlsx(TN_z_DE_mapped, "DGEA/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx",
+write.xlsx(TN_z_DE_mapped, "DGEA/Union/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx",
            overwrite = TRUE)
 
 ##### Volcano plots #####
@@ -731,7 +731,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                FCcutoff = 1,
                                col=c('grey', 'pink', 'purple4', 'red4'),
                                colAlpha = 0.7)
-png("DGEA/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
+png("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
 TN_z_volcano
 dev.off()
 
@@ -744,7 +744,7 @@ significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj
 DEG_overlap = intersect(significants_blood, significants_tumor)
 
 discriminators_overlap = intersect(DEG_overlap, discriminators$Gene.Symbol)
-# 2355 genes, 65 of which are included in the discriminators
+# 2298 genes, 64 of which are included in the discriminators
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -764,4 +764,4 @@ write.xlsx(concordant_set, "DGEA/Blood_Stage_1_DEG_overlap.xlsx", overwrite = TR
 
 concordant_discriminators_overlap = intersect(concordant_set$Gene.Symbol, 
                                               discriminators$Gene.Symbol)
-# 1376 final genes, 38 of which are included in the discriminators
+# 1349 final genes, 37 of which are included in the discriminators
