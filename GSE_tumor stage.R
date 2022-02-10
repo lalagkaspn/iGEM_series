@@ -989,6 +989,7 @@ for(i in 1:length(esets)){
 # full_pdata_filt = full_pdata[full_pdata$Study != "GSE102238", ]
 # In order to include GSE102238 change the previous line of code to:
 full_pdata_filt = full_pdata
+write.xlsx(full_pdata_filt, "DGEA/Pheno.xlsx", overwrite = TRUE)
 
 # Joining in one expression matrix: original version
 for (i in 1:length(esets)){
@@ -1422,6 +1423,10 @@ one_normal_pdata = full_pdata_filt %>%
 one_normal_z_matrix = z_exprs[, one_normal_pdata$GEO_accession] # 2601 x 165
 
 union_one_normal_z_matrix = union_z_exprs[, one_normal_pdata$GEO_accession] # 25699 x 165
+writeout = as.data.frame(union_one_normal_z_matrix)
+writeout$EntrezGene.ID = rownames(union_one_normal_z_matrix)
+write.xlsx(writeout, 
+           "DGEA/Union/Stage_1_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
 
 # Design and contrast matrices
 design_1_normal = model.matrix(~0 + one_normal_pdata$Tissue_type + one_normal_pdata$Study)
