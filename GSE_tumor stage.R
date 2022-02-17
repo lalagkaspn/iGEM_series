@@ -1224,11 +1224,13 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
 save_pheatmap_png(z_heatmap, "Plots/QC/Tumor_stage/KBZ_heatmap.png")
 
 ##### Differential Gene Expression (DGEA) #####
-# 4 types of DGEA:l
+# 7 types of DGEA:
 #    - Stages 1/2 vs Stages 3/4
 #    - Stage 1 vs Stage 4
 #    - Stage 1 vs normal
 #    - Stage 2 vs normal
+#    - Stage 3 vs normal
+#    - Stage 4 vs normal
 
 full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
 
@@ -1264,6 +1266,8 @@ Aliases = official_df %>% inner_join(aliases_for_join,
                 Entrez = EntrezGene.ID) %>%
   distinct()
 
+ID_Map$EntrezGene.ID = as.character(ID_Map$EntrezGene.ID)
+ID_Map = ID_Map %>% dplyr::rename(Gene.Symbol = probe)
 rm(alias, alias_df, aliases_for_join, official,
    mapped_genes_alias, mapped_genes_official)
 
@@ -1319,7 +1323,6 @@ union_Stages_z_DE = as.data.frame(topTable(union_Stages_z_fit2, adjust.method="B
 union_Stages_z_DE$EntrezGene.ID = rownames(union_Stages_z_DE)
 
 # Annotation with official gene symbols
-ID_Map$EntrezGene.ID = as.character(ID_Map$EntrezGene.ID)
 union_Stages_z_DE_mapped = union_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
 union_Stages_z_DE_mapped$Filter = NA
 unmapped = which(is.na(union_Stages_z_DE_mapped$HGNC_Official))
@@ -1610,6 +1613,149 @@ discriminators = discriminators %>%
 
 write.xlsx(discriminators, "DGEA/Union/discriminators.xlsx", overwrite = TRUE)
 
+# Stage 4 vs normal #####
+four_normal_pdata = full_pdata_filt %>%
+  dplyr::filter(AJCC_classification == "4" |
+                  is.na(AJCC_classification) == TRUE) %>%
+  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
+four_normal_z_matrix = z_exprs[, four_normal_pdata$GEO_accession] # 2601 x 152
+
+union_four_normal_z_matrix = union_z_exprs[, four_normal_pdata$GEO_accession] # 25699 x 152
+# writeout = as.data.frame(union_four_normal_z_matrix)
+# writeout$EntrezGene.ID = rownames(union_four_normal_z_matrix)
+# write.xlsx(writeout, "DGEA/Union/Stage_4_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
+
+# Design and contrast matrices
+design_4_normal = model.matrix(~0 + four_normal_pdata$Tissue_type + four_normal_pdata$Study)
+colnames(design_4_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
+                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
+rownames(design_4_normal) = colnames(union_four_normal_z_matrix)
+cont.matrix_4_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
+                                     levels = design_4_normal)
+
+union_four_normal_z_fit = lmFit(union_four_normal_z_matrix, design_4_normal)
+# Coefficients not estimable: GSE21501 GSE42952 GSE84219
+union_four_normal_z_fit2 = contrasts.fit(union_four_normal_z_fit, cont.matrix_4_normal)
+union_four_normal_z_fit2 = eBayes(union_four_normal_z_fit2, robust = TRUE)
+union_four_normal_z_results = decideTests(union_four_normal_z_fit2)
+summary(union_four_normal_z_results) 
+
+union_four_normal_z_DE = as.data.frame(topTable(union_four_normal_z_fit2, 
+                                                adjust.method="BH", number = Inf))
+union_four_normal_z_DE$EntrezGene.ID = rownames(union_four_normal_z_DE)
+
+# 11512 stat. sig. diff. expressed genes of which 8045 (out of 10891) are also found 
+# as stat. sig. diff. expressed in the stage 1 vs Normal comparison:
+# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
+
+# Annotation with official gene symbols
+union_four_normal_z_DE_mapped = union_four_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
+union_four_normal_z_DE_mapped$Filter = NA
+unmapped = which(is.na(union_four_normal_z_DE_mapped$HGNC_Official))
+union_four_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
+for(i in 1:nrow(union_four_normal_z_DE_mapped)){
+  if(union_four_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
+    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
+  } else if(length(unique(union_four_normal_z_DE_mapped$HGNC_Official[union_four_normal_z_DE_mapped$EntrezGene.ID ==
+                                                                      union_four_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
+            union_four_normal_z_DE_mapped$HGNC_Official[i] == "No"){
+    union_four_normal_z_DE_mapped$Filter[i] = "Discard"
+  } else if(unique(union_four_normal_z_DE_mapped$HGNC_Official[union_four_normal_z_DE_mapped$EntrezGene.ID ==
+                                                               union_four_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
+    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
+    union_four_normal_z_DE_mapped$Gene.Symbol[i] = union_four_normal_z_DE_mapped$EntrezGene.ID[i]
+  } else if(union_four_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
+    union_four_normal_z_DE_mapped$Gene.Symbol[i] = union_four_normal_z_DE_mapped$EntrezGene.ID[i]
+    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
+  }
+}
+
+union_four_normal_z_DE_mapped = union_four_normal_z_DE_mapped %>% 
+  dplyr::filter(Filter == "Keep") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
+  dplyr::select(-Filter) %>%
+  distinct()
+union_four_normal_z_DE_mapped = union_four_normal_z_DE_mapped[order(union_four_normal_z_DE_mapped$adj.P.Val),]
+rownames(union_four_normal_z_DE_mapped) = union_four_normal_z_DE_mapped$EntrezGene.ID
+write.xlsx(union_four_normal_z_DE_mapped, "DGEA/Union/Stage_4_vs_Normal_z_DE_topTable.xlsx",
+           overwrite = TRUE)
+
+# Stage 3 vs normal #####
+three_normal_pdata = full_pdata_filt %>%
+  dplyr::filter(AJCC_classification == "3" |
+                  is.na(AJCC_classification) == TRUE) %>%
+  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
+three_normal_z_matrix = z_exprs[, three_normal_pdata$GEO_accession] # 2601 x 153
+
+union_three_normal_z_matrix = union_z_exprs[, three_normal_pdata$GEO_accession] # 25699 x 153
+# writeout = as.data.frame(union_three_normal_z_matrix)
+# writeout$EntrezGene.ID = rownames(union_three_normal_z_matrix)
+# write.xlsx(writeout, "DGEA/Union/Stage_3_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
+
+# Design and contrast matrices
+design_3_normal = model.matrix(~0 + three_normal_pdata$Tissue_type + three_normal_pdata$Study)
+colnames(design_3_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
+                              "GSE32952", "GSE62165", "GSE62352", "GSE83219")
+rownames(design_3_normal) = colnames(union_three_normal_z_matrix)
+cont.matrix_3_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
+                                     levels = design_3_normal)
+
+union_three_normal_z_fit = lmFit(union_three_normal_z_matrix, design_3_normal)
+# Coefficients not estimable: GSE32952 GSE83219
+union_three_normal_z_fit2 = contrasts.fit(union_three_normal_z_fit, cont.matrix_3_normal)
+union_three_normal_z_fit2 = eBayes(union_three_normal_z_fit2, robust = TRUE)
+union_three_normal_z_results = decideTests(union_three_normal_z_fit2)
+summary(union_three_normal_z_results) 
+
+union_three_normal_z_DE = as.data.frame(topTable(union_three_normal_z_fit2, 
+                                                 adjust.method="BH", number = Inf))
+union_three_normal_z_DE$EntrezGene.ID = rownames(union_three_normal_z_DE)
+
+# 12934 stat. sig. diff. expressed genes of which 8597 (out of 10891) are also found 
+# as stat. sig. diff. expressed in the stage 1 vs Normal comparison:
+# length(intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
+# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
+
+# Annotation with official gene symbols
+union_three_normal_z_DE_mapped = union_three_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
+union_three_normal_z_DE_mapped$Filter = NA
+unmapped = which(is.na(union_three_normal_z_DE_mapped$HGNC_Official))
+union_three_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
+for(i in 1:nrow(union_three_normal_z_DE_mapped)){
+  if(union_three_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
+    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
+  } else if(length(unique(union_three_normal_z_DE_mapped$HGNC_Official[union_three_normal_z_DE_mapped$EntrezGene.ID ==
+                                                                       union_three_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
+            union_three_normal_z_DE_mapped$HGNC_Official[i] == "No"){
+    union_three_normal_z_DE_mapped$Filter[i] = "Discard"
+  } else if(unique(union_three_normal_z_DE_mapped$HGNC_Official[union_three_normal_z_DE_mapped$EntrezGene.ID ==
+                                                                union_three_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
+    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
+    union_three_normal_z_DE_mapped$Gene.Symbol[i] = union_three_normal_z_DE_mapped$EntrezGene.ID[i]
+  } else if(union_three_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
+    union_three_normal_z_DE_mapped$Gene.Symbol[i] = union_three_normal_z_DE_mapped$EntrezGene.ID[i]
+    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
+  }
+}
+
+union_three_normal_z_DE_mapped = union_three_normal_z_DE_mapped %>% 
+  dplyr::filter(Filter == "Keep") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
+  dplyr::select(-Filter) %>%
+  distinct()
+union_three_normal_z_DE_mapped = union_three_normal_z_DE_mapped[order(union_three_normal_z_DE_mapped$adj.P.Val),]
+rownames(union_three_normal_z_DE_mapped) = union_three_normal_z_DE_mapped$EntrezGene.ID
+write.xlsx(union_three_normal_z_DE_mapped, "DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx",
+           overwrite = TRUE)
+
+
+# Overall concordance between Stage 2/3, Stage 2/4, Stage 3/4
+# Stage 2/3
+# length(intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
+# union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05]))
+
+
 # Union volcanoes #####
 union_stages_volcano = EnhancedVolcano(union_Stages_z_DE_mapped,
                                    lab = union_Stages_z_DE_mapped[, "Gene.Symbol"],
@@ -1661,5 +1807,31 @@ union_two_normal_volcano = EnhancedVolcano(union_two_normal_z_DE_mapped,
                                            colAlpha = 0.7)
 png("DGEA/Union/Union_Two_Normal_Volcano.png", width = 1920, height = 1080)
 union_two_normal_volcano
+dev.off()
+
+union_three_normal_volcano = EnhancedVolcano(union_three_normal_z_DE_mapped,
+                                           lab = union_three_normal_z_DE_mapped[, "Gene.Symbol"],
+                                           x = 'logFC',
+                                           y = 'adj.P.Val',
+                                           title = "Stage 3 vs. Normal",
+                                           pCutoff = 0.05,
+                                           FCcutoff = 1,
+                                           col=c('grey', 'pink', 'purple4', 'red4'),
+                                           colAlpha = 0.7)
+png("DGEA/Union/Union_Three_Normal_Volcano.png", width = 1920, height = 1080)
+union_three_normal_volcano
+dev.off()
+
+union_four_normal_volcano = EnhancedVolcano(union_four_normal_z_DE_mapped,
+                                           lab = union_four_normal_z_DE_mapped[, "Gene.Symbol"],
+                                           x = 'logFC',
+                                           y = 'adj.P.Val',
+                                           title = "Stage 4 vs. Normal",
+                                           pCutoff = 0.05,
+                                           FCcutoff = 1,
+                                           col=c('grey', 'pink', 'purple4', 'red4'),
+                                           colAlpha = 0.7)
+png("DGEA/Union/Union_Four_Normal_Volcano.png", width = 1920, height = 1080)
+union_four_normal_volcano
 dev.off()
 
