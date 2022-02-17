@@ -735,33 +735,143 @@ png("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, he
 TN_z_volcano
 dev.off()
 
-##### Comparisons with Stage 1 vs normal analysis #####
-# Intersect of DEGs with the tumor vs normal (stage 1 tumours) DEGs:
-tumor_stage_z_results = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx")
-discriminators = read.xlsx("DGEA/Union/discriminators.xlsx")
-significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
-significants_tumor = tumor_stage_z_results$Gene.Symbol[tumor_stage_z_results$adj.P.Val < 0.05]
-DEG_overlap = intersect(significants_blood, significants_tumor)
+##### Comparisons between tumor tissue identified DEGs and blood samples DEGs follow.
+# Just for stage 1 comparisons we provide the overlap with the stage 1 vs stage 2 discriminators
+# too to see if there are DEGs in the blood which could potentially separate stage 1 and stage 2
+# tumors #####
 
-discriminators_overlap = intersect(DEG_overlap, discriminators$Gene.Symbol)
-# 2298 genes, 64 of which are included in the discriminators
+##### Comparisons with Stage 1 vs normal analysis #####
+# Intersect of DEGs with the tumor vs normal (stage 1 tumors) DEGs:
+stage_1_z_results = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx")
+discriminators_1_2 = read.xlsx("DGEA/Union/discriminators_1_2.xlsx")
+significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
+significants_stage_1 = stage_1_z_results$Gene.Symbol[stage_1_z_results$adj.P.Val < 0.05]
+
+DEG_overlap_stage_1 = intersect(significants_blood, significants_stage_1)
+discriminators_1_2_overlap = intersect(DEG_overlap_stage_1, discriminators_1_2$Gene.Symbol)
+# 2298 genes, 64 of which are included in the discriminators_1_2
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-subset1 = tumor_stage_z_results[tumor_stage_z_results$Gene.Symbol %in% DEG_overlap, ] %>%
+subset1 = stage_1_z_results[stage_1_z_results$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
-  dplyr::rename(logFC_tumor = logFC, adj_p_val_tumor = adj.P.Val)
-subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap, ] %>%
+  dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
+subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_1, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
-common_set = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
-common_set$concordance = ifelse(common_set$logFC_tumor*common_set$logFC_blood > 0, 1, 0)
-concordant_set = common_set %>%
+common_set_stage_1 = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set_stage_1$concordance = ifelse(common_set_stage_1$logFC_stage_1*common_set_stage_1$logFC_blood > 0, 1, 0)
+concordant_set_stage_1 = common_set_stage_1 %>%
   dplyr::filter(concordance == 1)
-concordant_set = concordant_set[order(concordant_set$adj_p_val_blood, concordant_set$adj_p_val_tumor), ]
-write.xlsx(concordant_set, "DGEA/Blood_Stage_1_DEG_overlap.xlsx", overwrite = TRUE)
+concordant_set_stage_1 = concordant_set_stage_1[order(concordant_set_stage_1$adj_p_val_blood,
+                                                      concordant_set_stage_1$adj_p_val_stage_1), ]
+write.xlsx(concordant_set_stage_1, "DGEA/Blood_DEG_overlap_stage_1.xlsx", overwrite = TRUE)
 
-concordant_discriminators_overlap = intersect(concordant_set$Gene.Symbol, 
-                                              discriminators$Gene.Symbol)
-# 1349 final genes, 37 of which are included in the discriminators
+concordant_discriminators_1_2_overlap = intersect(concordant_set_stage_1$Gene.Symbol, 
+                                              discriminators_1_2$Gene.Symbol)
+# 1349 final genes, 37 of which are included in the discriminators_1_2
+
+##### Comparisons with Stage 2 vs normal analysis #####
+# Intersect of DEGs with the tumor vs normal (stage 2 tumors) DEGs:
+stage_2_z_results = read.xlsx("DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx")
+significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
+significants_stage_2 = stage_2_z_results$Gene.Symbol[stage_2_z_results$adj.P.Val < 0.05]
+
+DEG_overlap_stage_2 = intersect(significants_blood, significants_stage_2)
+# 3209 genes
+
+# We also need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+subset1 = stage_2_z_results[stage_2_z_results$Gene.Symbol %in% DEG_overlap_stage_2, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
+subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_2, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
+common_set_stage_2 = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set_stage_2$concordance = ifelse(common_set_stage_2$logFC_stage_2*common_set_stage_2$logFC_blood > 0, 1, 0)
+concordant_set_stage_2 = common_set_stage_2 %>%
+  dplyr::filter(concordance == 1)
+concordant_set_stage_2 = concordant_set_stage_2[order(concordant_set_stage_2$adj_p_val_blood,
+                                                      concordant_set_stage_2$adj_p_val_stage_2), ]
+write.xlsx(concordant_set_stage_2, "DGEA/Blood_DEG_overlap_stage_2.xlsx", overwrite = TRUE)
+
+# 1807 final genes
+
+##### Comparisons with Stage 3 vs normal analysis #####
+# Intersect of DEGs with the tumor vs normal (stage 3 tumors) DEGs:
+stage_3_z_results = read.xlsx("DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx")
+significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
+significants_stage_3 = stage_3_z_results$Gene.Symbol[stage_3_z_results$adj.P.Val < 0.05]
+
+DEG_overlap_stage_3 = intersect(significants_blood, significants_stage_3)
+# 2754 genes
+
+# We also need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+subset1 = stage_3_z_results[stage_3_z_results$Gene.Symbol %in% DEG_overlap_stage_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
+subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
+common_set_stage_3 = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set_stage_3$concordance = ifelse(common_set_stage_3$logFC_stage_3*common_set_stage_3$logFC_blood > 0, 1, 0)
+concordant_set_stage_3 = common_set_stage_3 %>%
+  dplyr::filter(concordance == 1)
+concordant_set_stage_3 = concordant_set_stage_3[order(concordant_set_stage_3$adj_p_val_blood,
+                                                      concordant_set_stage_3$adj_p_val_stage_3), ]
+write.xlsx(concordant_set_stage_3, "DGEA/Blood_DEG_overlap_stage_3.xlsx", overwrite = TRUE)
+
+# 1610 final genes
+
+##### Comparisons with Stage 4 vs normal analysis #####
+# Intersect of DEGs with the tumor vs normal (stage 4 tumors) DEGs:
+stage_4_z_results = read.xlsx("DGEA/Union/Stage_4_vs_Normal_z_DE_topTable.xlsx")
+significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
+significants_stage_4 = stage_4_z_results$Gene.Symbol[stage_4_z_results$adj.P.Val < 0.05]
+
+DEG_overlap_stage_4 = intersect(significants_blood, significants_stage_4)
+# 2518 genes
+
+# We also need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+subset1 = stage_4_z_results[stage_4_z_results$Gene.Symbol %in% DEG_overlap_stage_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
+subset2 = TN_z_DE_mapped[TN_z_DE_mapped$Gene.Symbol %in% DEG_overlap_stage_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_blood = logFC, adj_p_val_blood = adj.P.Val)
+common_set_stage_4 = inner_join(subset1, subset2, by = c("Gene.Symbol", "EntrezGene.ID"))
+common_set_stage_4$concordance = ifelse(common_set_stage_4$logFC_stage_4*common_set_stage_4$logFC_blood > 0, 1, 0)
+concordant_set_stage_4 = common_set_stage_4 %>%
+  dplyr::filter(concordance == 1)
+concordant_set_stage_4 = concordant_set_stage_4[order(concordant_set_stage_4$adj_p_val_blood,
+                                                      concordant_set_stage_4$adj_p_val_stage_4), ]
+write.xlsx(concordant_set_stage_4, "DGEA/Blood_DEG_overlap_stage_4.xlsx", overwrite = TRUE)
+
+# 1507 final genes
+
+rm(subset1, subset2)
+
+##### Overlap of concordant overlaps #####
+all_stage_blood_concordant_overlap_set = inner_join(concordant_set_stage_1,
+                                                    concordant_set_stage_2,
+                                                    by = c("EntrezGene.ID",
+                                                           "Gene.Symbol")) %>%
+  inner_join(concordant_set_stage_3, by = c("EntrezGene.ID",
+                                            "Gene.Symbol")) %>%
+  inner_join(concordant_set_stage_4, by = c("EntrezGene.ID",
+                                            "Gene.Symbol"))
+
+# 1018 genes
+consistent_genes_Entrez = all_stage_blood_concordant_overlap_set$EntrezGene.ID
+consistent_genes_symbols = all_stage_blood_concordant_overlap_set$Gene.Symbol
+
+write.xlsx(all_stage_blood_concordant_overlap_set, 
+           "DGEA/all_stage_blood_concordant_overlap_set.xlsx",
+           overwrite = TRUE)
