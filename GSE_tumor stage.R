@@ -1322,6 +1322,8 @@ union_Stages_z_DE = as.data.frame(topTable(union_Stages_z_fit2, adjust.method="B
                                            number = Inf))
 union_Stages_z_DE$EntrezGene.ID = rownames(union_Stages_z_DE)
 
+# 2 stat.sig genes: 1001131283, LOC100129066
+
 # Annotation with official gene symbols
 union_Stages_z_DE_mapped = union_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
 union_Stages_z_DE_mapped$Filter = NA
@@ -1384,6 +1386,8 @@ summary(union_one_four_Stages_z_results)
 union_one_four_Stages_z_DE = as.data.frame(topTable(union_one_four_Stages_z_fit2, 
                                                     adjust.method="BH", number = Inf))
 union_one_four_Stages_z_DE$EntrezGene.ID = rownames(union_one_four_Stages_z_DE)
+
+# 0 stat. sig. genes
 
 # Annotation with official gene symbols
 union_one_four_Stages_z_DE_mapped = union_one_four_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
@@ -1449,10 +1453,7 @@ union_one_normal_z_DE = as.data.frame(topTable(union_one_normal_z_fit2,
                                                       adjust.method="BH", number = Inf))
 union_one_normal_z_DE$EntrezGene.ID = rownames(union_one_normal_z_DE)
 
-# 10891 stat. sig. diff. expressed genes of which 1977 (out of 2051) are also found 
-# as stat. sig. diff. expressed in the complete-case DGEA:
-# length(intersect(union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05],
-# one_normal_z_DE$EntrezGene.ID[one_normal_z_DE$adj.P.Val<0.05]))
+# 10891 stat. sig. diff. expressed genes
 
 # Annotation with official gene symbols
 union_one_normal_z_DE_mapped = union_one_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
@@ -1544,26 +1545,22 @@ rownames(union_two_normal_z_DE_mapped) = union_two_normal_z_DE_mapped$EntrezGene
 write.xlsx(union_two_normal_z_DE_mapped, "DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx",
            overwrite = TRUE)
 
-# 16191 stat. sig. diff. expressed genes of which 2285 (out of 2305) are also found as 
-# stat. sig. diff. expressed in the complete-case DGEA:
-# length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
-# two_normal_z_DE$EntrezGene.ID[two_normal_z_DE$adj.P.Val<0.05]))
-
 # 16191 stat. sig. diff. expressed genes of which 10621 (out of 10891) are also found as 
 # stat. sig. diff. expressed in the Stage 1 vs Normal comparison:
 # length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
 # union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
 
+# Stage 1 vs. Normal / Stage 2 vs. Normal
 # Save differences between Stage1/Normal and Stage2/Normal DEGs
 # in a variable called "discriminators". However, the real discriminators are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes = intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
-                         union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+common_genes_1_2 = intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
+                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
 
-diffDEGs = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
-                                        %in% common_genes, ] %>%
+diffDEGs_1_2 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
+                                            %in% common_genes_1_2, ] %>%
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
@@ -1571,28 +1568,28 @@ diffDEGs = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene
 # towards the same direction (up-/down-regulated):
 
 stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
-                                              %in% common_genes, ] %>%
+                                              %in% common_genes_1_2, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
-  dplyr::rename(logFC_stage1 = logFC, adj_p_val_stage1 = adj.P.Val)
+  dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
 stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
-                                              %in% common_genes, ] %>%
+                                              %in% common_genes_1_2, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
-  dplyr::rename(logFC_stage2 = logFC, adj_p_val_stage2 = adj.P.Val)
-common_set = inner_join(stage_1_subset, stage_2_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
-common_set$concordance = ifelse(common_set$logFC_stage1*common_set$logFC_stage2 > 0, 1, 0)
-concordant_set = common_set %>%
+  dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
+common_set_1_2 = inner_join(stage_1_subset, stage_2_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_1_2$concordance = ifelse(common_set_1_2$logFC_stage_1*common_set_1_2$logFC_stage_2 > 0, 1, 0)
+concordant_set_1_2 = common_set_1_2 %>%
   dplyr::filter(concordance == 1)
-discordant_set = common_set %>%
+discordant_set_1_2 = common_set_1_2 %>%
   dplyr::filter(concordance == 0)
-concordant_set = concordant_set[order(concordant_set$adj_p_val_stage1, 
-                                      concordant_set$adj_p_val_stage2), ]
-discordant_set = discordant_set[order(discordant_set$adj_p_val_stage1, 
-                                      discordant_set$adj_p_val_stage2), ]
+concordant_set_1_2 = concordant_set_1_2[order(concordant_set_1_2$adj_p_val_stage_1, 
+                                              concordant_set_1_2$adj_p_val_stage_2), ]
+discordant_set_1_2 = discordant_set_1_2[order(discordant_set_1_2$adj_p_val_stage_1, 
+                                              discordant_set_1_2$adj_p_val_stage_2), ]
 cwb = createWorkbook()
 addWorksheet(cwb, "Concordance")
-writeData(cwb, "Concordance", concordant_set)
+writeData(cwb, "Concordance", concordant_set_1_2)
 addWorksheet(cwb, "Discordance")
-writeData(cwb, "Discordance", discordant_set)
+writeData(cwb, "Discordance", discordant_set_1_2)
 saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_2_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
@@ -1600,10 +1597,10 @@ saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_2_union_comparison.xlsx",
 # the two comparisons. We are interested in the remaining genes which were 
 # stat. sig. diff. expressed towards different directions. Just 2 genes are left:
 # SNORD115-38, SNORD115-33
-discordants = discordant_set %>%
+discordants_1_2 = discordant_set_1_2 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators = rbind(discordants, diffDEGs)
-discriminators = discriminators %>%
+discriminators_1_2 = rbind(discordants_1_2, diffDEGs_1_2)
+discriminators_1_2 = discriminators_1_2 %>%
   left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
@@ -1611,7 +1608,8 @@ discriminators = discriminators %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val)
 
-write.xlsx(discriminators, "DGEA/Union/discriminators.xlsx", overwrite = TRUE)
+# 273 genes
+write.xlsx(discriminators_1_2, "DGEA/Union/discriminators_1_2.xlsx", overwrite = TRUE)
 
 # Stage 4 vs normal #####
 four_normal_pdata = full_pdata_filt %>%
@@ -1749,12 +1747,328 @@ rownames(union_three_normal_z_DE_mapped) = union_three_normal_z_DE_mapped$Entrez
 write.xlsx(union_three_normal_z_DE_mapped, "DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx",
            overwrite = TRUE)
 
+# Additional concordance and discriminators #####
 
-# Overall concordance between Stage 2/3, Stage 2/4, Stage 3/4
-# Stage 2/3
+# Overall concordance between Stage 2 vs. Normal/3 vs. Normal, Stage 2 vs. Normal/4 vs. Normal,
+# Stage 3 vs. Normal/4 vs. Normal
+
+# Stage 2 vs. Normal/3 vs. Normal: 11437/12934
 # length(intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
 # union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05]))
 
+# Stage 2 vs. Normal/4 vs. Normal: 10249/11512
+# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+# union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05]))
+
+# Stage 3 vs. Normal/4 vs. Normal: 9537/11512
+# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+# union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05]))
+
+# Stage 1 vs. Normal / Stage 3 vs. Normal
+# Save differences between Stage1/Normal and Stage3/Normal DEGs
+# in a variable called "discriminators". However, the real discriminators are both
+# genes not in common in the two lists as well as genes which are found to be
+# stat. sig. diff. expressed towards opposite directions
+
+common_genes_1_3 = intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
+                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+
+diffDEGs_1_3 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
+                                            %in% common_genes_1_3, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+
+# We need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes_1_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
+stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+                                                %in% common_genes_1_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
+common_set_1_3 = inner_join(stage_1_subset, stage_3_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_1_3$concordance = ifelse(common_set_1_3$logFC_stage_1*common_set_1_3$logFC_stage_3 > 0, 1, 0)
+concordant_set_1_3 = common_set_1_3 %>%
+  dplyr::filter(concordance == 1)
+discordant_set_1_3 = common_set_1_3 %>%
+  dplyr::filter(concordance == 0)
+concordant_set_1_3 = concordant_set_1_3[order(concordant_set_1_3$adj_p_val_stage_1, 
+                                              concordant_set_1_3$adj_p_val_stage_3), ]
+discordant_set_1_3 = discordant_set_1_3[order(discordant_set_1_3$adj_p_val_stage_1, 
+                                              discordant_set_1_3$adj_p_val_stage_3), ]
+cwb = createWorkbook()
+addWorksheet(cwb, "Concordance")
+writeData(cwb, "Concordance", concordant_set_1_3)
+addWorksheet(cwb, "Discordance")
+writeData(cwb, "Discordance", discordant_set_1_3)
+saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_3_union_comparison.xlsx",
+             overwrite = TRUE); rm(cwb)
+
+# 8595 genes are stat. sig. diff. expressed towards the same direction between
+# the two comparisons. We are interested in the remaining genes which were 
+# stat. sig. diff. expressed towards different directions. Just 1 gene left:
+# SNORD116-22
+discordants_1_3 = discordant_set_1_3 %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+discriminators_1_3 = rbind(discordants_1_3, diffDEGs_1_3)
+discriminators_1_3 = discriminators_1_3 %>%
+  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
+  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val)
+
+# 2296 genes
+write.xlsx(discriminators_1_3, "DGEA/Union/discriminators_1_3.xlsx", overwrite = TRUE)
+
+# Stage 1 vs. Normal / Stage 4 vs. Normal
+# Save differences between Stage1/Normal and Stage4/Normal DEGs
+# in a variable called "discriminators". However, the real discriminators are both
+# genes not in common in the two lists as well as genes which are found to be
+# stat. sig. diff. expressed towards opposite directions
+
+common_genes_1_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+
+diffDEGs_1_4 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
+                                            %in% common_genes_1_4, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+
+# We need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes_1_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
+stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+                                               %in% common_genes_1_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
+common_set_1_4 = inner_join(stage_1_subset, stage_4_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_1_4$concordance = ifelse(common_set_1_4$logFC_stage_1*common_set_1_4$logFC_stage_4 > 0, 1, 0)
+concordant_set_1_4 = common_set_1_4 %>%
+  dplyr::filter(concordance == 1)
+discordant_set_1_4 = common_set_1_4 %>%
+  dplyr::filter(concordance == 0)
+concordant_set_1_4 = concordant_set_1_4[order(concordant_set_1_4$adj_p_val_stage_1, 
+                                              concordant_set_1_4$adj_p_val_stage_4), ]
+discordant_set_1_4 = discordant_set_1_4[order(discordant_set_1_4$adj_p_val_stage_1, 
+                                              discordant_set_1_4$adj_p_val_stage_4), ]
+cwb = createWorkbook()
+addWorksheet(cwb, "Concordance")
+writeData(cwb, "Concordance", concordant_set_1_4)
+addWorksheet(cwb, "Discordance")
+writeData(cwb, "Discordance", discordant_set_1_4)
+saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_4_union_comparison.xlsx",
+             overwrite = TRUE); rm(cwb)
+
+# 8044 genes are stat. sig. diff. expressed towards the same direction between
+# the two comparisons. We are interested in the remaining genes which were 
+# stat. sig. diff. expressed towards different directions. 0 genes are left!
+
+discordants_1_4 = discordant_set_1_4 %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+discriminators_1_4 = rbind(discordants_1_4, diffDEGs_1_4)
+discriminators_1_4 = discriminators_1_4 %>%
+  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
+  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
+
+# 2847 genes
+write.xlsx(discriminators_1_4, "DGEA/Union/discriminators_1_4.xlsx", overwrite = TRUE)
+
+# Stage 2 vs. Normal / Stage 4 vs. Normal
+# Save differences between Stage2/Normal and Stage4/Normal DEGs
+# in a variable called "discriminators". However, the real discriminators are both
+# genes not in common in the two lists as well as genes which are found to be
+# stat. sig. diff. expressed towards opposite directions
+
+common_genes_2_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+                             union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05])
+
+diffDEGs_2_4 = union_two_normal_z_DE_mapped[!union_two_normal_z_DE_mapped$EntrezGene.ID
+                                            %in% common_genes_2_4, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+
+# We need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes_2_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
+stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+                                               %in% common_genes_2_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
+common_set_2_4 = inner_join(stage_2_subset, stage_4_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_2_4$concordance = ifelse(common_set_2_4$logFC_stage_2*common_set_2_4$logFC_stage_4 > 0, 1, 0)
+concordant_set_2_4 = common_set_2_4 %>%
+  dplyr::filter(concordance == 1)
+discordant_set_2_4 = common_set_2_4 %>%
+  dplyr::filter(concordance == 0)
+concordant_set_2_4 = concordant_set_2_4[order(concordant_set_2_4$adj_p_val_stage_2, 
+                                              concordant_set_2_4$adj_p_val_stage_4), ]
+discordant_set_2_4 = discordant_set_2_4[order(discordant_set_2_4$adj_p_val_stage_2, 
+                                              discordant_set_2_4$adj_p_val_stage_4), ]
+cwb = createWorkbook()
+addWorksheet(cwb, "Concordance")
+writeData(cwb, "Concordance", concordant_set_2_4)
+addWorksheet(cwb, "Discordance")
+writeData(cwb, "Discordance", discordant_set_2_4)
+saveWorkbook(cwb, file = "DGEA/Stage_2_Stage_4_union_comparison.xlsx",
+             overwrite = TRUE); rm(cwb)
+
+# 10246 genes are stat. sig. diff. expressed towards the same direction between
+# the two comparisons. We are interested in the remaining genes which were 
+# stat. sig. diff. expressed towards different directions. Just 2 genes are left:
+# BDNF and RARG
+discordants_2_4 = discordant_set_2_4 %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+discriminators_2_4 = rbind(discordants_2_4, diffDEGs_2_4)
+discriminators_2_4 = discriminators_2_4 %>%
+  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val) %>%
+  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_2, adj.P.Val_Stage_2, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
+
+# 5945 genes
+write.xlsx(discriminators_2_4, "DGEA/Union/discriminators_2_4.xlsx", overwrite = TRUE)
+
+# Stage 2 vs. Normal / Stage 3 vs. Normal
+# Save differences between Stage2/Normal and Stage3/Normal DEGs
+# in a variable called "discriminators". However, the real discriminators are both
+# genes not in common in the two lists as well as genes which are found to be
+# stat. sig. diff. expressed towards opposite directions
+
+common_genes_2_3 = intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
+                             union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05])
+
+diffDEGs_2_3 = union_two_normal_z_DE_mapped[!union_two_normal_z_DE_mapped$EntrezGene.ID
+                                            %in% common_genes_2_3, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+
+# We need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes_2_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
+stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+                                                %in% common_genes_2_3, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
+common_set_2_3 = inner_join(stage_2_subset, stage_3_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_2_3$concordance = ifelse(common_set_2_3$logFC_stage_2*common_set_2_3$logFC_stage_3 > 0, 1, 0)
+concordant_set_2_3 = common_set_2_3 %>%
+  dplyr::filter(concordance == 1)
+discordant_set_2_3 = common_set_2_3 %>%
+  dplyr::filter(concordance == 0)
+concordant_set_2_3 = concordant_set_2_3[order(concordant_set_2_3$adj_p_val_stage_2, 
+                                              concordant_set_2_3$adj_p_val_stage_3), ]
+discordant_set_2_3 = discordant_set_2_3[order(discordant_set_2_3$adj_p_val_stage_2, 
+                                              discordant_set_2_3$adj_p_val_stage_3), ]
+cwb = createWorkbook()
+addWorksheet(cwb, "Concordance")
+writeData(cwb, "Concordance", concordant_set_2_3)
+addWorksheet(cwb, "Discordance")
+writeData(cwb, "Discordance", discordant_set_2_3)
+saveWorkbook(cwb, file = "DGEA/Stage_2_Stage_3_union_comparison.xlsx",
+             overwrite = TRUE); rm(cwb)
+
+# 11435 genes are stat. sig. diff. expressed towards the same direction between
+# the two comparisons. We are interested in the remaining genes which were 
+# stat. sig. diff. expressed towards different directions. Just 1 gene left:
+# DNAH17
+
+discordants_2_3 = discordant_set_2_3 %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+discriminators_2_3 = rbind(discordants_2_3, diffDEGs_2_3)
+discriminators_2_3 = discriminators_2_3 %>%
+  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val) %>%
+  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_2, adj.P.Val_Stage_2, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val)
+
+# 4756 genes
+write.xlsx(discriminators_2_3, "DGEA/Union/discriminators_2_3.xlsx", overwrite = TRUE)
+
+# Stage 3 vs. Normal / Stage 4 vs. Normal
+# Save differences between Stage3/Normal and Stage4/Normal DEGs
+# in a variable called "discriminators". However, the real discriminators are both
+# genes not in common in the two lists as well as genes which are found to be
+# stat. sig. diff. expressed towards opposite directions
+
+common_genes_3_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
+                             union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05])
+
+diffDEGs_3_4 = union_three_normal_z_DE_mapped[!union_three_normal_z_DE_mapped$EntrezGene.ID
+                                              %in% common_genes_3_4, ] %>%
+  dplyr::filter(adj.P.Val < 0.05) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+
+# We need to establish which of the overlapping genes are differentially expressed
+# towards the same direction (up-/down-regulated):
+
+stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+                                                %in% common_genes_3_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
+stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+                                               %in% common_genes_3_4, ] %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
+common_set_3_4 = inner_join(stage_3_subset, stage_4_subset, by = c("EntrezGene.ID", "Gene.Symbol"))
+common_set_3_4$concordance = ifelse(common_set_3_4$logFC_stage_3*common_set_3_4$logFC_stage_4 > 0, 1, 0)
+concordant_set_3_4 = common_set_3_4 %>%
+  dplyr::filter(concordance == 1)
+discordant_set_3_4 = common_set_3_4 %>%
+  dplyr::filter(concordance == 0)
+concordant_set_3_4 = concordant_set_3_4[order(concordant_set_3_4$adj_p_val_stage_3, 
+                                              concordant_set_3_4$adj_p_val_stage_4), ]
+discordant_set_3_4 = discordant_set_3_4[order(discordant_set_3_4$adj_p_val_stage_3, 
+                                              discordant_set_3_4$adj_p_val_stage_4), ]
+cwb = createWorkbook()
+addWorksheet(cwb, "Concordance")
+writeData(cwb, "Concordance", concordant_set_3_4)
+addWorksheet(cwb, "Discordance")
+writeData(cwb, "Discordance", discordant_set_3_4)
+saveWorkbook(cwb, file = "DGEA/Stage_3_Stage_4_union_comparison.xlsx",
+             overwrite = TRUE); rm(cwb)
+
+# 9536 genes are stat. sig. diff. expressed towards the same direction between
+# the two comparisons. We are interested in the remaining genes which were 
+# stat. sig. diff. expressed towards different directions. 0 genes are left!
+
+discordants_3_4 = discordant_set_3_4 %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol)
+discriminators_3_4 = rbind(discordants_3_4, diffDEGs_3_4)
+discriminators_3_4 = discriminators_3_4 %>%
+  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val) %>%
+  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_3, adj.P.Val_Stage_3, logFC, adj.P.Val) %>%
+  dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
+
+# 3398 genes
+write.xlsx(discriminators_3_4, "DGEA/Union/discriminators_3_4.xlsx", overwrite = TRUE)
 
 # Union volcanoes #####
 union_stages_volcano = EnhancedVolcano(union_Stages_z_DE_mapped,
