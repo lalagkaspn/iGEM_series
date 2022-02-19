@@ -757,6 +757,7 @@ rm(i)
 ##### Plotting #####
 library(ggVennDiagram)
 library(ggvenn)
+library(EnhancedVolcano)
 
 # ggVennDiagram
 # Generating a suitable object with stat. sig (p.adj < 0.05) DEGs from all stages
