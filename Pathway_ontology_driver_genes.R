@@ -708,15 +708,15 @@ sig_DGEA_stage_1 = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") 
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
 
-sig_DGEA_stage_2 = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %>%
+sig_DGEA_stage_2 = read.xlsx("DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx") %>%
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
 
-sig_DGEA_stage_3 = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %>%
+sig_DGEA_stage_3 = read.xlsx("DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx") %>%
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
 
-sig_DGEA_stage_4 = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx") %>%
+sig_DGEA_stage_4 = read.xlsx("DGEA/Union/Stage_4_vs_Normal_z_DE_topTable.xlsx") %>%
   dplyr::filter(adj.P.Val < 0.05) %>%
   dplyr::rename(Gene.Symbol_pre = Gene.Symbol)
 
@@ -745,11 +745,148 @@ names(PDAC_drivers) = names(sig_DGEA)
 for (i in 1:4){
   drivers = createWorkbook()
   addWorksheet(drivers, "General")
-  writeData(drivers, "General", general_drivers)
+  writeData(drivers, "General", general_drivers[[i]])
   addWorksheet(drivers, "Pancreas")
-  writeData(drivers, "Pancreas", PDAC_drivers)
-  saveWorkbook(drivers, paste0("DGEA/", names(sig_DGEA)[i], "_Drivers.xlsx"),
+  writeData(drivers, "Pancreas", PDAC_drivers[[i]])
+  saveWorkbook(drivers, paste0("DGEA/Drivers/", names(sig_DGEA)[i], "_Drivers.xlsx"),
                overwrite = TRUE); rm(drivers); gc()
 }
 
 rm(i)
+
+##### Plotting #####
+library(ggVennDiagram)
+library(ggvenn)
+
+# ggVennDiagram
+# Generating a suitable object with stat. sig (p.adj < 0.05) DEGs from all stages
+venn = list(`Stage 1` = sig_DGEA[["Stage_1"]]$EntrezGene.ID[sig_DGEA[["Stage_1"]]$adj.P.Val < 0.05],
+            `Stage 2` = sig_DGEA[["Stage_2"]]$EntrezGene.ID[sig_DGEA[["Stage_2"]]$adj.P.Val < 0.05],
+            `Stage 3` = sig_DGEA[["Stage_3"]]$EntrezGene.ID[sig_DGEA[["Stage_3"]]$adj.P.Val < 0.05],
+            `Stage 4` = sig_DGEA[["Stage_4"]]$EntrezGene.ID[sig_DGEA[["Stage_4"]]$adj.P.Val < 0.05])
+
+diagram1 = ggVennDiagram(
+  venn, label_alpha = 0,
+  category.names = names(venn)
+) +
+  scale_fill_gradient(low = "white", high = "darkred")
+tiff("DGEA/Stages_DEG_Venn_diagram1.tif", 
+     width = 1920, height = 1080, res = 200)
+diagram1
+dev.off()
+
+# ggvenn
+diagram2 = ggvenn(
+  venn, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 4
+)
+tiff("DGEA/Stages_DEG_Venn_diagram2.tif", 
+     width = 1920, height = 1080, res = 150)
+diagram2
+dev.off()
+
+# Defining a multiplot function #####
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+#####
+# Load volcano plots from tumor stage DGEA as an .RData file:
+# load("/Your/path/your_plots.RData")
+
+# All-stage-volcano-dotplot-pairs
+tiff("Additional_plots/Volcano_CE_Dotplot_multiplot.tif", 
+     width = 7680, height = 4320, res = 100)
+multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+              union_three_normal_volcano, union_four_normal_volcano, 
+          cluster_enrichment_dotplots_stage_1[["BioCarta"]],
+          cluster_enrichment_dotplots_stage_2[["BioCarta"]],
+          cluster_enrichment_dotplots_stage_3[["BioCarta"]],
+          cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+                     union_three_normal_volcano, union_four_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_1[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_2[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_3[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# Unique pairs
+# Stage 1
+tiff("Additional_plots/Stage_1_Volcano_CE_Dotplot.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(union_one_normal_volcano, 
+          cluster_enrichment_dotplots_stage_1[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_one_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_1[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# Stage 2
+tiff("Additional_plots/Stage_2_Volcano_CE_Dotplot.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(union_two_normal_volcano, 
+          cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_two_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# Stage 3
+tiff("Additional_plots/Stage_3_Volcano_CE_Dotplot.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(union_three_normal_volcano, 
+          cluster_enrichment_dotplots_stage_3[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_three_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_3[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# Stage 4
+tiff("Additional_plots/Stage_4_Volcano_CE_Dotplot.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(union_four_normal_volcano, 
+          cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_four_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
