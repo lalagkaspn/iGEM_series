@@ -1034,7 +1034,7 @@ dev.off(); rm(m)
 # load("/Your/path/your_plots.RData")
 
 # All-stage-volcano-dotplot (BioCarta)-pairs
-tiff("Additional_plots/Volcano_CE_Dotplot_multiplot.tif", 
+tiff("Additional_plots/all_Volcano_CE_Dotplot_multiplot.tif", 
      width = 7680, height = 4320, res = 100)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
               union_three_normal_volcano, union_four_normal_volcano, 
@@ -1046,6 +1046,29 @@ m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano,
                      union_three_normal_volcano, union_four_normal_volcano, 
                      cluster_enrichment_dotplots_stage_1[["BioCarta"]],
                      cluster_enrichment_dotplots_stage_2[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_3[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# 2 pairs: Stages 1-2, Stages 3-4
+# Stages 1-2
+tiff("Additional_plots/Stages_1_2_Volcano_CE_Dotplot_multiplot.tif", 
+     width = 3840, height = 2160, res = 150)
+multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+          cluster_enrichment_dotplots_stage_1[["BioCarta"]],
+          cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+                     cluster_enrichment_dotplots_stage_1[["BioCarta"]],
+                     cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2))
+dev.off(); rm(m)
+
+# Stages 3-4
+tiff("Additional_plots/Stages_3_4_Volcano_CE_Dotplot_multiplot.tif", 
+     width = 3840, height = 2160, res = 150)
+multiplot(union_three_normal_volcano, union_four_normal_volcano, 
+          cluster_enrichment_dotplots_stage_3[["BioCarta"]],
+          cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
+m = ggplot(multiplot(union_three_normal_volcano, union_four_normal_volcano, 
                      cluster_enrichment_dotplots_stage_3[["BioCarta"]],
                      cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2))
 dev.off(); rm(m)
