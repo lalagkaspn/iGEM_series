@@ -761,31 +761,35 @@ library(EnhancedVolcano)
 
 # ggVennDiagram
 # Generating a suitable object with stat. sig (p.adj < 0.05) DEGs from all stages
-venn = list(`Stage 1` = sig_DGEA[["Stage_1"]]$EntrezGene.ID[sig_DGEA[["Stage_1"]]$adj.P.Val < 0.05],
+venn_DEG = list(`Stage 1` = sig_DGEA[["Stage_1"]]$EntrezGene.ID[sig_DGEA[["Stage_1"]]$adj.P.Val < 0.05],
             `Stage 2` = sig_DGEA[["Stage_2"]]$EntrezGene.ID[sig_DGEA[["Stage_2"]]$adj.P.Val < 0.05],
             `Stage 3` = sig_DGEA[["Stage_3"]]$EntrezGene.ID[sig_DGEA[["Stage_3"]]$adj.P.Val < 0.05],
             `Stage 4` = sig_DGEA[["Stage_4"]]$EntrezGene.ID[sig_DGEA[["Stage_4"]]$adj.P.Val < 0.05])
 
 diagram1 = ggVennDiagram(
-  venn, label_alpha = 0,
-  category.names = names(venn)
+  venn_DEG, label_alpha = 0,
+  category.names = names(venn_DEG)
 ) +
-  scale_fill_gradient(low = "white", high = "darkred")
-tiff("DGEA/Stages_DEG_Venn_diagram1.tif", 
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme(plot.title = element_text(face = "bold"))+
+  labs(title = "Venn diagram of significantly differentially expressed genes (DEGs) between stages")
+tiff("Additional_plots/Venn/ggVennDiagram_Stages_DEG_Venn.tif", 
      width = 1920, height = 1080, res = 200)
 diagram1
-dev.off()
+dev.off(); rm(diagram1)
 
 # ggvenn
 diagram2 = ggvenn(
-  venn, 
+  venn_DEG, 
   fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
   stroke_size = 0.5, set_name_size = 4
-)
-tiff("DGEA/Stages_DEG_Venn_diagram2.tif", 
+)+
+  theme(plot.title = element_text(face = "bold"))+
+  labs(title = "Venn diagram of significantly differentially expressed genes (DEGs) between stages")
+tiff("Additional_plots/Venn/ggvenn_Stages_DEG_Venn.tif", 
      width = 1920, height = 1080, res = 150)
 diagram2
-dev.off()
+dev.off(); rm(diagram2)
 
 # Defining a multiplot function #####
 # Multiple plot function
@@ -834,11 +838,202 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
+# Create a 2x3 Venn diagram multiplot that compares the subnetwork enrichment
+# between 4 stages with respect to BioCarta, GO-BP, GO-CC, GO-MF, KEGG, Reactome
+# 3 versions: all results, Top 100, clustered results (representative terms)
+# All will be produced by ggVennDiagram
+
+# Producing the necessary lists:
+venn_BioCarta = list(pathfindR_outputs_stage_1[["BioCarta"]]$Term_Description,
+                     pathfindR_outputs_stage_2[["BioCarta"]]$Term_Description,
+                     pathfindR_outputs_stage_3[["BioCarta"]]$Term_Description,
+                     pathfindR_outputs_stage_4[["BioCarta"]]$Term_Description)
+names(venn_BioCarta) = names(venn_DEG)
+
+venn_GO_BP = list(pathfindR_outputs_stage_1[["GO-BP"]]$Term_Description,
+                  pathfindR_outputs_stage_2[["GO-BP"]]$Term_Description,
+                  pathfindR_outputs_stage_3[["GO-BP"]]$Term_Description,
+                  pathfindR_outputs_stage_4[["GO-BP"]]$Term_Description)
+names(venn_GO_BP) = names(venn_DEG)
+
+venn_GO_CC = list(pathfindR_outputs_stage_1[["GO-CC"]]$Term_Description,
+                  pathfindR_outputs_stage_2[["GO-CC"]]$Term_Description,
+                  pathfindR_outputs_stage_3[["GO-CC"]]$Term_Description,
+                  pathfindR_outputs_stage_4[["GO-CC"]]$Term_Description)
+names(venn_GO_CC) = names(venn_DEG)
+
+venn_GO_MF = list(pathfindR_outputs_stage_1[["GO-MF"]]$Term_Description,
+                  pathfindR_outputs_stage_2[["GO-MF"]]$Term_Description,
+                  pathfindR_outputs_stage_3[["GO-MF"]]$Term_Description,
+                  pathfindR_outputs_stage_4[["GO-MF"]]$Term_Description)
+names(venn_GO_MF) = names(venn_DEG)
+
+venn_KEGG = list(pathfindR_outputs_stage_1[["KEGG"]]$Term_Description,
+                  pathfindR_outputs_stage_2[["KEGG"]]$Term_Description,
+                  pathfindR_outputs_stage_3[["KEGG"]]$Term_Description,
+                  pathfindR_outputs_stage_4[["KEGG"]]$Term_Description)
+names(venn_KEGG) = names(venn_DEG)
+
+venn_Reactome = list(pathfindR_outputs_stage_1[["Reactome"]]$Term_Description,
+                 pathfindR_outputs_stage_2[["Reactome"]]$Term_Description,
+                 pathfindR_outputs_stage_3[["Reactome"]]$Term_Description,
+                 pathfindR_outputs_stage_4[["Reactome"]]$Term_Description)
+names(venn_Reactome) = names(venn_DEG)
+
+venn_path = list(venn_BioCarta, venn_GO_BP, venn_GO_CC, venn_GO_MF, venn_KEGG,
+                 venn_Reactome)
+names(venn_path) = names(pathfindR_outputs_stage_1)
+rm(venn_BioCarta, venn_GO_BP, venn_GO_CC, venn_GO_MF, venn_KEGG,
+   venn_Reactome)
+
+# top100 list
+top100_venn_BioCarta = list(pathfindR_outputs_stage_1[["BioCarta"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_2[["BioCarta"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_3[["BioCarta"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_4[["BioCarta"]]$Term_Description[1:100])
+names(top100_venn_BioCarta) = names(venn_DEG)
+
+top100_venn_GO_BP = list(pathfindR_outputs_stage_1[["GO-BP"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_2[["GO-BP"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_3[["GO-BP"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_4[["GO-BP"]]$Term_Description[1:100])
+names(top100_venn_GO_BP) = names(venn_DEG)
+
+top100_venn_GO_CC = list(pathfindR_outputs_stage_1[["GO-CC"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_2[["GO-CC"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_3[["GO-CC"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_4[["GO-CC"]]$Term_Description[1:100])
+names(top100_venn_GO_CC) = names(venn_DEG)
+
+top100_venn_GO_MF = list(pathfindR_outputs_stage_1[["GO-MF"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_2[["GO-MF"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_3[["GO-MF"]]$Term_Description[1:100],
+                  pathfindR_outputs_stage_4[["GO-MF"]]$Term_Description[1:100])
+names(top100_venn_GO_MF) = names(venn_DEG)
+
+top100_venn_KEGG = list(pathfindR_outputs_stage_1[["KEGG"]]$Term_Description[1:100],
+                 pathfindR_outputs_stage_2[["KEGG"]]$Term_Description[1:100],
+                 pathfindR_outputs_stage_3[["KEGG"]]$Term_Description[1:100],
+                 pathfindR_outputs_stage_4[["KEGG"]]$Term_Description[1:100])
+names(top100_venn_KEGG) = names(venn_DEG)
+
+top100_venn_Reactome = list(pathfindR_outputs_stage_1[["Reactome"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_2[["Reactome"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_3[["Reactome"]]$Term_Description[1:100],
+                     pathfindR_outputs_stage_4[["Reactome"]]$Term_Description[1:100])
+names(top100_venn_Reactome) = names(venn_DEG)
+
+top100_venn_path = list(top100_venn_BioCarta, top100_venn_GO_BP, top100_venn_GO_CC, 
+                        top100_venn_GO_MF, top100_venn_KEGG, top100_venn_Reactome)
+names(top100_venn_path) = names(pathfindR_outputs_stage_1)
+rm(top100_venn_BioCarta, top100_venn_GO_BP, top100_venn_GO_CC, top100_venn_GO_MF,
+   top100_venn_KEGG, top100_venn_Reactome)
+
+# clustered list
+clustered_venn_BioCarta = list(clustered_results_stage_1[["BioCarta"]]$Term_Description[clustered_results_stage_1[["BioCarta"]]$Status == "Representative"],
+                               clustered_results_stage_2[["BioCarta"]]$Term_Description[clustered_results_stage_2[["BioCarta"]]$Status == "Representative"],
+                               clustered_results_stage_3[["BioCarta"]]$Term_Description[clustered_results_stage_3[["BioCarta"]]$Status == "Representative"],
+                               clustered_results_stage_4[["BioCarta"]]$Term_Description[clustered_results_stage_4[["BioCarta"]]$Status == "Representative"])
+names(clustered_venn_BioCarta) = names(venn_DEG)
+
+clustered_venn_GO_CC = list(clustered_results_stage_1[["GO-CC"]]$Term_Description[clustered_results_stage_1[["GO-CC"]]$Status == "Representative"],
+                            clustered_results_stage_2[["GO-CC"]]$Term_Description[clustered_results_stage_2[["GO-CC"]]$Status == "Representative"],
+                            clustered_results_stage_3[["GO-CC"]]$Term_Description[clustered_results_stage_3[["GO-CC"]]$Status == "Representative"],
+                            clustered_results_stage_4[["GO-CC"]]$Term_Description[clustered_results_stage_4[["GO-CC"]]$Status == "Representative"])
+names(clustered_venn_GO_CC) = names(venn_DEG)
+
+clustered_venn_GO_MF = list(clustered_results_stage_1[["GO-MF"]]$Term_Description[clustered_results_stage_1[["GO-MF"]]$Status == "Representative"],
+                            clustered_results_stage_2[["GO-MF"]]$Term_Description[clustered_results_stage_2[["GO-MF"]]$Status == "Representative"],
+                            clustered_results_stage_3[["GO-MF"]]$Term_Description[clustered_results_stage_3[["GO-MF"]]$Status == "Representative"],
+                            clustered_results_stage_4[["GO-MF"]]$Term_Description[clustered_results_stage_4[["GO-MF"]]$Status == "Representative"])
+names(clustered_venn_GO_MF) = names(venn_DEG)
+
+clustered_venn_KEGG = list(clustered_results_stage_1[["KEGG"]]$Term_Description[clustered_results_stage_1[["KEGG"]]$Status == "Representative"],
+                           clustered_results_stage_2[["KEGG"]]$Term_Description[clustered_results_stage_2[["KEGG"]]$Status == "Representative"],
+                           clustered_results_stage_3[["KEGG"]]$Term_Description[clustered_results_stage_3[["KEGG"]]$Status == "Representative"],
+                           clustered_results_stage_4[["KEGG"]]$Term_Description[clustered_results_stage_4[["KEGG"]]$Status == "Representative"])
+names(clustered_venn_KEGG) = names(venn_DEG)
+
+clustered_venn_path = list(clustered_venn_BioCarta, clustered_venn_GO_CC, 
+                           clustered_venn_GO_MF, clustered_venn_KEGG)
+names(clustered_venn_path) = c("BioCarta", "GO-CC", "GO-MF", "KEGG")
+rm(clustered_venn_BioCarta, clustered_venn_GO_CC, clustered_venn_GO_MF,
+   clustered_venn_KEGG)
+
+# Preparing lists for "for" loops
+all_results_path_venn = list()
+top100_results_path_venn = list()
+clustered_results_path_venn = list()
+
+# All results
+for (i in 1:length(venn_path)){
+  all_results_path_venn[[i]] = ggVennDiagram(
+    venn_path[[i]], label_alpha = 0,
+    category.names = names(venn_path[[i]])
+  ) +
+    scale_fill_gradient(low = "white", high = "darkred") +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+    labs(title = paste0("Venn diagram of ", names(venn_path)[i], " enriched networks"))
+}
+
+tiff("Additional_plots/Venn/all_path_results_ggVennDiagram_multiplot.tif", 
+     width = 2880, height = 1620, res = 150)
+multiplot(all_results_path_venn[[1]], all_results_path_venn[[2]],
+              all_results_path_venn[[3]], all_results_path_venn[[4]],
+              all_results_path_venn[[5]], all_results_path_venn[[6]], cols = 3)
+m = ggplot(multiplot(all_results_path_venn[[1]], all_results_path_venn[[2]],
+                     all_results_path_venn[[3]], all_results_path_venn[[4]],
+                     all_results_path_venn[[5]], all_results_path_venn[[6]], cols = 3))
+dev.off(); rm(m)
+
+# Top 100
+for (i in 1:length(top100_venn_path)){
+  top100_results_path_venn[[i]] = ggVennDiagram(
+    top100_venn_path[[i]], label_alpha = 0,
+    category.names = names(top100_venn_path[[i]])
+  ) +
+    scale_fill_gradient(low = "white", high = "darkred") +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+    labs(title = paste0("Venn diagram of top 100 ", names(top100_venn_path)[i], 
+                        " enriched networks"))
+}
+
+tiff("Additional_plots/Venn/top100_path_results_ggVennDiagram_multiplot.tif", 
+     width = 2880, height = 1620, res = 150)
+multiplot(top100_results_path_venn[[1]], top100_results_path_venn[[2]],
+          top100_results_path_venn[[3]], top100_results_path_venn[[4]],
+          top100_results_path_venn[[5]], top100_results_path_venn[[6]], cols = 3)
+m = ggplot(multiplot(top100_results_path_venn[[1]], top100_results_path_venn[[2]],
+                     top100_results_path_venn[[3]], top100_results_path_venn[[4]],
+                     top100_results_path_venn[[5]], top100_results_path_venn[[6]], cols = 3))
+dev.off(); rm(m)
+
+# clustered enriched networks multiplot (not for GO-BP, Reactome)
+# Top 100
+for (i in 1:length(clustered_venn_path)){
+  clustered_results_path_venn[[i]] = ggVennDiagram(
+    clustered_venn_path[[i]], label_alpha = 0,
+    category.names = names(clustered_venn_path[[i]])
+  ) +
+    scale_fill_gradient(low = "white", high = "darkred") +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+    labs(title = paste0("Venn diagram of clustered ", names(top100_venn_path)[i], 
+                        " enriched networks"))
+}
+
+tiff("Additional_plots/Venn/clustered_path_results_ggVennDiagram_multiplot.tif", 
+     width = 2880, height = 1620, res = 150)
+multiplot(clustered_results_path_venn[[1]], clustered_results_path_venn[[2]],
+          clustered_results_path_venn[[3]], clustered_results_path_venn[[4]], cols = 2)
+m = ggplot(multiplot(clustered_results_path_venn[[1]], clustered_results_path_venn[[2]],
+                     clustered_results_path_venn[[3]], clustered_results_path_venn[[4]], cols = 2))
+dev.off(); rm(m)
+
 #####
 # Load volcano plots from tumor stage DGEA as an .RData file:
 # load("/Your/path/your_plots.RData")
 
-# All-stage-volcano-dotplot-pairs
+# All-stage-volcano-dotplot (BioCarta)-pairs
 tiff("Additional_plots/Volcano_CE_Dotplot_multiplot.tif", 
      width = 7680, height = 4320, res = 100)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
