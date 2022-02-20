@@ -1111,11 +1111,58 @@ m = ggplot(multiplot(union_four_normal_volcano,
 dev.off(); rm(m)
 
 # DEmiRNAs #####
-miRNA_enrichment = read.xlsx("Mienturnet/Stage_1/Stage_1_Mienturnet_input_DEG_list.xlsx")
-colnames(miRNA_enrichment) = miRNA_enrichment[1,]
-miRNA_enrichment = miRNA_enrichment[-1,]
+DEmiRNAs_stage_1 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 1, cols = c(1:3))$Gene.Symbol
+DEmiRNAs_stage_2 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 2, cols = c(1:3))$Gene.Symbol
+DEmiRNAs_stage_3 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 3, cols = c(1:3))$Gene.Symbol
+DEmiRNAs_stage_4 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 4, cols = c(1:3))$Gene.Symbol
 
-miRNA_targets = read.xlsx("Mienturnet/Stage_1/Stage_1_Mienturnet_Enrichment_results_miRTarBase.xlsx")
-colnames(miRNA_targets) = miRNA_targets[1,]
-miRNA_targets = miRNA_targets[-1,]
-checklist = miRNA_targets[miRNA_targets$microRNA=="hsa-miR-124-3p", 6:747]
+# exclude host genes and anti-sense
+clean_DEmiRNAs_stage_1 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 1, cols = c(8:10))$Gene.Symbol
+clean_DEmiRNAs_stage_2 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 2, cols = c(8:10))$Gene.Symbol
+clean_DEmiRNAs_stage_3 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 3, cols = c(8:10))$Gene.Symbol
+clean_DEmiRNAs_stage_4 = read.xlsx("DGEA/DEmiRNAs.xlsx", sheet = 4, cols = c(8:10))$Gene.Symbol
+
+miRNA_venn = list(`Stage 1` = DEmiRNAs_stage_1,
+                  `Stage 2` = DEmiRNAs_stage_2,
+                  `Stage 3` = DEmiRNAs_stage_3,
+                  `Stage 4` = DEmiRNAs_stage_4)
+
+clean_miRNA_venn = list(`Stage 1` = clean_DEmiRNAs_stage_1,
+                        `Stage 2` = clean_DEmiRNAs_stage_2,
+                        `Stage 3` = clean_DEmiRNAs_stage_3,
+                        `Stage 4` = clean_DEmiRNAs_stage_4)
+
+rm(DEmiRNAs_stage_1, DEmiRNAs_stage_2, DEmiRNAs_stage_3, DEmiRNAs_stage_4,
+   clean_DEmiRNAs_stage_1, clean_DEmiRNAs_stage_2, clean_DEmiRNAs_stage_3, 
+   clean_DEmiRNAs_stage_4); gc()
+
+DEmiRNAs_venn = ggVennDiagram(
+  miRNA_venn, label_alpha = 0,
+  category.names = names(miRNA_venn)
+) +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+  labs(title = "Venn diagram of sig. diff. expressed miRNAs (+ host genes)")
+tiff("Additional_plots/Venn/ggVennDiagram_Stages_miRNA_Venn.tif", 
+     width = 1920, height = 1080, res = 200)
+DEmiRNAs_venn
+dev.off()
+
+clean_DEmiRNAs_venn = ggVennDiagram(
+  clean_miRNA_venn, label_alpha = 0,
+  category.names = names(clean_miRNA_venn)
+) +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+  labs(title = "Venn diagram of sig. diff.expressed miRNAs")
+tiff("Additional_plots/Venn/ggVennDiagram_Stages_miRNA_Venn.tif", 
+     width = 1920, height = 1080, res = 200)
+clean_DEmiRNAs_venn
+dev.off()
+
+tiff("Additional_plots/Venn/ggVennDiagram_DEmiRNA_multiplot.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
+m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
+dev.off(); rm(m)
+
