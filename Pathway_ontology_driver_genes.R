@@ -1109,3 +1109,13 @@ multiplot(union_four_normal_volcano,
 m = ggplot(multiplot(union_four_normal_volcano, 
                      cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2))
 dev.off(); rm(m)
+
+# DEmiRNAs #####
+miRNA_enrichment = read.xlsx("Mienturnet/Stage_1/Stage_1_Mienturnet_input_DEG_list.xlsx")
+colnames(miRNA_enrichment) = miRNA_enrichment[1,]
+miRNA_enrichment = miRNA_enrichment[-1,]
+
+miRNA_targets = read.xlsx("Mienturnet/Stage_1/Stage_1_Mienturnet_Enrichment_results_miRTarBase.xlsx")
+colnames(miRNA_targets) = miRNA_targets[1,]
+miRNA_targets = miRNA_targets[-1,]
+checklist = miRNA_targets[miRNA_targets$microRNA=="hsa-miR-124-3p", 6:747]
