@@ -454,7 +454,7 @@ original_pca$Type = factor(original_pca$Type)
 original_pca$X1 = as.numeric(original_pca$X1)
 original_pca$X2 = as.numeric(original_pca$X2)
 
-png("Plots/QC/Blood_samples/Original_MDS.png", width = 1024, height = 768)
+tiff("QC/Blood_samples/Original_MDS.tif", width = 1920, height = 1080, res = 100)
 ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
   geom_point(size = 3) +
   scale_color_brewer(palette = "Dark2") +
@@ -487,7 +487,7 @@ z_pca$Type = factor(z_pca$Type)
 z_pca$X1 = as.numeric(z_pca$X1)
 z_pca$X2 = as.numeric(z_pca$X2)
 
-png("Plots/QC/Blood_samples/KBZ_MDS.png", width = 1024, height = 768)
+tiff("QC/Blood_samples/KBZ_MDS.tif", width = 1920, height = 1080, res = 100)
 ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
   geom_point(size = 3) +
   scale_color_brewer(palette = "Dark2") +
@@ -511,7 +511,7 @@ dev.off()
 
 # Global expression boxplot: original matrix
 original_eset = as.data.frame(original_exprs_nonas)
-png("Plots/QC/Blood_samples/Original_boxplot.png", width = 1920, height = 1080)
+tiff("QC/Blood_samples/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
 ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 30), rep("chartreuse", 36),
@@ -536,7 +536,7 @@ dev.off()
 
 # Global expression boxplot: z-score normalised matrix
 z_eset = as.data.frame(z_exprs_nonas)
-png("Plots/QC/Blood_samples/KBZ_boxplot.png", width = 1920, height = 1080)
+tiff("QC/Blood_samples/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
 ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 30), rep("chartreuse", 36),
@@ -566,6 +566,12 @@ save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
   grid::grid.draw(x$gtable)
   dev.off()
 }
+save_pheatmap_tiff <- function(x, filename, width=2600, height=1800, res = 130) {
+  png(filename, width = width, height = height, res = res)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
 
 # Original
 annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
@@ -588,12 +594,14 @@ original_heatmap = pheatmap(t(original_dists), col = hmcol,
                             annotation_col = annotation_for_heatmap,
                             annotation_colors = ann_colors,
                             legend = TRUE,
+                            show_rownames = F,
+                            show_colnames = F,
                             treeheight_col = 0,
                             legend_breaks = c(min(original_dists, na.rm = TRUE), 
                                               max(original_dists, na.rm = TRUE)), 
                             legend_labels = (c("small distance", "large distance")),
                             main = "Original heatmap")
-save_pheatmap_png(original_heatmap, "Plots/QC/Blood_samples/original_heatmap.png")
+save_pheatmap_tiff(original_heatmap, "QC/Blood_samples/original_heatmap.tif")
 
 # Z-score version
 annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
@@ -616,12 +624,14 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      annotation_col = annotation_for_heatmap,
                      annotation_colors = ann_colors,
                      legend = TRUE,
+                     show_rownames = F,
+                     show_colnames = F,
                      treeheight_col = 0,
                      legend_breaks = c(min(z_dists, na.rm = TRUE), 
                                        max(z_dists, na.rm = TRUE)), 
                      legend_labels = (c("small distance", "large distance")),
                      main = "Z-score normalisation heatmap")
-save_pheatmap_png(z_heatmap, "Plots/QC/Blood_samples/KBZ_heatmap.png")
+save_pheatmap_tiff(z_heatmap, "QC/Blood_samples/KBZ_heatmap.tif")
 
 ##### Differential Gene Expression (DGEA) - Union #####
 # Joining in one expression matrix: z-score normalised version
@@ -731,7 +741,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                FCcutoff = 1,
                                col=c('grey', 'pink', 'purple4', 'red4'),
                                colAlpha = 0.7)
-png("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080)
+tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080, res = 100)
 TN_z_volcano
 dev.off()
 
