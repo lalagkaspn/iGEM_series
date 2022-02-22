@@ -1,0 +1,6 @@
+hsmiRNA 0 5 hsa_miR_375 mirdegree=310,miradjpval=0.000853866105329592
+hsmiRNA 5 10 hsa_miR_215_5p mirdegree=464,miradjpval=0.0108014904618222
+hsmiRNA 10 15 hsa_miR_2467_5p mirdegree=67,miradjpval=0.0203250469109634
+hsmiRNA 15 20 hsa_miR_1_3p mirdegree=550,miradjpval=0.0492080565920681
+hsmiRNA 20 25 hsa_miR_192_5p mirdegree=592,miradjpval=0.0492080565920681
+hsmiRNA 25 30 hsa_miR_30a_5p mirdegree=444,miradjpval=0.0492080565920681

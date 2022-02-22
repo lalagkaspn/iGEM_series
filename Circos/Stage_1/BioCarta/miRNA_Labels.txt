@@ -1,0 +1,13 @@
+hsmiRNA 0 5 hsa_miR_192_5p mirdegree=545,miradjpval=1.02179012311347e-06
+hsmiRNA 5 10 hsa_miR_215_5p mirdegree=418,miradjpval=1.34380399677087e-05
+hsmiRNA 10 15 hsa_miR_29b_3p mirdegree=162,miradjpval=2.92378213857334e-05
+hsmiRNA 15 20 hsa_miR_375 mirdegree=269,miradjpval=0.00039196808133527
+hsmiRNA 20 25 hsa_miR_124_3p mirdegree=742,miradjpval=0.000647973568005024
+hsmiRNA 25 30 hsa_miR_1_3p mirdegree=484,miradjpval=0.00168048135208928
+hsmiRNA 30 35 hsa_miR_548az_5p mirdegree=155,miradjpval=0.0102609193163481
+hsmiRNA 35 40 hsa_miR_548t_5p mirdegree=155,miradjpval=0.0102609193163481
+hsmiRNA 40 45 hsa_miR_520f_3p mirdegree=67,miradjpval=0.0123688666722741
+hsmiRNA 45 50 hsa_miR_29a_3p mirdegree=152,miradjpval=0.013413828805026
+hsmiRNA 50 55 hsa_miR_200b_3p mirdegree=110,miradjpval=0.0221242891219433
+hsmiRNA 55 60 hsa_miR_338_3p mirdegree=87,miradjpval=0.0221242891219433
+hsmiRNA 60 65 hsa_miR_429 mirdegree=91,miradjpval=0.0310285411056194
