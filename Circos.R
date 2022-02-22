@@ -631,6 +631,29 @@ rm(ultimate_pharmacological_pre, ultimate_all_pre, final_pharmacological, dups_a
    final_all, molten_all, molten_all_annot, molten_pharmacological, dups,
    molten_pharmacological_annot, unmatched_all, unmatched_pharmacological, i, j)
 
+# Manually renaming the Name1 column levels of ultimate_pharmacological:
+ultimate_pharmacological$Name0 = str_to_sentence(ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub(" ", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("-", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("___", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("__", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub(",", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("'", "_", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Cardiovascular_System", "Cardiovascular", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Antineoplastic_And_Immunomodulating_Agents", "Antineoplastics_and_Immunomodulating", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Respiratory_System", "Respiratory", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Unmatched", "Various", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Genito_Urinary_System_And_Sex_Hormones", "Genito_urinary", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Musculo_Skeletal_System", "Musculoskeletal", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Alimentary_Tract_And_Metabolism", "GI_and_metabolism", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Systemic_Hormonal_Preparations__Excl._Sex_Hormones_And_Insulins", "Hormonal_etc", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Antiparasitic_Products__Insecticides_And_Repellents", "Antiparasitic_etc", ultimate_pharmacological$Name0)
+ultimate_pharmacological$Name0 = gsub("Antiinfectives_For_Systemic_Use", "Antiinfectives", ultimate_pharmacological$Name0)
+
+ultimate_pharmacological$API = gsub(",", "_", ultimate_pharmacological$API)
+ultimate_pharmacological$API = gsub("-", "_", ultimate_pharmacological$API)
+ultimate_pharmacological$API = str_to_sentence(ultimate_pharmacological$API)
+
 ##### Organize genes (drug targets) by networks #####
 # We will focus on BioCarta and KEGG clustered terms (top 10 in each case). The plan is
 # to make lists of up-/down-regulated genes from the clustering results. Each list
@@ -641,7 +664,7 @@ rm(ultimate_pharmacological_pre, ultimate_all_pre, final_pharmacological, dups_a
 # A list of clustered results
 clustered_results = list(clustered_results_stage_1, clustered_results_stage_2,
                          clustered_results_stage_3, clustered_results_stage_4)
-names(clustered_results) = c("Stage 1", "Stage 2", "Stage 3", "Stage 4")
+names(clustered_results) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
 rm(clustered_results_stage_1, clustered_results_stage_2,
    clustered_results_stage_3, clustered_results_stage_4); gc()
 
@@ -658,7 +681,7 @@ names(Stage_1_lists) = names(Stage_1_lists) = names(Stage_1_lists) = names(Stage
   c("BioCarta", "KEGG")
 
 circos_path = list(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists)
-names(circos_path) = c("Stage 1", "Stage 2", "Stage 3", "Stage 4")
+names(circos_path) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
 rm(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists); gc()
 
 for (i in 1:4){ # 4 stages
@@ -698,6 +721,327 @@ for (i in 1:4){ # 4 stages
     names(circos_path[[i]][[k]]) = clustered_results[[i]][[k]][["Term_Description"]][1:10]
   }
 }
+
+##### Circos #####
+# Prepare the ideograms; which in this case will be networks of genes. We will prepare
+# two karyotypes: one with BioCarta ideograms and one with KEGG ideograms. Drug ideograms
+# separated by classes will be included in both karyotypes. Same for miRNAs.
+
+# The above will be generated four times: once for each stage
+
+Circos_universe = list()
+circos_stage_1 = list(); circos_stage_2 = list(); circos_stage_3 = list(); circos_stage_4 = list()
+circos_stage_1_BioCarta = list(); circos_stage_1_KEGG = list()
+circos_stage_2_BioCarta = list(); circos_stage_2_KEGG = list()
+circos_stage_3_BioCarta = list(); circos_stage_3_KEGG = list()
+circos_stage_4_BioCarta = list(); circos_stage_4_KEGG = list()
+circos_stage_1 = list(circos_stage_1_BioCarta, circos_stage_1_KEGG)
+circos_stage_2 = list(circos_stage_2_BioCarta, circos_stage_2_KEGG)
+circos_stage_3 = list(circos_stage_3_BioCarta, circos_stage_3_KEGG)
+circos_stage_4 = list(circos_stage_4_BioCarta, circos_stage_4_KEGG)
+names(circos_stage_1) = names(circos_stage_2) = names(circos_stage_3) = 
+  names(circos_stage_4) = c("BioCarta", "KEGG")
+Circos_universe = list(circos_stage_1, circos_stage_2, circos_stage_3, circos_stage_4)
+
+rm(circos_stage_1, circos_stage_2, circos_stage_3, circos_stage_4,
+   circos_stage_1_BioCarta, circos_stage_1_KEGG, circos_stage_2_BioCarta,
+   circos_stage_2_KEGG, circos_stage_3_BioCarta, circos_stage_3_KEGG,
+   circos_stage_4_BioCarta, circos_stage_4_KEGG)
+
+names(Circos_universe) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
+
+# miRNA predictions from Mienturnet #####
+# One variable that we would like to enrich our genes with is the "degree", i.e.
+# the number of miRNAs each gene is interacting with. We will do the same, but 
+# in the opposite way for the miRNAs. We start with the genes:
+
+results_mienturnet = list()
+
+for (i in 1:4){ # 4 stages
+  mienturnet = read.xlsx(paste0("Mienturnet/Stage_", i, 
+                                "/Stage_", i, "_genes_as_columns_miRTarBase.xlsx"),
+                         startRow = 2, colNames = TRUE)
+  genes_mienturnet = data.frame(matrix(ncol = 2))
+  colnames(genes_mienturnet) = c("Gene.Symbol", "Degree")
+  for(j in 1:ncol(mienturnet)){
+    degree = length(which(is.na(mienturnet[,j])==F))
+    gene = colnames(mienturnet)[j]
+    genes_mienturnet = rbind(genes_mienturnet, c(gene, degree))
+  }
+  rm(gene, degree, mienturnet)
+  results_mienturnet[[i]] = genes_mienturnet[2:nrow(genes_mienturnet),]
+  rm(genes_mienturnet)
+}
+
+names(results_mienturnet) = names(Circos_universe)
+
+# COSMIC data #####
+COSMIC_pre = read.csv("COSMIC_PDC_22022022.csv")
+COSMIC = COSMIC_pre %>%
+  dplyr::mutate(Ratio = Mutated.samples/Samples.tested) %>%
+  dplyr::filter(Ratio > 0.01) %>% # filter for mutations with frequency of over 1%
+  dplyr::filter(!grepl("\\.", Gene.name)) %>%
+  dplyr::filter(!grepl("_", Gene.name))
+COSMIC = COSMIC[order(COSMIC$Ratio, decreasing = TRUE), ] %>%
+  distinct(Gene.name, .keep_all = TRUE); rm(COSMIC_pre)
+
+# Common Gene symbols between COSMIC and the official gene symbols from the 
+# org.Hs.eg.db database:
+
+concordance = length(which(COSMIC$Gene.name %in% official_df$Gene.Symbol == TRUE))/nrow(COSMIC)
+mismatch = COSMIC$Gene.name[which(COSMIC$Gene.name %in% official_df$Gene.Symbol == FALSE)]
+a_concordance = length(which(mismatch %in% ID_Map$probe == TRUE))/length(mismatch)
+discordance = mismatch[-which(mismatch %in% ID_Map$probe == TRUE)]
+discordance
+
+# discordance contains 19 genes some of which can be matched to Entrez ID's
+# (https://www.genenames.org/tools/search/#!/?query=)
+
+COSMIC$probe = COSMIC$Gene.name
+COSMIC$probe[COSMIC$Gene.name == "36951"] = "RPL37P10"  # pseudogene
+COSMIC$probe[COSMIC$Gene.name == "40603"] = "UPK1A-AS1" # long, non-coding RNA
+COSMIC$probe[COSMIC$Gene.name == "37226"] = "PHGR1"     # coding
+COSMIC$probe[COSMIC$Gene.name == "38047"] = "UQCRHP4"   # pseudogene
+COSMIC$probe[COSMIC$Gene.name == "37681"] = "unclear" 
+COSMIC$probe[COSMIC$Gene.name == "41833"] = "MIR4683"   # miRNA
+COSMIC$probe[COSMIC$Gene.name == "40238"] = "unclear"
+COSMIC$probe[COSMIC$Gene.name == "39326"] = "SNRPGP7"   # pseudogene
+COSMIC$probe[COSMIC$Gene.name == "40787"] = "unclear"
+COSMIC$probe[COSMIC$Gene.name == "38777"] = "USP9YP33"  # pseudogene
+COSMIC$probe[COSMIC$Gene.name == "38961"] = "MIR3622B"  # miRNA
+COSMIC$probe[COSMIC$Gene.name == "40422"] = "unclear"
+COSMIC$probe[COSMIC$Gene.name == "39508"] = "ATP5MC1P5" # pseudogene
+COSMIC$probe[COSMIC$Gene.name == "38412"] = "unclear"
+COSMIC$probe[COSMIC$Gene.name == "39142"] = "unclear"
+COSMIC$probe[COSMIC$Gene.name == "37865"] = "GLYATL1B"  # coding
+COSMIC$probe[COSMIC$Gene.name == "37500"] = "RNVU1-7"   # snRNA
+
+# further corrections
+COSMIC$probe[COSMIC$Gene.name == "MPP6"] = "PALS2"    
+# alias for two official symbols, 
+# but MPHOSPH6 exists in COSMIC_pre so we believe this is for PALS2
+COSMIC$probe[COSMIC$Gene.name == "DUSP27"] = "unclear" 
+# unclear if it must match to STYXL2 or DUSP29
+
+ID_Map = ID_Map %>% dplyr::rename(probe = Gene.Symbol)
+COSMIC_annot = COSMIC %>%
+  left_join(ID_Map, by = "probe") %>%
+  dplyr::filter(!probe == "unclear") %>%
+  left_join(official_df, by = "EntrezGene.ID") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, Mutated.samples, Samples.tested, Ratio) %>%
+  distinct()
+
+# Cancer gene drivers
+census = read.csv("COSMIC_census_09_02_2022.csv") %>%
+  dplyr::rename(EntrezGene.ID = Entrez.GeneId, Gene.Symbol_COSMIC = Gene.Symbol) %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol_COSMIC, Name, everything())
+census$EntrezGene.ID = as.character(census$EntrezGene.ID)
+census_annot = census %>% inner_join(official_df, by = "EntrezGene.ID")
+census_annot_pancr = census_annot %>%
+  dplyr::filter(grepl("pancr", Tumour.Types.Somatic.) | grepl("pancr", Tumour.Types.Germline.))
+general_drivers = census_annot$Gene.Symbol
+PDAC_drivers = census_annot_pancr$Gene.Symbol
+
+# Basic Circos files Gene labels, Drug labels #####
+# BC = BioCarta, KG = KEGG
+
+for (i in 1:4){
+  BC = melt(circos_path[[i]][["BioCarta"]]) %>%
+    dplyr::rename(PathChr = L1, Gene.Symbol = value)
+  BC$PathChr = gsub("BIOCARTA_", "", BC$PathChr)
+  BC$PathChr = gsub("_PATHWAY", "", BC$PathChr)
+  str_sub(BC$PathChr, 0, 0) = "hs"
+  BC$GStart[1] = 0
+  BC$GEnd[1] = 5
+  
+  for(k in 2:nrow(BC)){
+    if(BC$PathChr[k] == BC$PathChr[k-1]){
+      BC$GStart[k] = BC$GStart[k-1] + 5
+      BC$GEnd[k]   = BC$GEnd[k-1] + 5
+    } else {
+      BC$GStart[k] = 0
+      BC$GEnd[k]   = 5
+    }
+  }
+  rm(k)
+  
+  BC = BC %>% left_join(sig_DGEA[[i]], by = c("Gene.Symbol" = "Gene.Symbol_pre")) %>%
+    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val)) %>%
+    dplyr::select(PathChr, GStart, GEnd, Gene.Symbol, GVars)
+  
+  KG = melt(circos_path[[i]][["KEGG"]]) %>%
+    dplyr::rename(PathChr = L1, Gene.Symbol = value)
+  KG$PathChr = gsub(" ", "_", KG$PathChr)
+  KG$PathChr = gsub("-", "_", KG$PathChr)
+  KG$PathChr = gsub("___", "_", KG$PathChr)
+  KG$PathChr = gsub("__", "_", KG$PathChr)
+  str_sub(KG$PathChr, 0, 0) = "hs"
+  KG$GStart[1] = 0
+  KG$GEnd[1] = 5
+  
+  for(k in 2:nrow(KG)){
+    if(KG$PathChr[k] == KG$PathChr[k-1]){
+      KG$GStart[k] = KG$GStart[k-1] + 5
+      KG$GEnd[k]   = KG$GEnd[k-1] + 5
+    } else {
+      KG$GStart[k] = 0
+      KG$GEnd[k]   = 5
+    }
+  }
+  
+  KG = KG %>% left_join(sig_DGEA[[i]], by = c("Gene.Symbol" = "Gene.Symbol_pre")) %>%
+    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val)) %>%
+    dplyr::select(PathChr, GStart, GEnd, Gene.Symbol, GVars)
+  
+  
+  # Drug Labels (only drugs that interact with our list of genes BC$Gene.Symbol and 
+  # KG$Symbol). BioCarta:
+  final_pharmacological_BC = BC %>% 
+    inner_join(ultimate_pharmacological %>% dplyr::select(Gene.Symbol, API, Name0),  
+               by = "Gene.Symbol")
+  
+  BC_Drugs = final_pharmacological_BC %>% dplyr::select(API, Name0) %>%
+    dplyr::rename(DChr = Name0) %>%
+    distinct()
+  BC_Drugs = BC_Drugs[order(BC_Drugs$DChr, BC_Drugs$API),]
+  
+  str_sub(BC_Drugs$DChr, 0, 0) = "hs"
+  BC_Drugs$DStart[1] = 0
+  BC_Drugs$DEnd[1] = 5
+  
+  for(j in 2:nrow(BC_Drugs)){
+    if(BC_Drugs$DChr[j] == BC_Drugs$DChr[j-1]){
+      BC_Drugs$DStart[j] = BC_Drugs$DStart[j-1] + 5
+      BC_Drugs$DEnd[j]   = BC_Drugs$DEnd[j-1] + 5
+    } else {
+      BC_Drugs$DStart[j] = 0
+      BC_Drugs$DEnd[j]   = 5
+    }
+  }
+  rm(j)
+  
+  # KEGG
+  final_pharmacological_KG = KG %>% 
+    inner_join(ultimate_pharmacological %>% dplyr::select(Gene.Symbol, API, Name0),  
+               by = "Gene.Symbol")
+  
+  KG_Drugs = final_pharmacological_KG %>% dplyr::select(API, Name0) %>%
+    dplyr::rename(DChr = Name0) %>%
+    distinct()
+  KG_Drugs = KG_Drugs[order(KG_Drugs$DChr, KG_Drugs$API),]
+  
+  str_sub(KG_Drugs$DChr, 0, 0) = "hs"
+  KG_Drugs$DStart[1] = 0
+  KG_Drugs$DEnd[1] = 5
+  
+  for(j in 2:nrow(KG_Drugs)){
+    if(KG_Drugs$DChr[j] == KG_Drugs$DChr[j-1]){
+      KG_Drugs$DStart[j] = KG_Drugs$DStart[j-1] + 5
+      KG_Drugs$DEnd[j]   = KG_Drugs$DEnd[j-1] + 5
+    } else {
+      KG_Drugs$DStart[j] = 0
+      KG_Drugs$DEnd[j]   = 5
+    }
+  }
+  
+  # Join with results_mienturnet to add miRNA degree to the genes
+  BC = BC %>% left_join(results_mienturnet[[i]], by = "Gene.Symbol")
+  zero_degree_index = which(is.na(BC$Degree) == TRUE)
+  BC$Degree[zero_degree_index] = "0"; rm(zero_degree_index)
+  str_sub(BC$Degree, 0, 0) = "degree="
+  BC$GVars_new = paste0(BC$GVars, ",", BC$Degree)
+  BC = BC %>% dplyr::select(-GVars, -Degree) %>%
+    dplyr::rename(GVars = GVars_new)
+  
+  KG = KG %>% left_join(results_mienturnet[[i]], by = "Gene.Symbol")
+  zero_degree_index = which(is.na(KG$Degree) == TRUE)
+  KG$Degree[zero_degree_index] = "0"; rm(zero_degree_index)
+  str_sub(KG$Degree, 0, 0) = "degree="
+  KG$GVars_new = paste0(KG$GVars, ",", KG$Degree)
+  KG = KG %>% dplyr::select(-GVars, -Degree) %>%
+    dplyr::rename(GVars = GVars_new)
+  
+  # Preparing mutation and driver glyph files
+  # Mutations
+  BC_mutation = BC %>% dplyr::select(-GVars) %>%
+    left_join(COSMIC_annot, by = c("Gene.Symbol")) %>%
+    dplyr::select(-EntrezGene.ID)
+  zero_mut_index = which(is.na(BC_mutation$Ratio) == TRUE)
+  BC_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
+  BC_mutation = BC_mutation %>%
+    mutate(MVars = paste0("ratio=", Ratio, ",sampmut=", Mutated.samples,
+                          ",samptest=", Samples.tested)) %>%
+    dplyr::select(-Ratio, -Mutated.Samples, -Samples.tested)
+  
+  KG_mutation = KG %>% dplyr::select(-GVars) %>%
+    left_join(COSMIC_annot, by = c("Gene.Symbol")) %>%
+    dplyr::select(-EntrezGene.ID)
+  zero_mut_index = which(is.na(BC_mutation$Ratio) == TRUE)
+  BC_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
+  BC_mutation = BC_mutation %>%
+    mutate(MVars = paste0("ratio=", Ratio, ",sampmut=", Mutated.samples,
+                          ",samptest=", Samples.tested)) %>%
+    dplyr::select(-Ratio, -Mutated.Samples, -Samples.tested)
+  
+  # Drivers
+  BC_drivers = BC %>% dplyr::select(-GVars)
+  gdriver_index = which(BC_drivers$Gene.Symbol %in% general_drivers)
+  pdriver_index = which(BC_drivers$Gene.Symbol %in% PDAC_drivers)
+  BC_drivers$gdriver = "no"; BC_drivers$pdriver = "no"
+  BC_drivers$gdriver[gdriver_index] = "yes"; BC_drivers$pdriver[pdriver_index] = "yes"
+  rm(gdriver_index, pdriver_index)
+  BC_drivers = BC_drivers %>%
+    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver)) %>%
+    dplyr::select(-gdriver, -pdriver)
+  
+  KG_drivers = KG %>% dplyr::select(-GVars)
+  gdriver_index = which(KG_drivers$Gene.Symbol %in% general_drivers)
+  pdriver_index = which(KG_drivers$Gene.Symbol %in% PDAC_drivers)
+  KG_drivers$gdriver = "no"; KG_drivers$pdriver = "no"
+  KG_drivers$gdriver[gdriver_index] = "yes"; KG_drivers$pdriver[pdriver_index] = "yes"
+  rm(gdriver_index, pdriver_index)
+  KG_drivers = KG_drivers %>%
+    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver)) %>%
+    dplyr::select(-gdriver, -pdriver)
+  
+  # Create histogram files for the genes for -log10(adjpval), degree, logfc:
+  BC_histogram_logfc = BC %>% separate(GVars)
+  
+}
+
+
+bp_gene_ont = bp_gene_ont_pre %>% 
+  group_by(BP_new) %>%
+  dplyr::select(-BP) %>%
+  dplyr::rename(GChr = BP_new) %>%
+  unique()
+
+bp_gene_ont = bp_gene_ont[order(bp_gene_ont$GChr, bp_gene_ont$Gene.Symbol),]
+bp_gene_ont$GStart = NA
+bp_gene_ont$GEnd = NA
+bp_gene_ont$GVars = paste0("logfc=",bp_gene_ont$logFC,",adjpval=",bp_gene_ont$adj.P.Val,
+                           ",fullname=",bp_gene_ont$Name)
+bp_gene_ont = bp_gene_ont %>%
+  dplyr::select(-logFC, -adj.P.Val, -Name) %>%
+  unique()
+bp_gene_ont$GStart[1] = 0
+bp_gene_ont$GEnd[1] = 5
+
+for(i in 2:nrow(bp_gene_ont)){
+  if(bp_gene_ont$GChr[i] == bp_gene_ont$GChr[i-1]){
+    bp_gene_ont$GStart[i] = bp_gene_ont$GStart[i-1] + 5
+    bp_gene_ont$GEnd[i]   = bp_gene_ont$GEnd[i-1] + 5
+  } else {
+    bp_gene_ont$GStart[i] = 0
+    bp_gene_ont$GEnd[i]   = 5
+  }
+}
+
+bp_gene_ont$GChr = gsub(" ", "_", bp_gene_ont$GChr)
+str_sub(bp_gene_ont$GChr, 0, 0) = "hs"
+bp_gene_ont = bp_gene_ont[,c("GChr", "GStart", "GEnd", "Gene.Symbol", "GVars")]
+rm(bp_gene_ont_pre)
+
 
 # nonas_DE_mapped
 significants = nonas_DE_mapped[nonas_DE_mapped$adj.P.Val < 0.05,]
