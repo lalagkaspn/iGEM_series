@@ -771,12 +771,12 @@ diagram1 = ggVennDiagram(
   category.names = names(venn_DEG)
 ) +
   scale_fill_gradient(low = "white", high = "darkred") +
-  theme(plot.title = element_text(face = "bold"))+
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))+
   labs(title = "Venn diagram of significantly differentially expressed genes (DEGs) between stages")
 tiff("Additional_plots/Venn/ggVennDiagram_Stages_DEG_Venn.tif", 
      width = 1920, height = 1080, res = 200)
 diagram1
-dev.off(); rm(diagram1)
+dev.off()
 
 # ggvenn
 diagram2 = ggvenn(
@@ -784,12 +784,12 @@ diagram2 = ggvenn(
   fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
   stroke_size = 0.5, set_name_size = 4
 )+
-  theme(plot.title = element_text(face = "bold"))+
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))+
   labs(title = "Venn diagram of significantly differentially expressed genes (DEGs) between stages")
 tiff("Additional_plots/Venn/ggvenn_Stages_DEG_Venn.tif", 
      width = 1920, height = 1080, res = 150)
 diagram2
-dev.off(); rm(diagram2)
+dev.off()
 
 # Defining a multiplot function #####
 # Multiple plot function
@@ -837,6 +837,30 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     }
   }
 }
+
+# Adding the blood sample DEGs to the Venn diagram
+blood_DGEA = read.xlsx("DGEA/Union/Blood_samples_analysis/Blood_TN_z_DE_topTable.xlsx")
+venn_DEG[[5]] = blood_DGEA$EntrezGene.ID[blood_DGEA$adj.P.Val < 0.05]
+names(venn_DEG)[5] = "Blood samples"
+
+diagram3 = ggVennDiagram(
+  venn_DEG, label_alpha = 0,
+  category.names = names(venn_DEG)
+) +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))+
+  labs(title = "Venn diagram of sig. diff. expressed genes (DEGs): tumor and blood samples")
+tiff("Additional_plots/Venn/ggVennDiagram_all_DEG_Venn.tif", 
+     width = 1920, height = 1080, res = 200)
+diagram3
+dev.off()
+
+# DEG venn with blood and tumors multiplot
+tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot.tif", 
+     width = 2880, height = 1620, res = 150)
+multiplot(diagram1, diagram3, cols = 2)
+m = ggplot(multiplot(diagram1, diagram3, cols = 2))
+dev.off(); rm(m, diagram1, diagram2, diagram3)
 
 # Create a 2x3 Venn diagram multiplot that compares the subnetwork enrichment
 # between 4 stages with respect to BioCarta, GO-BP, GO-CC, GO-MF, KEGG, Reactome
