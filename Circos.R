@@ -1229,39 +1229,3 @@ for (i in 1:4){
   }
   gc()
 }
-
-##### Further processing #####
-# Manually filtering for approved drugs for pancreatic cancer
-PC_drugs = c("Paclitaxel", "Irinotecan", "Cisplatin", "Sunitinib")
-BP_PC_drug_interactions_all = final_all_list[["noNAs KBZ"]] %>% 
-  dplyr::filter(API %in% tolower(PC_drugs)) %>%
-  dplyr::select(-MF, -NewName, -Name0, -Name2, -Name3, -EntrezGene.ID, -Sub4, -DE_Symbol) %>%
-  dplyr::select(Name, BP, Gene.Symbol, API, everything()) %>%
-  unique()
-BP_PC_drug_interactions_pharmacological = final_pharmacologicals[["noNAs KBZ"]] %>% 
-  dplyr::filter(API %in% tolower(PC_drugs)) %>%
-  dplyr::select(-MF, -NewName, -Name0, -Name2, -Name3, -EntrezGene.ID, -Sub4, -DE_Symbol) %>%
-  dplyr::select(Name, BP, Gene.Symbol, API, everything()) %>%
-  unique()
-MF_PC_drug_interactions_all = final_all_list[["noNAs KBZ"]] %>% 
-  dplyr::filter(API %in% tolower(PC_drugs)) %>%
-  dplyr::select(-BP, -NewName, -Name0, -Name2, -Name3, -EntrezGene.ID, -Sub4, -DE_Symbol) %>%
-  dplyr::select(Name, MF, Gene.Symbol, API, everything()) %>%
-  unique()
-MF_PC_drug_interactions_pharmacological = final_pharmacologicals[["noNAs KBZ"]] %>% 
-  dplyr::filter(API %in% tolower(PC_drugs)) %>%
-  dplyr::select(-BP, -NewName, -Name0, -Name2, -Name3, -EntrezGene.ID, -Sub4, -DE_Symbol) %>%
-  dplyr::select(Name, MF, Gene.Symbol, API, everything()) %>%
-  unique()
-
-# Write out interactions as an MS Excel file with multiple sheets
-PC_drug_interactions = createWorkbook()
-addWorksheet(PC_drug_interactions, "BP_all")
-writeData(PC_drug_interactions, "BP_all", BP_PC_drug_interactions_all)
-addWorksheet(PC_drug_interactions, "BP_pharm")
-writeData(PC_drug_interactions, "BP_pharm", BP_PC_drug_interactions_pharmacological)
-addWorksheet(PC_drug_interactions, "MF_all")
-writeData(PC_drug_interactions, "MF_all", MF_PC_drug_interactions_all)
-addWorksheet(PC_drug_interactions, "MF_pharm")
-writeData(PC_drug_interactions, "MF_pharm", MF_PC_drug_interactions_pharmacological)
-saveWorkbook(PC_drug_interactions, "PC_drug_interactions.xlsx", overwrite = TRUE)
