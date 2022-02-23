@@ -709,11 +709,11 @@ for (i in 1:4){ # 4 stages
       }
       
       if (checker_up == "yes" && checker_down == "yes"){
-        circos_path[[i]][[k]][[j]] = c(up, down)
+        circos_path[[i]][[k]][[j]] = sort(c(up, down))
       } else if (checker_up == "yes" && checker_down == "not") {
-        circos_path[[i]][[k]][[j]] = up
+        circos_path[[i]][[k]][[j]] = sort(up)
       } else if (checker_up == "not" && checker_down == "yes") {
-        circos_path[[i]][[k]][[j]] = down
+        circos_path[[i]][[k]][[j]] = sort(down)
       } else if (checker_up == "not" && checker_down == "not") {
         circos_path[[i]][[k]][[j]] = NA
       }
@@ -935,6 +935,8 @@ for (i in 1:4){
     }
   }
   rm(j)
+  BC_Drugs = BC_Drugs %>%
+    dplyr::select(DChr, DStart, DEnd, API)
   
   # KEGG
   final_pharmacological_KG = KG %>% 
@@ -960,6 +962,8 @@ for (i in 1:4){
     }
   }
   rm(j)
+  KG_Drugs = KG_Drugs %>%
+    dplyr::select(DChr, DStart, DEnd, API)
   
   # Join with gene_results_mienturnet to add miRNA degree to the genes
   BC = BC %>% left_join(gene_results_mienturnet[[i]], by = "Gene.Symbol")
@@ -985,22 +989,26 @@ for (i in 1:4){
     dplyr::select(-EntrezGene.ID)
   zero_mut_index = which(is.na(BC_mutation$Ratio) == TRUE)
   BC_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
+  BC_mutation$Ratio = log(100*BC_mutation$Ratio + 1)
   BC_mutation = BC_mutation %>%
     mutate(MVars = paste0("gene=", Gene.Symbol, ",sampmut=", Mutated.samples,
                           ",samptest=", Samples.tested)) %>%
     dplyr::select(-Gene.Symbol, -Mutated.samples, -Samples.tested) %>%
-    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars)
+    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars) %>%
+    dplyr::rename(logRatio = Ratio)
   
   KG_mutation = KG %>% dplyr::select(-GVars) %>%
     left_join(COSMIC_annot, by = c("Gene.Symbol")) %>%
     dplyr::select(-EntrezGene.ID)
   zero_mut_index = which(is.na(KG_mutation$Ratio) == TRUE)
   KG_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
+  KG_mutation$Ratio = log(100*KG_mutation$Ratio + 1)
   KG_mutation = KG_mutation %>%
     mutate(MVars = paste0("gene=", Gene.Symbol, ",sampmut=", Mutated.samples,
                           ",samptest=", Samples.tested)) %>%
     dplyr::select(-Gene.Symbol, -Mutated.samples, -Samples.tested) %>%
-    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars)
+    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars) %>%
+    dplyr::rename(logRatio = Ratio)
   
   # Drivers
   BC_drivers = BC %>% dplyr::select(-GVars)
@@ -1009,9 +1017,13 @@ for (i in 1:4){
   BC_drivers$gdriver = "no"; BC_drivers$pdriver = "no"
   BC_drivers$gdriver[gdriver_index] = "yes"; BC_drivers$pdriver[pdriver_index] = "yes"
   rm(gdriver_index, pdriver_index)
+  BC_drivers$glyph_color = "white"
+  BC_drivers$glyph_color[BC_drivers$gdriver=="yes"] = "vdred_a15"
+  BC_drivers$glyph_color[BC_drivers$pdriver=="yes"] = "vdgreen_a15"
   BC_drivers = BC_drivers %>%
-    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver)) %>%
-    dplyr::select(-gdriver, -pdriver)
+    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver, 
+                           ",glyphcolor=", glyph_color)) %>%
+    dplyr::select(-gdriver, -pdriver, -glyph_color)
   
   KG_drivers = KG %>% dplyr::select(-GVars)
   gdriver_index = which(KG_drivers$Gene.Symbol %in% general_drivers)
@@ -1019,9 +1031,13 @@ for (i in 1:4){
   KG_drivers$gdriver = "no"; KG_drivers$pdriver = "no"
   KG_drivers$gdriver[gdriver_index] = "yes"; KG_drivers$pdriver[pdriver_index] = "yes"
   rm(gdriver_index, pdriver_index)
+  KG_drivers$glyph_color = "white"
+  KG_drivers$glyph_color[KG_drivers$gdriver=="yes"] = "vdred_a15"
+  KG_drivers$glyph_color[KG_drivers$pdriver=="yes"] = "vdgreen_a15"
   KG_drivers = KG_drivers %>%
-    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver)) %>%
-    dplyr::select(-gdriver, -pdriver)
+    mutate(DrVars = paste0("gdriver=", gdriver, ",pdriver=", pdriver, 
+                           ",glyphcolor=", glyph_color)) %>%
+    dplyr::select(-gdriver, -pdriver, -glyph_color)
   
   # Create histogram files for the genes for -log10(adjpval), degree, logfc:
   # logfc
@@ -1039,10 +1055,16 @@ for (i in 1:4){
   BC_histogram_adjpval = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
     dplyr::select(-Gene.Symbol, -logfc, -degree)
   BC_histogram_adjpval$adjpval = gsub("adjpval=", "", BC_histogram_adjpval$adjpval)
+  BC_histogram_adjpval$adjpval = -log10(as.numeric(BC_histogram_adjpval$adjpval))
+  BC_histogram_adjpval = BC_histogram_adjpval %>%
+    dplyr::rename(`-logadjpval` = adjpval)
   
   KG_histogram_adjpval = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
     dplyr::select(-Gene.Symbol, -logfc, -degree)
   KG_histogram_adjpval$adjpval = gsub("adjpval=", "", KG_histogram_adjpval$adjpval)
+  KG_histogram_adjpval$adjpval = -log10(as.numeric(KG_histogram_adjpval$adjpval))
+  KG_histogram_adjpval = KG_histogram_adjpval %>%
+    dplyr::rename(`-logadjpval` = adjpval)
   
   # degree (how many miRNAs a gene interacts with)
   BC_histogram_degree = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
