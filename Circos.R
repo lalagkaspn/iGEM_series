@@ -1100,9 +1100,13 @@ for (i in 1:4){
     mutate(LVars = paste0(miRvars, ",", GVars, ",gene=", Gene.Symbol, ",mirna=", microRNA, ",drug=none")) %>%
     dplyr::select(-miRvars, -GVars, -Gene.Symbol, -microRNA)
   
-  BC_drug_links = final_pharmacological_BC %>% inner_join(BC_Drugs, by = "API") %>%
+  BC_drug_links = final_pharmacological_BC %>% 
+    dplyr::select(-PathChr, -GStart, -GEnd, -GVars) %>%
+    inner_join(BC_Drugs, by = "API") %>%
+    inner_join(BC, by = "Gene.Symbol") %>%
     dplyr::select(PathChr, GStart, GEnd, DChr, DStart, DEnd, GVars, API, Gene.Symbol) %>%
-    mutate(LVars = paste0(GVars, ",", "drug=", API, ",gene=", Gene.Symbol, ",mirna=none")) %>%
+    mutate(LVars = paste0("mirdegree=0", ",miradjpval=0", GVars, 
+                          ",gene=", Gene.Symbol, ",mirna=none", ",drug=", API)) %>%
     dplyr::select(-GVars, -API, -Gene.Symbol)
   colnames(BC_drug_links) = colnames(BC_miRNA_links) # name of the columns doesn't matter for Circos input
   BC_links = rbind(BC_miRNA_links, BC_drug_links); rm(BC_miRNA_links, BC_drug_links)
@@ -1117,9 +1121,13 @@ for (i in 1:4){
   
   rm(miRNA_gene, miRNA_gene_map)
   
-  KG_drug_links = final_pharmacological_KG %>% inner_join(KG_Drugs, by = "API") %>%
+  KG_drug_links = final_pharmacological_KG %>%
+    dplyr::select(-PathChr, -GStart, -GEnd, -GVars) %>%
+    inner_join(KG_Drugs, by = "API") %>%
+    inner_join(KG, by = "Gene.Symbol") %>%
     dplyr::select(PathChr, GStart, GEnd, DChr, DStart, DEnd, GVars, API, Gene.Symbol) %>%
-    mutate(LVars = paste0(GVars, ",", "drug=", API, ",gene=", Gene.Symbol, ",mirna=none")) %>%
+    mutate(LVars = paste0("mirdegree=0", ",miradjpval=0", GVars, 
+                          ",gene=", Gene.Symbol, ",mirna=none", ",drug=", API)) %>%
     dplyr::select(-GVars, -API, -Gene.Symbol)
   colnames(KG_drug_links) = colnames(KG_miRNA_links) # name of the columns doesn't matter for Circos input
   KG_links = rbind(KG_miRNA_links, KG_drug_links); rm(KG_miRNA_links, KG_drug_links)
