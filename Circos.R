@@ -978,7 +978,7 @@ for (i in 1:4){
   KG = KG %>% dplyr::select(-GVars, -Degree) %>%
     dplyr::rename(GVars = GVars_new)
   
-  # Preparing mutation and driver glyph files
+  # Preparing mutation histogram and driver glyph files
   # Mutations
   BC_mutation = BC %>% dplyr::select(-GVars) %>%
     left_join(COSMIC_annot, by = c("Gene.Symbol")) %>%
@@ -986,9 +986,10 @@ for (i in 1:4){
   zero_mut_index = which(is.na(BC_mutation$Ratio) == TRUE)
   BC_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
   BC_mutation = BC_mutation %>%
-    mutate(MVars = paste0("ratio=", Ratio, ",sampmut=", Mutated.samples,
+    mutate(MVars = paste0("gene=", Gene.Symbol, ",sampmut=", Mutated.samples,
                           ",samptest=", Samples.tested)) %>%
-    dplyr::select(-Ratio, -Mutated.samples, -Samples.tested)
+    dplyr::select(-Gene.Symbol, -Mutated.samples, -Samples.tested) %>%
+    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars)
   
   KG_mutation = KG %>% dplyr::select(-GVars) %>%
     left_join(COSMIC_annot, by = c("Gene.Symbol")) %>%
@@ -996,9 +997,10 @@ for (i in 1:4){
   zero_mut_index = which(is.na(KG_mutation$Ratio) == TRUE)
   KG_mutation$Ratio[zero_mut_index] = 0; rm(zero_mut_index)
   KG_mutation = KG_mutation %>%
-    mutate(MVars = paste0("ratio=", Ratio, ",sampmut=", Mutated.samples,
+    mutate(MVars = paste0("gene=", Gene.Symbol, ",sampmut=", Mutated.samples,
                           ",samptest=", Samples.tested)) %>%
-    dplyr::select(-Ratio, -Mutated.samples, -Samples.tested)
+    dplyr::select(-Gene.Symbol, -Mutated.samples, -Samples.tested) %>%
+    dplyr::select(PathChr, GStart, GEnd, Ratio, MVars)
   
   # Drivers
   BC_drivers = BC %>% dplyr::select(-GVars)
@@ -1105,7 +1107,7 @@ for (i in 1:4){
     inner_join(BC_Drugs, by = "API") %>%
     inner_join(BC, by = "Gene.Symbol") %>%
     dplyr::select(PathChr, GStart, GEnd, DChr, DStart, DEnd, GVars, API, Gene.Symbol) %>%
-    mutate(LVars = paste0("mirdegree=0", ",miradjpval=0", GVars, 
+    mutate(LVars = paste0("mirdegree=0,miradjpval=0,", GVars, 
                           ",gene=", Gene.Symbol, ",mirna=none", ",drug=", API)) %>%
     dplyr::select(-GVars, -API, -Gene.Symbol)
   colnames(BC_drug_links) = colnames(BC_miRNA_links) # name of the columns doesn't matter for Circos input
@@ -1126,7 +1128,7 @@ for (i in 1:4){
     inner_join(KG_Drugs, by = "API") %>%
     inner_join(KG, by = "Gene.Symbol") %>%
     dplyr::select(PathChr, GStart, GEnd, DChr, DStart, DEnd, GVars, API, Gene.Symbol) %>%
-    mutate(LVars = paste0("mirdegree=0", ",miradjpval=0", GVars, 
+    mutate(LVars = paste0("mirdegree=0,miradjpval=0,", GVars, 
                           ",gene=", Gene.Symbol, ",mirna=none", ",drug=", API)) %>%
     dplyr::select(-GVars, -API, -Gene.Symbol)
   colnames(KG_drug_links) = colnames(KG_miRNA_links) # name of the columns doesn't matter for Circos input
