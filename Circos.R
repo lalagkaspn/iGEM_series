@@ -1078,10 +1078,10 @@ for (i in 1:4){
   miRNA = miRNA %>% dplyr::select(miRNA_Chr, miRstart, miRend, microRNA, miRvars)
   
   # miRNA degree histogram
-  miRNA_histogram_degree = miRNA %>% separate(miRvars, sep = ",", into = c("degree", "adjpval")) %>%
+  miRNA_histogram_degree = miRNA %>% separate(miRvars, sep = ",", into = c("mirdegree", "adjpval")) %>%
     dplyr::select(-microRNA) %>%
     dplyr::rename(histvars = adjpval)
-  miRNA_histogram_degree$degree = gsub("degree=", "", miRNA_histogram_degree$degree)
+  miRNA_histogram_degree$mirdegree = gsub("mirdegree=", "", miRNA_histogram_degree$mirdegree)
   
   # Links
   miRNA_gene = as.data.frame(t(read.xlsx(paste0("Mienturnet/Stage_", i, 
