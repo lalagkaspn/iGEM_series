@@ -282,6 +282,7 @@ filt_pdata$GSE42952$Prognosis = factor(x = filt_pdata$GSE42952$Prognosis,
 filt_pdata$GSE42952$Tumor_localization = factor(x = filt_pdata$GSE42952$Tumor_localization,
                                                 levels = c("head", "body/tail"),
                                                 labels = c("head", "body/tail"))
+filt_pdata$GSE42952 = filt_pdata$GSE42952[-35,] # removing "GSM1053825" (no AJCC)
 
 # GSE18670 (GDS4329)
 # GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18670
@@ -940,7 +941,6 @@ esets[["GSE102238"]] = esets[["GSE102238"]] %>%
   summarise_all(mean, na.rm = TRUE)
 rm(blastn, mapped_blastn, mapped_blastn_filt)
 
-
 # GSE84219
 fdata84219 = fData(GEOsets$GSE84219) %>%
   dplyr::select(ID, ENTREZ_GENE_ID = Entrez_Gene_ID) %>%
@@ -989,6 +989,11 @@ for(i in 1:length(esets)){
 # full_pdata_filt = full_pdata[full_pdata$Study != "GSE102238", ]
 # In order to include GSE102238 change the previous line of code to:
 full_pdata_filt = full_pdata
+full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
+full_pdata_filt$AJCC_classification = as.character(full_pdata_filt$AJCC_classification)
+full_pdata_filt$AJCC_classification[full_pdata_filt$Tissue_type == "non_tumor"] = "normal"
+full_pdata_filt = full_pdata_filt[-which(is.na(full_pdata_filt$AJCC_classification)),] # 448 samples
+full_pdata_filt$AJCC_classification = as.factor(full_pdata_filt$AJCC_classification)
 write.xlsx(full_pdata_filt, "DGEA/Pheno.xlsx", overwrite = TRUE)
 
 # Joining in one expression matrix: original version
@@ -1012,6 +1017,8 @@ rownames(original_exprs) = rows; rm(rows) # 2601 x 449
 # Making sure we do not have NAs in any row
 original_exprs = original_exprs[rowSums(is.na(original_exprs)) != ncol(original_exprs), ]
 original_exprs_nonas = na.omit(original_exprs) # 2601 x 449
+# Keeping all samples in our full_pdata_filt object
+original_exprs_nonas = original_exprs_nonas[, full_pdata_filt$GEO_accession] # 2601 x 448
 
 # Joining in one expression matrix: z-score normalised version
 for (i in 1:length(z)){
@@ -1033,6 +1040,7 @@ z_exprs = as.matrix(z_exprs %>% dplyr::select(-EntrezGene.ID)) # 2601 x 449
 # Making sure we do not have NAs in any row
 z_exprs = z_exprs[rowSums(is.na(z_exprs)) != ncol(z_exprs), ]
 z_exprs_nonas = na.omit(z_exprs) # 2601 x 449
+z_exprs_nonas = z_exprs_nonas[, full_pdata_filt$GEO_accession] # 2601 x 448
 
 # Multidimensional scaling plot: original matrix #####
 original_mds = plotMDS(original_exprs_nonas)
@@ -1106,7 +1114,7 @@ original_eset = as.data.frame(original_exprs_nonas)
 tiff("QC/Tumor_stage/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
 ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
-               fill = c(rep("cyan", 34), rep("chartreuse", 12),
+               fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
                         rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
@@ -1133,7 +1141,7 @@ z_eset = as.data.frame(z_exprs_nonas)
 tiff("QC/Tumor_stage/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
 ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
-               fill = c(rep("cyan", 34), rep("chartreuse", 12),
+               fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
                         rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
@@ -1238,12 +1246,11 @@ save_pheatmap_tiff(z_heatmap, "QC/Tumor_stage/KBZ_heatmap.tif")
 # 6 types of DGEA:
 #    - Stages 1/2 vs Stages 3/4
 #    - Stage 1 vs Stage 4
+#    - Stage 1 vs Stage 2
 #    - Stage 1 vs normal
 #    - Stage 2 vs normal
 #    - Stage 3 vs normal
 #    - Stage 4 vs normal
-
-full_pdata_filt$Study = as.factor(full_pdata_filt$Study)
 
 # Annotation with official gene symbols
 # official_df, Aliases, ID_Map
@@ -1284,7 +1291,7 @@ rm(alias, alias_df, aliases_for_join, official,
 
 ##### Union #####
 # In this section we perform DGEA on the union of the gene expression matrices,
-# no the intersection (as we did before), in order to keep all genes from all
+# not the intersection, in order to keep all genes from all
 # platforms. NA's will be introduced in this manner, but limma ignores them
 # during model fitting.
 
@@ -1299,290 +1306,105 @@ union_z_exprs = z[[1]] %>% full_join(z[[2]], by = "EntrezGene.ID") %>%
 
 rownames(union_z_exprs) = union_z_exprs$EntrezGene.ID
 union_z_exprs = as.matrix(union_z_exprs %>% dplyr::select(-EntrezGene.ID)) # 25699 x 449
+union_z_exprs_final = union_z_exprs[, full_pdata_filt$GEO_accession] # 25699 x 448
 
-# Stages 1/2 vs stages 3/4 #####
-Stages_pdata = full_pdata_filt %>%
-  dplyr::filter(Tissue_type == "tumor") %>%
-  dplyr::filter(is.na(AJCC_classification) == FALSE) %>%
-  mutate(Stage_group = NA)
-Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == 3 | 
-                           Stages_pdata$AJCC_classification == 4] = "Advanced_stage"
-Stages_pdata$Stage_group[Stages_pdata$AJCC_classification == "1a" |
-                           Stages_pdata$AJCC_classification == "1b" |
-                           Stages_pdata$AJCC_classification == "2a" |
-                           Stages_pdata$AJCC_classification == "2b"] = "Early_stage"
-Stages_pdata$Stage_group = as.factor(Stages_pdata$Stage_group)
+# Design and contrast matrix
+design_full = model.matrix(~0 + full_pdata_filt$AJCC_classification + full_pdata_filt$Study)
+colnames(design_full) = c("Stage_1a", "Stage_1b", "Stage_2a", "Stage_2b", "Stage_3", 
+                          "Stage_4", "normal", "GSE18670", "GSE21501", "GSE42952", "GSE62165", 
+                          "GSE62452", "GSE84219")
+rownames(design_full) = colnames(union_z_exprs_final)
+cont.matrix_full = makeContrasts(onevsnormal = (Stage_1a + Stage_1b)/2 - normal, 
+                                 twovsnormal = (Stage_2a + Stage_2b)/2 - normal,
+                                 threevsnormal = Stage_3 - normal, 
+                                 fourvsnormal = Stage_4 - normal, 
+                                 earlyvslate = (Stage_1a + Stage_1b + Stage_2a + Stage_2b)/4 - (Stage_3 + Stage_4)/2,
+                                 onevsfour = (Stage_1a + Stage_1b)/2 - Stage_4, 
+                                 onevstwo = (Stage_1a + Stage_1b)/2 - (Stage_2a + Stage_2b)/2, levels = design_full)
 
-# Stages_pdata can be used here for phenotypic data
-union_stages_z_matrix = union_z_exprs[, Stages_pdata$GEO_accession] # 25699 x 318
+# Model fitting with limma
+union_z_fit = lmFit(union_z_exprs_final, design_full)
+union_z_fit2 = contrasts.fit(union_z_fit, cont.matrix_full)
+union_z_fit2 = eBayes(union_z_fit2, robust = TRUE)
+union_z_results = decideTests(union_z_fit2)
+results = as.data.frame(cbind(summary(union_z_results), rownames(summary(union_z_results))))
+colnames(results)[8] = "direction"
+results = results %>% dplyr::select(direction, everything())
 
-# Design and contrast matrices
-design = model.matrix(~0 + Stages_pdata$Stage_group + Stages_pdata$Study)
-colnames(design) = c("Advanced_stage", "Early_stage", "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design) = colnames(union_stages_z_matrix)
-cont.matrix = makeContrasts(Advancedvsearly=Advanced_stage-Early_stage, levels=design)
+DGEA_topTables = createWorkbook()
+addWorksheet(DGEA_topTables, "summary")
+writeData(DGEA_topTables, "summary", results)
 
-# The design2 design matrix can be used here, along with cont.matrix2
-union_Stages_z_fit = lmFit(union_stages_z_matrix, design)
-union_Stages_z_fit2 = contrasts.fit(union_Stages_z_fit, cont.matrix)
-union_Stages_z_fit2 = eBayes(union_Stages_z_fit2, robust = TRUE)
-union_Stages_z_results = decideTests(union_Stages_z_fit2)
-summary(union_Stages_z_results)
-union_Stages_z_DE = as.data.frame(topTable(union_Stages_z_fit2, adjust.method="BH", 
-                                           number = Inf))
-union_Stages_z_DE$EntrezGene.ID = rownames(union_Stages_z_DE)
+DE_maps = list()
 
-# 2 stat.sig genes: 1001131283, LOC100129066
-
-# Annotation with official gene symbols
-union_Stages_z_DE_mapped = union_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_Stages_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_Stages_z_DE_mapped$HGNC_Official))
-union_Stages_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_Stages_z_DE_mapped)){
-  if(union_Stages_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_Stages_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_Stages_z_DE_mapped$HGNC_Official[union_Stages_z_DE_mapped$EntrezGene.ID ==
-                         union_Stages_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_Stages_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_Stages_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_Stages_z_DE_mapped$HGNC_Official[union_Stages_z_DE_mapped$EntrezGene.ID ==
-            union_Stages_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_Stages_z_DE_mapped$Filter[i] = "Keep"
-    union_Stages_z_DE_mapped$Gene.Symbol[i] = union_Stages_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_Stages_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_Stages_z_DE_mapped$Gene.Symbol[i] = union_Stages_z_DE_mapped$EntrezGene.ID[i]
-    union_Stages_z_DE_mapped$Filter[i] = "Keep"
+for (i in 1:ncol(union_z_fit2)){
+  union_z_DE = as.data.frame(topTable(union_z_fit2, adjust.method="BH", 
+                                      number = Inf, coef = colnames(union_z_fit2)[i]))
+  union_z_DE$EntrezGene.ID = rownames(union_z_DE)
+  
+  # Annotation with official gene symbols
+  union_z_DE_mapped = union_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
+  union_z_DE_mapped$Filter = NA
+  unmapped = which(is.na(union_z_DE_mapped$HGNC_Official))
+  union_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
+  for(j in 1:nrow(union_z_DE_mapped)){
+    if(union_z_DE_mapped$HGNC_Official[j] == "Yes"){
+      union_z_DE_mapped$Filter[j] = "Keep"
+    } else if(length(unique(union_z_DE_mapped$HGNC_Official[union_z_DE_mapped$EntrezGene.ID ==
+                                                            union_z_DE_mapped$EntrezGene.ID[j]])) > 1 &&
+              union_z_DE_mapped$HGNC_Official[j] == "No"){
+      union_z_DE_mapped$Filter[j] = "Discard"
+    } else if(unique(union_z_DE_mapped$HGNC_Official[union_z_DE_mapped$EntrezGene.ID ==
+                                                     union_z_DE_mapped$EntrezGene.ID[j]]) == "No"){
+      union_z_DE_mapped$Filter[j] = "Keep"
+      union_z_DE_mapped$Gene.Symbol[j] = union_z_DE_mapped$EntrezGene.ID[j]
+    } else if(union_z_DE_mapped$HGNC_Official[j] == "unmapped"){
+      union_z_DE_mapped$Gene.Symbol[j] = union_z_DE_mapped$EntrezGene.ID[j]
+      union_z_DE_mapped$Filter[j] = "Keep"
+    }
   }
+  
+  union_z_DE_mapped = union_z_DE_mapped %>% 
+    dplyr::filter(Filter == "Keep") %>%
+    dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
+    dplyr::select(-Filter) %>%
+    distinct()
+  union_z_DE_mapped = union_z_DE_mapped[order(union_z_DE_mapped$adj.P.Val),]
+  rownames(union_z_DE_mapped) = union_z_DE_mapped$EntrezGene.ID
+  addWorksheet(DGEA_topTables, colnames(union_z_fit2)[i])
+  writeData(DGEA_topTables, colnames(union_z_fit2)[i], union_z_DE_mapped)
+  DE_maps[[i]] = union_z_DE_mapped
 }
 
-union_Stages_z_DE_mapped = union_Stages_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_Stages_z_DE_mapped = union_Stages_z_DE_mapped[order(union_Stages_z_DE_mapped$adj.P.Val),]
-rownames(union_Stages_z_DE_mapped) = union_Stages_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_Stages_z_DE_mapped, "DGEA/Union/Late_stage_vs_Early_stage_z_DE_topTable.xlsx",
-           overwrite = TRUE)
+saveWorkbook(DGEA_topTables, "DGEA/Union/DGEA_results.xlsx", overwrite = TRUE)
+names(DE_maps) = colnames(union_z_fit2)
 
-# Stage 1 vs stage 4 #####
-
-# Filtered Stages_pdata can be used here for phenotypic data
-one_four_pdata = Stages_pdata %>%
-  dplyr::filter(AJCC_classification == "1a" |
-                  AJCC_classification == "1b" |
-                  AJCC_classification == "4") %>%
-  dplyr::select(-Stage_group)
-one_four_pdata$Stage = NA
-one_four_pdata$Stage[one_four_pdata$AJCC_classification == "1a"] = "Stage_one"
-one_four_pdata$Stage[one_four_pdata$AJCC_classification == "1b"] = "Stage_one"
-one_four_pdata$Stage[one_four_pdata$AJCC_classification == "4"] = "Stage_four"
-
-# Design and contrast matrices
-union_one_four_stages_z_matrix = union_z_exprs[, one_four_pdata$GEO_accession] # 25699 x 57
-design_1_4 = model.matrix(~0 + one_four_pdata$Stage + one_four_pdata$Study)
-colnames(design_1_4) = c("Stage_four", "Stage_one", "GSE18670", "GSE21501", 
-                      "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_1_4) = colnames(union_one_four_stages_z_matrix)
-cont.matrix_1_4 = makeContrasts(Onevsfour = Stage_one - Stage_four, 
-                                levels = design_1_4)
-
-union_one_four_Stages_z_fit = lmFit(union_one_four_stages_z_matrix, design_1_4)
-union_one_four_Stages_z_fit2 = contrasts.fit(union_one_four_Stages_z_fit, cont.matrix_1_4)
-union_one_four_Stages_z_fit2 = eBayes(union_one_four_Stages_z_fit2, robust = TRUE)
-union_one_four_Stages_z_results = decideTests(union_one_four_Stages_z_fit2)
-summary(union_one_four_Stages_z_results)
-union_one_four_Stages_z_DE = as.data.frame(topTable(union_one_four_Stages_z_fit2, 
-                                                    adjust.method="BH", number = Inf))
-union_one_four_Stages_z_DE$EntrezGene.ID = rownames(union_one_four_Stages_z_DE)
-
-# 0 stat. sig. genes
-
-# Annotation with official gene symbols
-union_one_four_Stages_z_DE_mapped = union_one_four_Stages_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_one_four_Stages_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_one_four_Stages_z_DE_mapped$HGNC_Official))
-union_one_four_Stages_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_one_four_Stages_z_DE_mapped)){
-  if(union_one_four_Stages_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_one_four_Stages_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_one_four_Stages_z_DE_mapped$HGNC_Official[union_one_four_Stages_z_DE_mapped$EntrezGene.ID ==
-                                                                 union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_one_four_Stages_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_one_four_Stages_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_one_four_Stages_z_DE_mapped$HGNC_Official[union_one_four_Stages_z_DE_mapped$EntrezGene.ID ==
-                                                          union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_one_four_Stages_z_DE_mapped$Filter[i] = "Keep"
-    union_one_four_Stages_z_DE_mapped$Gene.Symbol[i] = union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_one_four_Stages_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_one_four_Stages_z_DE_mapped$Gene.Symbol[i] = union_one_four_Stages_z_DE_mapped$EntrezGene.ID[i]
-    union_one_four_Stages_z_DE_mapped$Filter[i] = "Keep"
-  }
-}
-
-union_one_four_Stages_z_DE_mapped = union_one_four_Stages_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_one_four_Stages_z_DE_mapped = union_one_four_Stages_z_DE_mapped[order(union_one_four_Stages_z_DE_mapped$adj.P.Val),]
-rownames(union_one_four_Stages_z_DE_mapped) = union_one_four_Stages_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_one_four_Stages_z_DE_mapped, "DGEA/Union/Stage_1_vs_Stage_4_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 1 vs normal #####
-one_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "1a" |
-                  AJCC_classification == "1b" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-one_normal_z_matrix = z_exprs[, one_normal_pdata$GEO_accession] # 2601 x 165
-
-union_one_normal_z_matrix = union_z_exprs[, one_normal_pdata$GEO_accession] # 25699 x 165
-writeout = as.data.frame(union_one_normal_z_matrix)
-writeout$EntrezGene.ID = rownames(union_one_normal_z_matrix)
-write.xlsx(writeout, 
-           "DGEA/Union/Stage_1_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
-
-# Design and contrast matrices
-design_1_normal = model.matrix(~0 + one_normal_pdata$Tissue_type + one_normal_pdata$Study)
-colnames(design_1_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_1_normal) = colnames(union_one_normal_z_matrix)
-cont.matrix_1_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
-                                     levels = design_1_normal)
-
-union_one_normal_z_fit = lmFit(union_one_normal_z_matrix, design_1_normal)
-union_one_normal_z_fit2 = contrasts.fit(union_one_normal_z_fit, cont.matrix_1_normal)
-union_one_normal_z_fit2 = eBayes(union_one_normal_z_fit2, robust = TRUE)
-union_one_normal_z_results = decideTests(union_one_normal_z_fit2)
-summary(union_one_normal_z_results) 
-
-union_one_normal_z_DE = as.data.frame(topTable(union_one_normal_z_fit2, 
-                                                      adjust.method="BH", number = Inf))
-union_one_normal_z_DE$EntrezGene.ID = rownames(union_one_normal_z_DE)
-
-# 10891 stat. sig. diff. expressed genes
-
-# Annotation with official gene symbols
-union_one_normal_z_DE_mapped = union_one_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_one_normal_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_one_normal_z_DE_mapped$HGNC_Official))
-union_one_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_one_normal_z_DE_mapped)){
-  if(union_one_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_one_normal_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_one_normal_z_DE_mapped$HGNC_Official[union_one_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                            union_one_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_one_normal_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_one_normal_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_one_normal_z_DE_mapped$HGNC_Official[union_one_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                     union_one_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_one_normal_z_DE_mapped$Filter[i] = "Keep"
-    union_one_normal_z_DE_mapped$Gene.Symbol[i] = union_one_normal_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_one_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_one_normal_z_DE_mapped$Gene.Symbol[i] = union_one_normal_z_DE_mapped$EntrezGene.ID[i]
-    union_one_normal_z_DE_mapped$Filter[i] = "Keep"
-  }
-}
-
-union_one_normal_z_DE_mapped = union_one_normal_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_one_normal_z_DE_mapped = union_one_normal_z_DE_mapped[order(union_one_normal_z_DE_mapped$adj.P.Val),]
-rownames(union_one_normal_z_DE_mapped) = union_one_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_one_normal_z_DE_mapped, "DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 2 vs normal #####
-two_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "2a" |
-                  AJCC_classification == "2b" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-union_two_normal_z_matrix = union_z_exprs[, two_normal_pdata$GEO_accession] # 25699 x 368
-
-# Design and contrast matrices
-design_2_normal = model.matrix(~0 + two_normal_pdata$Tissue_type + two_normal_pdata$Study)
-colnames(design_2_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_2_normal) = colnames(union_two_normal_z_matrix)
-cont.matrix_2_normal = makeContrasts(Twovsnormal = tumor - non_tumor, 
-                                     levels = design_2_normal)
-
-union_two_normal_z_fit = lmFit(union_two_normal_z_matrix, design_2_normal)
-union_two_normal_z_fit2 = contrasts.fit(union_two_normal_z_fit, cont.matrix_2_normal)
-union_two_normal_z_fit2 = eBayes(union_two_normal_z_fit2, robust = TRUE)
-union_two_normal_z_results = decideTests(union_two_normal_z_fit2)
-summary(union_two_normal_z_results) 
-
-union_two_normal_z_DE = as.data.frame(topTable(union_two_normal_z_fit2, 
-                                               adjust.method="BH", number = Inf))
-union_two_normal_z_DE$EntrezGene.ID = rownames(union_two_normal_z_DE)
-
-# Annotation with official gene symbols
-union_two_normal_z_DE_mapped = union_two_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_two_normal_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_two_normal_z_DE_mapped$HGNC_Official))
-union_two_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_two_normal_z_DE_mapped)){
-  if(union_two_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_two_normal_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_two_normal_z_DE_mapped$HGNC_Official[union_two_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                     union_two_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_two_normal_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_two_normal_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_two_normal_z_DE_mapped$HGNC_Official[union_two_normal_z_DE_mapped$EntrezGene.ID ==
-                                                              union_two_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_two_normal_z_DE_mapped$Filter[i] = "Keep"
-    union_two_normal_z_DE_mapped$Gene.Symbol[i] = union_two_normal_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_two_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_two_normal_z_DE_mapped$Gene.Symbol[i] = union_two_normal_z_DE_mapped$EntrezGene.ID[i]
-    union_two_normal_z_DE_mapped$Filter[i] = "Keep"
-  }
-}
-
-union_two_normal_z_DE_mapped = union_two_normal_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_two_normal_z_DE_mapped = union_two_normal_z_DE_mapped[order(union_two_normal_z_DE_mapped$adj.P.Val),]
-rownames(union_two_normal_z_DE_mapped) = union_two_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_two_normal_z_DE_mapped, "DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# 16191 stat. sig. diff. expressed genes of which 10621 (out of 10891) are also found as 
-# stat. sig. diff. expressed in the Stage 1 vs Normal comparison:
-# length(intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
-# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
-
+##### Condcordance and Discordance between stages #####
 # Stage 1 vs. Normal / Stage 2 vs. Normal
 # Save differences between Stage1/Normal and Stage2/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_1_2 = intersect(union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05],
-                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+common_genes_1_2 = intersect(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_1_2 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
-                                            %in% common_genes_1_2, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_1_2 = as.data.frame(gene_union[!gene_union %in% common_genes_1_2])
+colnames(diffDEGs_1_2) = "EntrezGene.ID"
+diffDEGs_1_2 = diffDEGs_1_2 %>% inner_join(DE_maps[["onevsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+stage_1_subset = DE_maps[["onevsnormal"]][DE_maps[["onevsnormal"]]$EntrezGene.ID
                                               %in% common_genes_1_2, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
-stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+stage_2_subset = DE_maps[["twovsnormal"]][DE_maps[["twovsnormal"]]$EntrezGene.ID
                                               %in% common_genes_1_2, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
@@ -1604,199 +1426,68 @@ writeData(cwb, "Discordance", discordant_set_1_2)
 saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_2_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 10618 genes are stat. sig. diff. expressed towards the same direction between
+# 9727 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
-# stat. sig. diff. expressed towards different directions. Just 2 genes are left:
-# SNORD115-38, SNORD115-33
+# stat. sig. diff. expressed towards different directions. 0 genes in the discordant set
+
 discordants_1_2 = discordant_set_1_2 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_1_2 = rbind(discordants_1_2, diffDEGs_1_2)
-discriminators_1_2 = discriminators_1_2 %>%
-  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_1_2 = rbind(discordants_1_2, diffDEGs_1_2)
+dichotomizers_1_2 = dichotomizers_1_2 %>%
+  left_join(DE_maps[["onevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
-  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["twovsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val)
 
-# 273 genes
-write.xlsx(discriminators_1_2, "DGEA/Union/discriminators_1_2.xlsx", overwrite = TRUE)
+# 6821 genes
+dichotomizers = createWorkbook()
+addWorksheet(dichotomizers, "Stage_1_vs_2")
+writeData(dichotomizers, "Stage_1_vs_2", dichotomizers_1_2)
 
-# Stage 4 vs normal #####
-four_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "4" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-four_normal_z_matrix = z_exprs[, four_normal_pdata$GEO_accession] # 2601 x 152
-
-union_four_normal_z_matrix = union_z_exprs[, four_normal_pdata$GEO_accession] # 25699 x 152
-# writeout = as.data.frame(union_four_normal_z_matrix)
-# writeout$EntrezGene.ID = rownames(union_four_normal_z_matrix)
-# write.xlsx(writeout, "DGEA/Union/Stage_4_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
-
-# Design and contrast matrices
-design_4_normal = model.matrix(~0 + four_normal_pdata$Tissue_type + four_normal_pdata$Study)
-colnames(design_4_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE42952", "GSE62165", "GSE62452", "GSE84219")
-rownames(design_4_normal) = colnames(union_four_normal_z_matrix)
-cont.matrix_4_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
-                                     levels = design_4_normal)
-
-union_four_normal_z_fit = lmFit(union_four_normal_z_matrix, design_4_normal)
-# Coefficients not estimable: GSE21501 GSE42952 GSE84219
-union_four_normal_z_fit2 = contrasts.fit(union_four_normal_z_fit, cont.matrix_4_normal)
-union_four_normal_z_fit2 = eBayes(union_four_normal_z_fit2, robust = TRUE)
-union_four_normal_z_results = decideTests(union_four_normal_z_fit2)
-summary(union_four_normal_z_results) 
-
-union_four_normal_z_DE = as.data.frame(topTable(union_four_normal_z_fit2, 
-                                                adjust.method="BH", number = Inf))
-union_four_normal_z_DE$EntrezGene.ID = rownames(union_four_normal_z_DE)
-
-# 11512 stat. sig. diff. expressed genes of which 8045 (out of 10891) are also found 
-# as stat. sig. diff. expressed in the stage 1 vs Normal comparison:
-# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
-
-# Annotation with official gene symbols
-union_four_normal_z_DE_mapped = union_four_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_four_normal_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_four_normal_z_DE_mapped$HGNC_Official))
-union_four_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_four_normal_z_DE_mapped)){
-  if(union_four_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_four_normal_z_DE_mapped$HGNC_Official[union_four_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                      union_four_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_four_normal_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_four_normal_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_four_normal_z_DE_mapped$HGNC_Official[union_four_normal_z_DE_mapped$EntrezGene.ID ==
-                                                               union_four_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
-    union_four_normal_z_DE_mapped$Gene.Symbol[i] = union_four_normal_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_four_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_four_normal_z_DE_mapped$Gene.Symbol[i] = union_four_normal_z_DE_mapped$EntrezGene.ID[i]
-    union_four_normal_z_DE_mapped$Filter[i] = "Keep"
-  }
-}
-
-union_four_normal_z_DE_mapped = union_four_normal_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_four_normal_z_DE_mapped = union_four_normal_z_DE_mapped[order(union_four_normal_z_DE_mapped$adj.P.Val),]
-rownames(union_four_normal_z_DE_mapped) = union_four_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_four_normal_z_DE_mapped, "DGEA/Union/Stage_4_vs_Normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Stage 3 vs normal #####
-three_normal_pdata = full_pdata_filt %>%
-  dplyr::filter(AJCC_classification == "3" |
-                  is.na(AJCC_classification) == TRUE) %>%
-  dplyr::filter(!(is.na(AJCC_classification) == TRUE & Tissue_type == "tumor"))
-three_normal_z_matrix = z_exprs[, three_normal_pdata$GEO_accession] # 2601 x 153
-
-union_three_normal_z_matrix = union_z_exprs[, three_normal_pdata$GEO_accession] # 25699 x 153
-# writeout = as.data.frame(union_three_normal_z_matrix)
-# writeout$EntrezGene.ID = rownames(union_three_normal_z_matrix)
-# write.xlsx(writeout, "DGEA/Union/Stage_3_vs_Normal_exp_mat.xlsx", overwrite = TRUE)
-
-# Design and contrast matrices
-design_3_normal = model.matrix(~0 + three_normal_pdata$Tissue_type + three_normal_pdata$Study)
-colnames(design_3_normal) = c("non_tumor", "tumor", "GSE18670", "GSE21501", 
-                              "GSE32952", "GSE62165", "GSE62352", "GSE83219")
-rownames(design_3_normal) = colnames(union_three_normal_z_matrix)
-cont.matrix_3_normal = makeContrasts(Onevsnormal = tumor - non_tumor, 
-                                     levels = design_3_normal)
-
-union_three_normal_z_fit = lmFit(union_three_normal_z_matrix, design_3_normal)
-# Coefficients not estimable: GSE32952 GSE83219
-union_three_normal_z_fit2 = contrasts.fit(union_three_normal_z_fit, cont.matrix_3_normal)
-union_three_normal_z_fit2 = eBayes(union_three_normal_z_fit2, robust = TRUE)
-union_three_normal_z_results = decideTests(union_three_normal_z_fit2)
-summary(union_three_normal_z_results) 
-
-union_three_normal_z_DE = as.data.frame(topTable(union_three_normal_z_fit2, 
-                                                 adjust.method="BH", number = Inf))
-union_three_normal_z_DE$EntrezGene.ID = rownames(union_three_normal_z_DE)
-
-# 12934 stat. sig. diff. expressed genes of which 8597 (out of 10891) are also found 
-# as stat. sig. diff. expressed in the stage 1 vs Normal comparison:
-# length(intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
-# union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05]))
-
-# Annotation with official gene symbols
-union_three_normal_z_DE_mapped = union_three_normal_z_DE %>% left_join(ID_Map, by = "EntrezGene.ID")
-union_three_normal_z_DE_mapped$Filter = NA
-unmapped = which(is.na(union_three_normal_z_DE_mapped$HGNC_Official))
-union_three_normal_z_DE_mapped$HGNC_Official[unmapped] = "unmapped"
-for(i in 1:nrow(union_three_normal_z_DE_mapped)){
-  if(union_three_normal_z_DE_mapped$HGNC_Official[i] == "Yes"){
-    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
-  } else if(length(unique(union_three_normal_z_DE_mapped$HGNC_Official[union_three_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                       union_three_normal_z_DE_mapped$EntrezGene.ID[i]])) > 1 &&
-            union_three_normal_z_DE_mapped$HGNC_Official[i] == "No"){
-    union_three_normal_z_DE_mapped$Filter[i] = "Discard"
-  } else if(unique(union_three_normal_z_DE_mapped$HGNC_Official[union_three_normal_z_DE_mapped$EntrezGene.ID ==
-                                                                union_three_normal_z_DE_mapped$EntrezGene.ID[i]]) == "No"){
-    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
-    union_three_normal_z_DE_mapped$Gene.Symbol[i] = union_three_normal_z_DE_mapped$EntrezGene.ID[i]
-  } else if(union_three_normal_z_DE_mapped$HGNC_Official[i] == "unmapped"){
-    union_three_normal_z_DE_mapped$Gene.Symbol[i] = union_three_normal_z_DE_mapped$EntrezGene.ID[i]
-    union_three_normal_z_DE_mapped$Filter[i] = "Keep"
-  }
-}
-
-union_three_normal_z_DE_mapped = union_three_normal_z_DE_mapped %>% 
-  dplyr::filter(Filter == "Keep") %>%
-  dplyr::select(EntrezGene.ID, Gene.Symbol, everything()) %>%
-  dplyr::select(-Filter) %>%
-  distinct()
-union_three_normal_z_DE_mapped = union_three_normal_z_DE_mapped[order(union_three_normal_z_DE_mapped$adj.P.Val),]
-rownames(union_three_normal_z_DE_mapped) = union_three_normal_z_DE_mapped$EntrezGene.ID
-write.xlsx(union_three_normal_z_DE_mapped, "DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx",
-           overwrite = TRUE)
-
-# Additional concordance and discriminators #####
+# Additional concordance and dichotomizers #####
 
 # Overall concordance between Stage 2 vs. Normal/3 vs. Normal, Stage 2 vs. Normal/4 vs. Normal,
 # Stage 3 vs. Normal/4 vs. Normal
 
 # Stage 2 vs. Normal/3 vs. Normal: 11437/12934
-# length(intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
-# union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05]))
+# length(intersect(DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05],
+# DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05]))
 
 # Stage 2 vs. Normal/4 vs. Normal: 10249/11512
-# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-# union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05]))
+# length(intersect(DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05],
+# DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05]))
 
 # Stage 3 vs. Normal/4 vs. Normal: 9537/11512
-# length(intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-# union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05]))
+# length(intersect(DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05],
+# DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05]))
 
 # Stage 1 vs. Normal / Stage 3 vs. Normal
 # Save differences between Stage1/Normal and Stage3/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_1_3 = intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
-                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+common_genes_1_3 = intersect(DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_1_3 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
-                                            %in% common_genes_1_3, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_1_3 = as.data.frame(gene_union[!gene_union %in% common_genes_1_3])
+colnames(diffDEGs_1_3) = "EntrezGene.ID"
+diffDEGs_1_3 = diffDEGs_1_3 %>% inner_join(DE_maps[["onevsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+stage_1_subset = DE_maps[["onevsnormal"]][DE_maps[["onevsnormal"]]$EntrezGene.ID
                                               %in% common_genes_1_3, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
-stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+stage_3_subset = DE_maps[["threevsnormal"]][DE_maps[["threevsnormal"]]$EntrezGene.ID
                                                 %in% common_genes_1_3, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
@@ -1818,46 +1509,50 @@ writeData(cwb, "Discordance", discordant_set_1_3)
 saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_3_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 8595 genes are stat. sig. diff. expressed towards the same direction between
+# 7607 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
-# stat. sig. diff. expressed towards different directions. Just 1 gene left:
-# SNORD116-22
+# stat. sig. diff. expressed towards different directions. 0 discordant genes
+
 discordants_1_3 = discordant_set_1_3 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_1_3 = rbind(discordants_1_3, diffDEGs_1_3)
-discriminators_1_3 = discriminators_1_3 %>%
-  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_1_3 = rbind(discordants_1_3, diffDEGs_1_3)
+dichotomizers_1_3 = dichotomizers_1_3 %>%
+  left_join(DE_maps[["onevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
-  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["threevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val)
 
-# 2296 genes
-write.xlsx(discriminators_1_3, "DGEA/Union/discriminators_1_3.xlsx", overwrite = TRUE)
+# 5185 genes
+addWorksheet(dichotomizers, "Stage_1_vs_3")
+writeData(dichotomizers, "Stage_1_vs_3", dichotomizers_1_3)
 
 # Stage 1 vs. Normal / Stage 4 vs. Normal
 # Save differences between Stage1/Normal and Stage4/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_1_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-                             union_one_normal_z_DE$EntrezGene.ID[union_one_normal_z_DE$adj.P.Val<0.05])
+common_genes_1_4 = intersect(DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_1_4 = union_one_normal_z_DE_mapped[!union_one_normal_z_DE_mapped$EntrezGene.ID
-                                            %in% common_genes_1_4, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["onevsnormal"]]$EntrezGene.ID[DE_maps[["onevsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_1_4 = as.data.frame(gene_union[!gene_union %in% common_genes_1_4])
+colnames(diffDEGs_1_4) = "EntrezGene.ID"
+diffDEGs_1_4 = diffDEGs_1_4 %>% inner_join(DE_maps[["onevsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_1_subset = union_one_normal_z_DE_mapped[union_one_normal_z_DE_mapped$EntrezGene.ID
+stage_1_subset = DE_maps[["onevsnormal"]][DE_maps[["onevsnormal"]]$EntrezGene.ID
                                               %in% common_genes_1_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_1 = logFC, adj_p_val_stage_1 = adj.P.Val)
-stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+stage_4_subset = DE_maps[["fourvsnormal"]][DE_maps[["fourvsnormal"]]$EntrezGene.ID
                                                %in% common_genes_1_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
@@ -1879,46 +1574,50 @@ writeData(cwb, "Discordance", discordant_set_1_4)
 saveWorkbook(cwb, file = "DGEA/Stage_1_Stage_4_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 8044 genes are stat. sig. diff. expressed towards the same direction between
+# 6591 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
-# stat. sig. diff. expressed towards different directions. 0 genes are left!
+# stat. sig. diff. expressed towards different directions. 0 genes are discordant
 
 discordants_1_4 = discordant_set_1_4 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_1_4 = rbind(discordants_1_4, diffDEGs_1_4)
-discriminators_1_4 = discriminators_1_4 %>%
-  left_join(union_one_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_1_4 = rbind(discordants_1_4, diffDEGs_1_4)
+dichotomizers_1_4 = dichotomizers_1_4 %>%
+  left_join(DE_maps[["onevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_1 = logFC, adj.P.Val_Stage_1 = adj.P.Val) %>%
-  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["fourvsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_1, adj.P.Val_Stage_1, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
 
-# 2847 genes
-write.xlsx(discriminators_1_4, "DGEA/Union/discriminators_1_4.xlsx", overwrite = TRUE)
+# 5105 genes
+addWorksheet(dichotomizers, "Stage_1_vs_4")
+writeData(dichotomizers, "Stage_1_vs_4", dichotomizers_1_4)
 
 # Stage 2 vs. Normal / Stage 4 vs. Normal
 # Save differences between Stage2/Normal and Stage4/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_2_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-                             union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05])
+common_genes_2_4 = intersect(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_2_4 = union_two_normal_z_DE_mapped[!union_two_normal_z_DE_mapped$EntrezGene.ID
-                                            %in% common_genes_2_4, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_2_4 = as.data.frame(gene_union[!gene_union %in% common_genes_2_4])
+colnames(diffDEGs_2_4) = "EntrezGene.ID"
+diffDEGs_2_4 = diffDEGs_2_4 %>% inner_join(DE_maps[["fourvsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+stage_2_subset = DE_maps[["twovsnormal"]][DE_maps[["twovsnormal"]]$EntrezGene.ID
                                               %in% common_genes_2_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
-stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+stage_4_subset = DE_maps[["fourvsnormal"]][DE_maps[["fourvsnormal"]]$EntrezGene.ID
                                                %in% common_genes_2_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
@@ -1940,46 +1639,50 @@ writeData(cwb, "Discordance", discordant_set_2_4)
 saveWorkbook(cwb, file = "DGEA/Stage_2_Stage_4_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 10246 genes are stat. sig. diff. expressed towards the same direction between
+# 8111 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
-# stat. sig. diff. expressed towards different directions. Just 2 genes are left:
-# BDNF and RARG
+# stat. sig. diff. expressed towards different directions. 0 genes are discordant
+
 discordants_2_4 = discordant_set_2_4 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_2_4 = rbind(discordants_2_4, diffDEGs_2_4)
-discriminators_2_4 = discriminators_2_4 %>%
-  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_2_4 = rbind(discordants_2_4, diffDEGs_2_4)
+dichotomizers_2_4 = dichotomizers_2_4 %>%
+  left_join(DE_maps[["twovsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val) %>%
-  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["fourvsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_2, adj.P.Val_Stage_2, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
 
-# 5945 genes
-write.xlsx(discriminators_2_4, "DGEA/Union/discriminators_2_4.xlsx", overwrite = TRUE)
+# 8446 genes
+addWorksheet(dichotomizers, "Stage_2_vs_4")
+writeData(dichotomizers, "Stage_2_vs_4", dichotomizers_2_4)
 
 # Stage 2 vs. Normal / Stage 3 vs. Normal
 # Save differences between Stage2/Normal and Stage3/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_2_3 = intersect(union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05],
-                             union_two_normal_z_DE$EntrezGene.ID[union_two_normal_z_DE$adj.P.Val<0.05])
+common_genes_2_3 = intersect(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_2_3 = union_two_normal_z_DE_mapped[!union_two_normal_z_DE_mapped$EntrezGene.ID
-                                            %in% common_genes_2_3, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["twovsnormal"]]$EntrezGene.ID[DE_maps[["twovsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_2_3 = as.data.frame(gene_union[!gene_union %in% common_genes_2_3])
+colnames(diffDEGs_2_3) = "EntrezGene.ID"
+diffDEGs_2_3 = diffDEGs_2_3 %>% inner_join(DE_maps[["threevsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_2_subset = union_two_normal_z_DE_mapped[union_two_normal_z_DE_mapped$EntrezGene.ID
+stage_2_subset = DE_maps[["twovsnormal"]][DE_maps[["twovsnormal"]]$EntrezGene.ID
                                               %in% common_genes_2_3, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_2 = logFC, adj_p_val_stage_2 = adj.P.Val)
-stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+stage_3_subset = DE_maps[["threevsnormal"]][DE_maps[["threevsnormal"]]$EntrezGene.ID
                                                 %in% common_genes_2_3, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
@@ -2001,47 +1704,51 @@ writeData(cwb, "Discordance", discordant_set_2_3)
 saveWorkbook(cwb, file = "DGEA/Stage_2_Stage_3_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 11435 genes are stat. sig. diff. expressed towards the same direction between
+# 10112 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
-# stat. sig. diff. expressed towards different directions. Just 1 gene left:
+# stat. sig. diff. expressed towards different directions. 0 genes are discordant
 # DNAH17
 
 discordants_2_3 = discordant_set_2_3 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_2_3 = rbind(discordants_2_3, diffDEGs_2_3)
-discriminators_2_3 = discriminators_2_3 %>%
-  left_join(union_two_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_2_3 = rbind(discordants_2_3, diffDEGs_2_3)
+dichotomizers_2_3 = dichotomizers_2_3 %>%
+  left_join(DE_maps[["twovsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_2 = logFC, adj.P.Val_Stage_2 = adj.P.Val) %>%
-  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["threevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_2, adj.P.Val_Stage_2, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val)
 
-# 4756 genes
-write.xlsx(discriminators_2_3, "DGEA/Union/discriminators_2_3.xlsx", overwrite = TRUE)
+# 6556 genes
+addWorksheet(dichotomizers, "Stage_2_vs_3")
+writeData(dichotomizers, "Stage_2_vs_3", dichotomizers_2_3)
 
 # Stage 3 vs. Normal / Stage 4 vs. Normal
 # Save differences between Stage3/Normal and Stage4/Normal DEGs
-# in a variable called "discriminators". However, the real discriminators are both
+# in a variable called "dichotomizers". However, the real dichotomizers are both
 # genes not in common in the two lists as well as genes which are found to be
 # stat. sig. diff. expressed towards opposite directions
 
-common_genes_3_4 = intersect(union_four_normal_z_DE$EntrezGene.ID[union_four_normal_z_DE$adj.P.Val<0.05],
-                             union_three_normal_z_DE$EntrezGene.ID[union_three_normal_z_DE$adj.P.Val<0.05])
+common_genes_3_4 = intersect(DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05],
+                             DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05])
 
-diffDEGs_3_4 = union_three_normal_z_DE_mapped[!union_three_normal_z_DE_mapped$EntrezGene.ID
-                                              %in% common_genes_3_4, ] %>%
-  dplyr::filter(adj.P.Val < 0.05) %>%
+gene_union = union(DE_maps[["threevsnormal"]]$EntrezGene.ID[DE_maps[["threevsnormal"]]$adj.P.Val<0.05],
+                   DE_maps[["fourvsnormal"]]$EntrezGene.ID[DE_maps[["fourvsnormal"]]$adj.P.Val<0.05])
+
+diffDEGs_3_4 = as.data.frame(gene_union[!gene_union %in% common_genes_3_4])
+colnames(diffDEGs_3_4) = "EntrezGene.ID"
+diffDEGs_3_4 = diffDEGs_3_4 %>% inner_join(DE_maps[["fourvsnormal"]], by = "EntrezGene.ID") %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
 
 # We need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
 
-stage_3_subset = union_three_normal_z_DE_mapped[union_three_normal_z_DE_mapped$EntrezGene.ID
+stage_3_subset = DE_maps[["threevsnormal"]][DE_maps[["threevsnormal"]]$EntrezGene.ID
                                                 %in% common_genes_3_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_3 = logFC, adj_p_val_stage_3 = adj.P.Val)
-stage_4_subset = union_four_normal_z_DE_mapped[union_four_normal_z_DE_mapped$EntrezGene.ID
+stage_4_subset = DE_maps[["fourvsnormal"]][DE_maps[["fourvsnormal"]]$EntrezGene.ID
                                                %in% common_genes_3_4, ] %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_stage_4 = logFC, adj_p_val_stage_4 = adj.P.Val)
@@ -2063,27 +1770,29 @@ writeData(cwb, "Discordance", discordant_set_3_4)
 saveWorkbook(cwb, file = "DGEA/Stage_3_Stage_4_union_comparison.xlsx",
              overwrite = TRUE); rm(cwb)
 
-# 9536 genes are stat. sig. diff. expressed towards the same direction between
+# 6872 genes are stat. sig. diff. expressed towards the same direction between
 # the two comparisons. We are interested in the remaining genes which were 
 # stat. sig. diff. expressed towards different directions. 0 genes are left!
 
 discordants_3_4 = discordant_set_3_4 %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol)
-discriminators_3_4 = rbind(discordants_3_4, diffDEGs_3_4)
-discriminators_3_4 = discriminators_3_4 %>%
-  left_join(union_three_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+dichotomizers_3_4 = rbind(discordants_3_4, diffDEGs_3_4)
+dichotomizers_3_4 = dichotomizers_3_4 %>%
+  left_join(DE_maps[["threevsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_3 = logFC, adj.P.Val_Stage_3 = adj.P.Val) %>%
-  left_join(union_four_normal_z_DE_mapped, by = c("EntrezGene.ID", "Gene.Symbol")) %>%
+  left_join(DE_maps[["fourvsnormal"]], by = c("EntrezGene.ID", "Gene.Symbol")) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_Stage_3, adj.P.Val_Stage_3, logFC, adj.P.Val) %>%
   dplyr::rename(logFC_Stage_4 = logFC, adj.P.Val_Stage_4 = adj.P.Val)
 
-# 3398 genes
-write.xlsx(discriminators_3_4, "DGEA/Union/discriminators_3_4.xlsx", overwrite = TRUE)
+# 5048 genes
+addWorksheet(dichotomizers, "Stage_3_vs_4")
+writeData(dichotomizers, "Stage_3_vs_4", dichotomizers_3_4)
+saveWorkbook(dichotomizers, "DGEA/Union/Dichotomizers.xlsx", overwrite = TRUE)
 
 # Union volcanoes #####
-union_stages_volcano = EnhancedVolcano(union_Stages_z_DE_mapped,
-                                   lab = union_Stages_z_DE_mapped[, "Gene.Symbol"],
+union_stages_volcano = EnhancedVolcano(DE_maps[["earlyvslate"]],
+                                   lab = DE_maps[["earlyvslate"]][, "Gene.Symbol"],
                                    x = 'logFC',
                                    y = 'adj.P.Val',
                                    title = "Stage 3/4 vs. Stage 1/2",
@@ -2095,8 +1804,8 @@ tiff("DGEA/Union/Union_Stages_Volcano.tif", width = 1920, height = 1080, res = 1
 union_stages_volcano
 dev.off()
 
-union_one_four_stages_volcano = EnhancedVolcano(union_one_four_Stages_z_DE_mapped,
-                                       lab = union_one_four_Stages_z_DE_mapped[, "Gene.Symbol"],
+union_one_four_stages_volcano = EnhancedVolcano(DE_maps[["onevsfour"]],
+                                       lab = DE_maps[["onevsfour"]][, "Gene.Symbol"],
                                        x = 'logFC',
                                        y = 'adj.P.Val',
                                        title = "Stage 1 vs. Stage 4",
@@ -2108,8 +1817,8 @@ tiff("DGEA/Union/Union_One_Four_Stages_Volcano.tif", width = 1920, height = 1080
 union_one_four_stages_volcano
 dev.off()
 
-union_one_normal_volcano = EnhancedVolcano(union_one_normal_z_DE_mapped,
-                                                lab = union_one_normal_z_DE_mapped[, "Gene.Symbol"],
+union_one_normal_volcano = EnhancedVolcano(DE_maps[["onevsnormal"]],
+                                                lab = DE_maps[["onevsnormal"]][, "Gene.Symbol"],
                                                 x = 'logFC',
                                                 y = 'adj.P.Val',
                                                 title = "Stage 1 vs. Normal",
@@ -2121,8 +1830,8 @@ tiff("DGEA/Union/Union_One_Normal_Volcano.tif", width = 1920, height = 1080, res
 union_one_normal_volcano
 dev.off()
 
-union_two_normal_volcano = EnhancedVolcano(union_two_normal_z_DE_mapped,
-                                           lab = union_two_normal_z_DE_mapped[, "Gene.Symbol"],
+union_two_normal_volcano = EnhancedVolcano(DE_maps[["twovsnormal"]],
+                                           lab = DE_maps[["twovsnormal"]][, "Gene.Symbol"],
                                            x = 'logFC',
                                            y = 'adj.P.Val',
                                            title = "Stage 2 vs. Normal",
@@ -2134,8 +1843,8 @@ tiff("DGEA/Union/Union_Two_Normal_Volcano.tif", width = 1920, height = 1080, res
 union_two_normal_volcano
 dev.off()
 
-union_three_normal_volcano = EnhancedVolcano(union_three_normal_z_DE_mapped,
-                                           lab = union_three_normal_z_DE_mapped[, "Gene.Symbol"],
+union_three_normal_volcano = EnhancedVolcano(DE_maps[["threevsnormal"]],
+                                           lab = DE_maps[["threevsnormal"]][, "Gene.Symbol"],
                                            x = 'logFC',
                                            y = 'adj.P.Val',
                                            title = "Stage 3 vs. Normal",
@@ -2147,8 +1856,8 @@ tiff("DGEA/Union/Union_Three_Normal_Volcano.tif", width = 1920, height = 1080, r
 union_three_normal_volcano
 dev.off()
 
-union_four_normal_volcano = EnhancedVolcano(union_four_normal_z_DE_mapped,
-                                           lab = union_four_normal_z_DE_mapped[, "Gene.Symbol"],
+union_four_normal_volcano = EnhancedVolcano(DE_maps[["fourvsnormal"]],
+                                           lab = DE_maps[["fourvsnormal"]][, "Gene.Symbol"],
                                            x = 'logFC',
                                            y = 'adj.P.Val',
                                            title = "Stage 4 vs. Normal",
@@ -2160,3 +1869,4 @@ tiff("DGEA/Union/Union_Four_Normal_Volcano.tif", width = 1920, height = 1080, re
 union_four_normal_volcano
 dev.off()
 
+rm(gene_union, i, j)
