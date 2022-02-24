@@ -746,20 +746,20 @@ TN_z_volcano
 dev.off()
 
 ##### Comparisons between tumor tissue identified DEGs and blood samples DEGs follow.
-# Just for stage 1 comparisons we provide the overlap with the stage 1 vs stage 2 discriminators
+# Just for stage 1 comparisons we provide the overlap with the stage 1 vs stage 2 dichotomizers
 # too to see if there are DEGs in the blood which could potentially separate stage 1 and stage 2
 # tumors #####
 
 ##### Comparisons with Stage 1 vs normal analysis #####
 # Intersect of DEGs with the tumor vs normal (stage 1 tumors) DEGs:
-stage_1_z_results = read.xlsx("DGEA/Union/Stage_1_vs_Normal_z_DE_topTable.xlsx")
-discriminators_1_2 = read.xlsx("DGEA/Union/discriminators_1_2.xlsx")
+stage_1_z_results = read.xlsx("DGEA/Union/DGEA_results.xlsx", sheet = 2)
+dichotomizers_1_2 = read.xlsx("DGEA/Union/Dichotomizers.xlsx", sheet = 2)
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_stage_1 = stage_1_z_results$Gene.Symbol[stage_1_z_results$adj.P.Val < 0.05]
 
 DEG_overlap_stage_1 = intersect(significants_blood, significants_stage_1)
-discriminators_1_2_overlap = intersect(DEG_overlap_stage_1, discriminators_1_2$Gene.Symbol)
-# 2298 genes, 64 of which are included in the discriminators_1_2
+dichotomizers_1_2_overlap = intersect(DEG_overlap_stage_1, dichotomizers_1_2$Gene.Symbol)
+# 2097 genes, 425 of which are included in the dichotomizers_1_2
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -778,18 +778,18 @@ concordant_set_stage_1 = concordant_set_stage_1[order(concordant_set_stage_1$adj
                                                       concordant_set_stage_1$adj_p_val_stage_1), ]
 write.xlsx(concordant_set_stage_1, "DGEA/Blood_DEG_overlap_stage_1.xlsx", overwrite = TRUE)
 
-concordant_discriminators_1_2_overlap = intersect(concordant_set_stage_1$Gene.Symbol, 
-                                              discriminators_1_2$Gene.Symbol)
-# 1349 final genes, 37 of which are included in the discriminators_1_2
+concordant_dichotomizers_1_2_overlap = intersect(concordant_set_stage_1$Gene.Symbol, 
+                                              dichotomizers_1_2$Gene.Symbol)
+# 1243 final genes, 218 of which are included in the dichotomizers_1_2
 
 ##### Comparisons with Stage 2 vs normal analysis #####
 # Intersect of DEGs with the tumor vs normal (stage 2 tumors) DEGs:
-stage_2_z_results = read.xlsx("DGEA/Union/Stage_2_vs_Normal_z_DE_topTable.xlsx")
+stage_2_z_results = read.xlsx("DGEA/Union/DGEA_results.xlsx", sheet = 3)
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_stage_2 = stage_2_z_results$Gene.Symbol[stage_2_z_results$adj.P.Val < 0.05]
 
 DEG_overlap_stage_2 = intersect(significants_blood, significants_stage_2)
-# 3209 genes
+# 3264 genes
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -808,16 +808,16 @@ concordant_set_stage_2 = concordant_set_stage_2[order(concordant_set_stage_2$adj
                                                       concordant_set_stage_2$adj_p_val_stage_2), ]
 write.xlsx(concordant_set_stage_2, "DGEA/Blood_DEG_overlap_stage_2.xlsx", overwrite = TRUE)
 
-# 1807 final genes
+# 1825 final genes
 
 ##### Comparisons with Stage 3 vs normal analysis #####
 # Intersect of DEGs with the tumor vs normal (stage 3 tumors) DEGs:
-stage_3_z_results = read.xlsx("DGEA/Union/Stage_3_vs_Normal_z_DE_topTable.xlsx")
+stage_3_z_results = read.xlsx("DGEA/Union/DGEA_results.xlsx", sheet = 4)
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_stage_3 = stage_3_z_results$Gene.Symbol[stage_3_z_results$adj.P.Val < 0.05]
 
 DEG_overlap_stage_3 = intersect(significants_blood, significants_stage_3)
-# 2754 genes
+# 2252 genes
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -836,16 +836,16 @@ concordant_set_stage_3 = concordant_set_stage_3[order(concordant_set_stage_3$adj
                                                       concordant_set_stage_3$adj_p_val_stage_3), ]
 write.xlsx(concordant_set_stage_3, "DGEA/Blood_DEG_overlap_stage_3.xlsx", overwrite = TRUE)
 
-# 1610 final genes
+# 1319 final genes
 
 ##### Comparisons with Stage 4 vs normal analysis #####
 # Intersect of DEGs with the tumor vs normal (stage 4 tumors) DEGs:
-stage_4_z_results = read.xlsx("DGEA/Union/Stage_4_vs_Normal_z_DE_topTable.xlsx")
+stage_4_z_results = read.xlsx("DGEA/Union/DGEA_results.xlsx", sheet = 5)
 significants_blood = TN_z_DE_mapped$Gene.Symbol[TN_z_DE_mapped$adj.P.Val < 0.05]
 significants_stage_4 = stage_4_z_results$Gene.Symbol[stage_4_z_results$adj.P.Val < 0.05]
 
 DEG_overlap_stage_4 = intersect(significants_blood, significants_stage_4)
-# 2518 genes
+# 1877 genes
 
 # We also need to establish which of the overlapping genes are differentially expressed
 # towards the same direction (up-/down-regulated):
@@ -864,7 +864,7 @@ concordant_set_stage_4 = concordant_set_stage_4[order(concordant_set_stage_4$adj
                                                       concordant_set_stage_4$adj_p_val_stage_4), ]
 write.xlsx(concordant_set_stage_4, "DGEA/Blood_DEG_overlap_stage_4.xlsx", overwrite = TRUE)
 
-# 1507 final genes
+# 1037 final genes
 
 rm(subset1, subset2)
 
@@ -878,7 +878,7 @@ all_stage_blood_concordant_overlap_set = inner_join(concordant_set_stage_1,
   inner_join(concordant_set_stage_4, by = c("EntrezGene.ID",
                                             "Gene.Symbol"))
 
-# 1018 genes
+# 820 genes
 consistent_genes_Entrez = all_stage_blood_concordant_overlap_set$EntrezGene.ID
 consistent_genes_symbols = all_stage_blood_concordant_overlap_set$Gene.Symbol
 
