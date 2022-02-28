@@ -1870,3 +1870,11 @@ union_four_normal_volcano
 dev.off()
 
 rm(gene_union, i, j)
+
+# Useful to save the volcano plots only as an .RData file that will be later used
+# to create additional plots after pathway analysis:
+
+# rm(list=setdiff(ls(), c("union_four_normal_volcano", "union_three_normal_volcano",
+# "union_two_normal_volcano", "union_one_normal_volcano")))
+
+# Augment that later with the blood samples volcano

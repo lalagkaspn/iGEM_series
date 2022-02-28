@@ -1,0 +1,17 @@
+chr - hsAntineoplastic_and_immunomodulating_agents Antineoplastic_and_immunomodulating_agents 0 140 vvdblue
+chr - hsBlood_and_blood_forming_organs Blood_and_blood_forming_organs 0 5 vvdblue
+chr - hsMusculo_skeletal_system Musculo_skeletal_system 0 5 vvdblue
+chr - hsNervous_system Nervous_system 0 10 vvdblue
+chr - hsSensory_organs Sensory_organs 0 5 vvdblue
+chr - hsVarious Various 0 15 vvdblue
+chr - hsTCR TCR 0 110 vvdblue
+chr - hsBCR BCR 0 55 vvdblue
+chr - hsFMLP FMLP 0 60 vvdblue
+chr - hsFCER1 FCER1 0 55 vvdblue
+chr - hsMEF2D MEF2D 0 45 vvdblue
+chr - hsGPCR GPCR 0 80 vvdblue
+chr - hsNFAT NFAT 0 165 vvdblue
+chr - hsHDAC HDAC 0 55 vvdblue
+chr - hsVIP VIP 0 80 vvdblue
+chr - hsCALCINEURIN CALCINEURIN 0 45 vvdblue
+chr - hsmiRNA miRNA 0 80 vvdblue

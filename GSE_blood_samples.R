@@ -736,7 +736,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                lab = TN_z_DE_mapped[, "Gene.Symbol"],
                                x = 'logFC',
                                y = 'adj.P.Val',
-                               title = "Tumor vs. Non-tumor (z-normalised)",
+                               title = "Tumor vs. Non-tumor (Blood)",
                                pCutoff = 0.05,
                                FCcutoff = 1,
                                col=c('grey', 'pink', 'purple4', 'red4'),
@@ -885,3 +885,9 @@ consistent_genes_symbols = all_stage_blood_concordant_overlap_set$Gene.Symbol
 write.xlsx(all_stage_blood_concordant_overlap_set, 
            "DGEA/all_stage_blood_concordant_overlap_set.xlsx",
            overwrite = TRUE)
+
+# Save the volcano after loading the previous volcano plots. Use the same
+# .RData file as before:
+
+# rm(list=setdiff(ls(), c("union_four_normal_volcano", "union_three_normal_volcano", 
+# "union_two_normal_volcano", "union_one_normal_volcano", "TN_z_volcano")))

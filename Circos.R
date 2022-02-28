@@ -17,7 +17,7 @@ library(tidyr)
 # Keep only the clustered results plus the miRNA analysis results:
 rm(list=setdiff(ls(), c("clustered_results_stage_1", "clustered_results_stage_2",
                         "clustered_results_stage_3", "clustered_results_stage_4",
-                        "clean_miRNA_venn", "miRNA_venn", "sig_DGEA")))
+                        "clustered_results_blood", "clean_miRNA_venn", "miRNA_venn", "sig_DGEA")))
 
 ##### Importing ATC drug category data #####
 ATC = read.xlsx("ATC_Drugs.xlsx", sheet = 3) # full set
@@ -662,33 +662,39 @@ ultimate_pharmacological$API = str_to_sentence(ultimate_pharmacological$API)
 # ideogram on each plot to show interactions of these genes with miRNAs.
 
 # A list of clustered results
-clustered_results = list(clustered_results_stage_1, clustered_results_stage_2,
-                         clustered_results_stage_3, clustered_results_stage_4)
-names(clustered_results) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
+clustered_results = list(clustered_results_stage_1, 
+                         clustered_results_stage_2,
+                         clustered_results_stage_3, 
+                         clustered_results_stage_4,
+                         clustered_results_blood)
+names(clustered_results) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
 rm(clustered_results_stage_1, clustered_results_stage_2,
-   clustered_results_stage_3, clustered_results_stage_4); gc()
+   clustered_results_stage_3, clustered_results_stage_4,
+   clustered_results_blood); gc()
 
 Stage_1_BioCarta = list(); Stage_1_KEGG = list()
 Stage_2_BioCarta = list(); Stage_2_KEGG = list()
 Stage_3_BioCarta = list(); Stage_3_KEGG = list()
 Stage_4_BioCarta = list(); Stage_4_KEGG = list()
+Blood_BioCarta = list(); Blood_KEGG = list()
 
 Stage_1_lists = list(Stage_1_BioCarta, Stage_1_KEGG); rm(Stage_1_BioCarta, Stage_1_KEGG)
 Stage_2_lists = list(Stage_2_BioCarta, Stage_2_KEGG); rm(Stage_2_BioCarta, Stage_2_KEGG)
 Stage_3_lists = list(Stage_3_BioCarta, Stage_3_KEGG); rm(Stage_3_BioCarta, Stage_3_KEGG)
 Stage_4_lists = list(Stage_4_BioCarta, Stage_4_KEGG); rm(Stage_4_BioCarta, Stage_4_KEGG)
-names(Stage_1_lists) = names(Stage_1_lists) = names(Stage_1_lists) = names(Stage_1_lists) =
-  c("BioCarta", "KEGG")
+Blood_lists = list(Blood_BioCarta, Blood_KEGG); rm(Blood_BioCarta, Blood_KEGG)
+names(Stage_1_lists) = names(Stage_2_lists) = names(Stage_3_lists) = names(Stage_4_lists) =
+  names(Blood_lists) = c("BioCarta", "KEGG")
 
-circos_path = list(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists)
-names(circos_path) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
-rm(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists); gc()
+circos_path = list(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists, Blood_lists)
+names(circos_path) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+rm(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists, Blood_lists); gc()
 
-for (i in 1:4){ # 4 stages
+for (i in 1:5){ # 4 stages plus blood
   for (k in c("BioCarta", "KEGG")){ # databases of interest
     for (j in 1:10){ # top 10 representative terms
-      up = scan(text = clustered_results[[i]][[k]]$Up_regulated[j], what = "")
-      down = scan(text = clustered_results[[i]][[k]]$Down_regulated[j], what = "")
+      up = scan(text = clustered_results[[i]][[k]]$Up_regulated[clustered_results[[i]][[k]]$Status == "Representative"][j], what = "")
+      down = scan(text = clustered_results[[i]][[k]]$Down_regulated[clustered_results[[i]][[k]]$Status == "Representative"][j], what = "")
       
       if (length(up) > 1){
         str_sub(up[1:(length(up) - 1)], -1, -1) = ""
@@ -727,39 +733,47 @@ for (i in 1:4){ # 4 stages
 # two karyotypes: one with BioCarta ideograms and one with KEGG ideograms. Drug ideograms
 # separated by classes will be included in both karyotypes. Same for miRNAs.
 
-# The above will be generated four times: once for each stage
+# The above will be generated five times: 4 stages + blood
 
 Circos_universe = list()
-circos_stage_1 = list(); circos_stage_2 = list(); circos_stage_3 = list(); circos_stage_4 = list()
+circos_stage_1 = list(); circos_stage_2 = list(); circos_stage_3 = list()
+circos_stage_4 = list(); circos_blood = list()
 circos_stage_1_BioCarta = list(); circos_stage_1_KEGG = list()
 circos_stage_2_BioCarta = list(); circos_stage_2_KEGG = list()
 circos_stage_3_BioCarta = list(); circos_stage_3_KEGG = list()
 circos_stage_4_BioCarta = list(); circos_stage_4_KEGG = list()
+circos_blood_BioCarta = list(); circos_blood_KEGG = list()
 circos_stage_1 = list(circos_stage_1_BioCarta, circos_stage_1_KEGG)
 circos_stage_2 = list(circos_stage_2_BioCarta, circos_stage_2_KEGG)
 circos_stage_3 = list(circos_stage_3_BioCarta, circos_stage_3_KEGG)
 circos_stage_4 = list(circos_stage_4_BioCarta, circos_stage_4_KEGG)
+circos_blood = list(circos_blood_BioCarta, circos_blood_KEGG)
 names(circos_stage_1) = names(circos_stage_2) = names(circos_stage_3) = 
-  names(circos_stage_4) = c("BioCarta", "KEGG")
-Circos_universe = list(circos_stage_1, circos_stage_2, circos_stage_3, circos_stage_4)
+  names(circos_stage_4) = names(circos_blood) = c("BioCarta", "KEGG")
+Circos_universe = list(circos_stage_1, circos_stage_2, circos_stage_3,
+                       circos_stage_4, circos_blood)
 
 rm(circos_stage_1, circos_stage_2, circos_stage_3, circos_stage_4,
    circos_stage_1_BioCarta, circos_stage_1_KEGG, circos_stage_2_BioCarta,
    circos_stage_2_KEGG, circos_stage_3_BioCarta, circos_stage_3_KEGG,
-   circos_stage_4_BioCarta, circos_stage_4_KEGG)
+   circos_stage_4_BioCarta, circos_stage_4_KEGG, circos_blood,
+   circos_blood_BioCarta, circos_blood_KEGG)
 
-names(Circos_universe) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4")
+names(Circos_universe) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
 
 # miRNA predictions from Mienturnet #####
 # One variable that we would like to enrich our genes with is the "degree", i.e.
 # the number of miRNAs each gene is interacting with. We will do the same, but 
-# in the opposite way for the miRNAs. We start with the genes:
+# in the opposite way for the miRNAs. We start with the genes (one needs to enable
+# editing on all .xlsx files loaded here):
 
 gene_results_mienturnet = list()
+mienturnet_dirs = c("Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
 
-for (i in 1:4){ # 4 stages
-  mienturnet = read.xlsx(paste0("Mienturnet/Stage_", i, 
-                                "/Stage_", i, "_genes_as_columns_miRTarBase.xlsx"),
+for (i in 1:5){ # 4 stages + blood
+  mienturnet = read.xlsx(paste0("Mienturnet/", mienturnet_dirs[i], 
+                                "/", mienturnet_dirs[i], 
+                                "_genes_as_columns_miRTarBase.xlsx"),
                          startRow = 2, colNames = TRUE)
   genes_mienturnet = data.frame(matrix(ncol = 2))
   colnames(genes_mienturnet) = c("Gene.Symbol", "Degree")
@@ -777,9 +791,10 @@ names(gene_results_mienturnet) = names(Circos_universe)
 
 miRNA_results_mienturnet = list()
 
-for (i in 1:4){ # 4 stages
-  mienturnet = read.xlsx(paste0("Mienturnet/Stage_", i, 
-                                "/Stage_", i, "_Mienturnet_Enrichment_results_miRTarBase.xlsx"),
+for (i in 1:5){ # 4 stages
+  mienturnet = read.xlsx(paste0("Mienturnet/", mienturnet_dirs[i], 
+                                "/", mienturnet_dirs[i], 
+                                "_Mienturnet_Enrichment_results_miRTarBase.xlsx"),
                          startRow = 2, colNames = TRUE) %>%
     dplyr::select(microRNA, FDR, Number.of.interactions) %>%
     dplyr::rename(degree = Number.of.interactions, adjpval = FDR) %>%
@@ -860,7 +875,7 @@ PDAC_drivers = census_annot_pancr$Gene.Symbol
 # Basic Circos files Gene labels, Drug labels #####
 # BC = BioCarta, KG = KEGG
 
-for (i in 1:4){
+for (i in 1:5){ # 4 stages + blood
   BC = melt(circos_path[[i]][["BioCarta"]]) %>%
     dplyr::rename(PathChr = L1, Gene.Symbol = value)
   BC$PathChr = gsub("BIOCARTA_", "", BC$PathChr)
@@ -1055,16 +1070,26 @@ for (i in 1:4){
   BC_histogram_adjpval = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
     dplyr::select(-Gene.Symbol, -logfc, -degree)
   BC_histogram_adjpval$adjpval = gsub("adjpval=", "", BC_histogram_adjpval$adjpval)
+  nas = which(BC_histogram_adjpval$adjpval == "NA")
+  if (length(nas) > 0){
+    BC_histogram_adjpval$adjpval[nas] = 1
+  }
+  rm(nas)
   BC_histogram_adjpval$adjpval = -log10(as.numeric(BC_histogram_adjpval$adjpval))
   BC_histogram_adjpval = BC_histogram_adjpval %>%
-    dplyr::rename(`-logadjpval` = adjpval)
+    dplyr::rename(`neglogadjpval` = adjpval)
   
   KG_histogram_adjpval = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
     dplyr::select(-Gene.Symbol, -logfc, -degree)
   KG_histogram_adjpval$adjpval = gsub("adjpval=", "", KG_histogram_adjpval$adjpval)
+  nas = which(KG_histogram_adjpval$adjpval == "NA")
+  if (length(nas) > 0){
+    KG_histogram_adjpval$adjpval[nas] = 1
+  }
+  rm(nas)
   KG_histogram_adjpval$adjpval = -log10(as.numeric(KG_histogram_adjpval$adjpval))
   KG_histogram_adjpval = KG_histogram_adjpval %>%
-    dplyr::rename(`-logadjpval` = adjpval)
+    dplyr::rename(`neglogadjpval` = adjpval)
   
   # degree (how many miRNAs a gene interacts with)
   BC_histogram_degree = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
@@ -1106,8 +1131,8 @@ for (i in 1:4){
   miRNA_histogram_degree$mirdegree = gsub("mirdegree=", "", miRNA_histogram_degree$mirdegree)
   
   # Links
-  miRNA_gene = as.data.frame(t(read.xlsx(paste0("Mienturnet/Stage_", i, 
-                                               "/Stage_", i, "_genes_as_columns_miRTarBase.xlsx"),
+  miRNA_gene = as.data.frame(t(read.xlsx(paste0("Mienturnet/", mienturnet_dirs[i], 
+                                               "/", mienturnet_dirs[i], "_genes_as_columns_miRTarBase.xlsx"),
                                         startRow = 2, colNames = TRUE)))
   miRNA_gene$Gene.Symbol = rownames(miRNA_gene)
   miRNA_gene_map = melt(miRNA_gene, na.rm = TRUE, id.vars = "Gene.Symbol") %>%
