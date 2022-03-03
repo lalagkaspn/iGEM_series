@@ -1236,7 +1236,7 @@ for (i in 1:length(clustered_venn_path)){
   ) +
     scale_fill_gradient(low = "white", high = "darkred") +
     theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))+
-    labs(title = paste0("Venn diagram of clustered ", names(top100_venn_path)[i], 
+    labs(title = paste0("Venn diagram of clustered ", names(clustered_venn_path)[i], 
                         " enriched networks"))
 }
 
@@ -1397,7 +1397,7 @@ clean_DEmiRNAs_venn
 dev.off()
 
 tiff("Additional_plots/Venn/ggVennDiagram_DEmiRNA_multiplot.tif", 
-     width = 1920, height = 1080, res = 130)
+     width = 1920, height = 1080, res = 120)
 multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
 m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
 dev.off(); rm(m)
