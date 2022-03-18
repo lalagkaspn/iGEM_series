@@ -1354,56 +1354,212 @@ GO_MF_map[which(GO_MF_map$Stage_1 == "Present" & GO_MF_map$Stage_2 == "Absent" &
                   GO_MF_map$Blood == "Present"),]
 
 # KEGG
-GO_KEGG_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$KEGG$Term_Description, 
-                                                        pathfindR_outputs_stage_1$KEGG$Term_Description,
-                                                        pathfindR_outputs_stage_2$KEGG$Term_Description, 
-                                                        pathfindR_outputs_stage_3$KEGG$Term_Description,
-                                                        pathfindR_outputs_stage_4$KEGG$Term_Description))), ncol = 6))
-colnames(GO_KEGG_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
-GO_KEGG_map$Term = sort(unique(c(pathfindR_outputs_blood$KEGG$Term_Description, 
-                                 pathfindR_outputs_stage_1$KEGG$Term_Description,
-                                 pathfindR_outputs_stage_2$KEGG$Term_Description, 
-                                 pathfindR_outputs_stage_3$KEGG$Term_Description,
-                                 pathfindR_outputs_stage_4$KEGG$Term_Description)))
-GO_KEGG_map$Stage_1 = ifelse(GO_KEGG_map$Term %in% pathfindR_outputs_stage_1$KEGG$Term_Description,
-                             "Present", "Absent")
-GO_KEGG_map$Stage_2 = ifelse(GO_KEGG_map$Term %in% pathfindR_outputs_stage_2$KEGG$Term_Description,
-                             "Present", "Absent")
-GO_KEGG_map$Stage_3 = ifelse(GO_KEGG_map$Term %in% pathfindR_outputs_stage_3$KEGG$Term_Description,
-                             "Present", "Absent")
-GO_KEGG_map$Stage_4 = ifelse(GO_KEGG_map$Term %in% pathfindR_outputs_stage_4$KEGG$Term_Description,
-                             "Present", "Absent")
-GO_KEGG_map$Blood = ifelse(GO_KEGG_map$Term %in% pathfindR_outputs_blood$KEGG$Term_Description,
-                           "Present", "Absent")
-GO_KEGG_map[which(GO_KEGG_map$Stage_1 == "Present" & GO_KEGG_map$Stage_2 == "Absent" &
-                    GO_KEGG_map$Stage_3 == "Absent" & GO_KEGG_map$Stage_4 == "Absent" &
-                    GO_KEGG_map$Blood == "Present"),]
+KEGG_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$KEGG$Term_Description, 
+                                                     pathfindR_outputs_stage_1$KEGG$Term_Description,
+                                                     pathfindR_outputs_stage_2$KEGG$Term_Description, 
+                                                     pathfindR_outputs_stage_3$KEGG$Term_Description,
+                                                     pathfindR_outputs_stage_4$KEGG$Term_Description))), ncol = 6))
+colnames(KEGG_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+KEGG_map$Term = sort(unique(c(pathfindR_outputs_blood$KEGG$Term_Description, 
+                              pathfindR_outputs_stage_1$KEGG$Term_Description,
+                              pathfindR_outputs_stage_2$KEGG$Term_Description, 
+                              pathfindR_outputs_stage_3$KEGG$Term_Description,
+                              pathfindR_outputs_stage_4$KEGG$Term_Description)))
+KEGG_map$Stage_1 = ifelse(KEGG_map$Term %in% pathfindR_outputs_stage_1$KEGG$Term_Description,
+                          "Present", "Absent")
+KEGG_map$Stage_2 = ifelse(KEGG_map$Term %in% pathfindR_outputs_stage_2$KEGG$Term_Description,
+                          "Present", "Absent")
+KEGG_map$Stage_3 = ifelse(KEGG_map$Term %in% pathfindR_outputs_stage_3$KEGG$Term_Description,
+                          "Present", "Absent")
+KEGG_map$Stage_4 = ifelse(KEGG_map$Term %in% pathfindR_outputs_stage_4$KEGG$Term_Description,
+                          "Present", "Absent")
+KEGG_map$Blood = ifelse(KEGG_map$Term %in% pathfindR_outputs_blood$KEGG$Term_Description,
+                        "Present", "Absent")
+KEGG_map[which(KEGG_map$Stage_1 == "Present" & KEGG_map$Stage_2 == "Absent" &
+                 KEGG_map$Stage_3 == "Absent" & KEGG_map$Stage_4 == "Absent" &
+                 KEGG_map$Blood == "Present"),]
 
 # Reactome
-GO_Reactome_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$Reactome$Term_Description, 
-                                                            pathfindR_outputs_stage_1$Reactome$Term_Description,
-                                                            pathfindR_outputs_stage_2$Reactome$Term_Description, 
-                                                            pathfindR_outputs_stage_3$Reactome$Term_Description,
-                                                            pathfindR_outputs_stage_4$Reactome$Term_Description))), ncol = 6))
-colnames(GO_Reactome_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
-GO_Reactome_map$Term = sort(unique(c(pathfindR_outputs_blood$Reactome$Term_Description, 
-                                     pathfindR_outputs_stage_1$Reactome$Term_Description,
-                                     pathfindR_outputs_stage_2$Reactome$Term_Description, 
-                                     pathfindR_outputs_stage_3$Reactome$Term_Description,
-                                     pathfindR_outputs_stage_4$Reactome$Term_Description)))
-GO_Reactome_map$Stage_1 = ifelse(GO_Reactome_map$Term %in% pathfindR_outputs_stage_1$Reactome$Term_Description,
+Reactome_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$Reactome$Term_Description, 
+                                                         pathfindR_outputs_stage_1$Reactome$Term_Description,
+                                                         pathfindR_outputs_stage_2$Reactome$Term_Description, 
+                                                         pathfindR_outputs_stage_3$Reactome$Term_Description,
+                                                         pathfindR_outputs_stage_4$Reactome$Term_Description))), ncol = 6))
+colnames(Reactome_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Reactome_map$Term = sort(unique(c(pathfindR_outputs_blood$Reactome$Term_Description, 
+                                  pathfindR_outputs_stage_1$Reactome$Term_Description,
+                                  pathfindR_outputs_stage_2$Reactome$Term_Description, 
+                                  pathfindR_outputs_stage_3$Reactome$Term_Description,
+                                  pathfindR_outputs_stage_4$Reactome$Term_Description)))
+Reactome_map$Stage_1 = ifelse(Reactome_map$Term %in% pathfindR_outputs_stage_1$Reactome$Term_Description,
+                              "Present", "Absent")
+Reactome_map$Stage_2 = ifelse(Reactome_map$Term %in% pathfindR_outputs_stage_2$Reactome$Term_Description,
+                              "Present", "Absent")
+Reactome_map$Stage_3 = ifelse(Reactome_map$Term %in% pathfindR_outputs_stage_3$Reactome$Term_Description,
+                              "Present", "Absent")
+Reactome_map$Stage_4 = ifelse(Reactome_map$Term %in% pathfindR_outputs_stage_4$Reactome$Term_Description,
+                              "Present", "Absent")
+Reactome_map$Blood = ifelse(Reactome_map$Term %in% pathfindR_outputs_blood$Reactome$Term_Description,
+                            "Present", "Absent")
+Reactome_map[which(Reactome_map$Stage_1 == "Present" & Reactome_map$Stage_2 == "Absent" &
+                     Reactome_map$Stage_3 == "Absent" & Reactome_map$Stage_4 == "Absent" &
+                     Reactome_map$Blood == "Present"),]
+# Top100
+# BioCarta
+Top100_BioCarta_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$BioCarta$Term_Description[1:100], 
+                                                                pathfindR_outputs_stage_1$BioCarta$Term_Description[1:100],
+                                                                pathfindR_outputs_stage_2$BioCarta$Term_Description[1:100], 
+                                                                pathfindR_outputs_stage_3$BioCarta$Term_Description[1:100],
+                                                                pathfindR_outputs_stage_4$BioCarta$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_BioCarta_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_BioCarta_map$Term = sort(unique(c(pathfindR_outputs_blood$BioCarta$Term_Description[1:100], 
+                                         pathfindR_outputs_stage_1$BioCarta$Term_Description[1:100],
+                                         pathfindR_outputs_stage_2$BioCarta$Term_Description[1:100], 
+                                         pathfindR_outputs_stage_3$BioCarta$Term_Description[1:100],
+                                         pathfindR_outputs_stage_4$BioCarta$Term_Description[1:100])))
+Top100_BioCarta_map$Stage_1 = ifelse(Top100_BioCarta_map$Term %in% pathfindR_outputs_stage_1$BioCarta$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_BioCarta_map$Stage_2 = ifelse(Top100_BioCarta_map$Term %in% pathfindR_outputs_stage_2$BioCarta$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_BioCarta_map$Stage_3 = ifelse(Top100_BioCarta_map$Term %in% pathfindR_outputs_stage_3$BioCarta$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_BioCarta_map$Stage_4 = ifelse(Top100_BioCarta_map$Term %in% pathfindR_outputs_stage_4$BioCarta$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_BioCarta_map$Blood = ifelse(Top100_BioCarta_map$Term %in% pathfindR_outputs_blood$BioCarta$Term_Description[1:100],
+                                   "Present", "Absent")
+Top100_BioCarta_map[which(Top100_BioCarta_map$Stage_1 == "Present" & Top100_BioCarta_map$Stage_2 == "Absent" &
+                            Top100_BioCarta_map$Stage_3 == "Absent" & Top100_BioCarta_map$Stage_4 == "Absent" &
+                            Top100_BioCarta_map$Blood == "Present"),]
+
+# GO-BP
+Top100_GO_BP_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$`GO-BP`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_1$`GO-BP`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_2$`GO-BP`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_3$`GO-BP`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_4$`GO-BP`$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_GO_BP_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_GO_BP_map$Term = sort(unique(c(pathfindR_outputs_blood$`GO-BP`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_1$`GO-BP`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_2$`GO-BP`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_3$`GO-BP`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_4$`GO-BP`$Term_Description[1:100])))
+Top100_GO_BP_map$Stage_1 = ifelse(Top100_GO_BP_map$Term %in% pathfindR_outputs_stage_1$`GO-BP`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_BP_map$Stage_2 = ifelse(Top100_GO_BP_map$Term %in% pathfindR_outputs_stage_2$`GO-BP`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_BP_map$Stage_3 = ifelse(Top100_GO_BP_map$Term %in% pathfindR_outputs_stage_3$`GO-BP`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_BP_map$Stage_4 = ifelse(Top100_GO_BP_map$Term %in% pathfindR_outputs_stage_4$`GO-BP`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_BP_map$Blood = ifelse(Top100_GO_BP_map$Term %in% pathfindR_outputs_blood$`GO-BP`$Term_Description[1:100],
+                                "Present", "Absent")
+Top100_GO_BP_map[which(Top100_GO_BP_map$Stage_1 == "Present" & Top100_GO_BP_map$Stage_2 == "Absent" &
+                         Top100_GO_BP_map$Stage_3 == "Absent" & Top100_GO_BP_map$Stage_4 == "Absent" &
+                         Top100_GO_BP_map$Blood == "Present"),]
+
+# GO-CC
+Top100_GO_CC_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$`GO-CC`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_1$`GO-CC`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_2$`GO-CC`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_3$`GO-CC`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_4$`GO-CC`$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_GO_CC_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_GO_CC_map$Term = sort(unique(c(pathfindR_outputs_blood$`GO-CC`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_1$`GO-CC`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_2$`GO-CC`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_3$`GO-CC`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_4$`GO-CC`$Term_Description[1:100])))
+Top100_GO_CC_map$Stage_1 = ifelse(Top100_GO_CC_map$Term %in% pathfindR_outputs_stage_1$`GO-CC`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_CC_map$Stage_2 = ifelse(Top100_GO_CC_map$Term %in% pathfindR_outputs_stage_2$`GO-CC`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_CC_map$Stage_3 = ifelse(Top100_GO_CC_map$Term %in% pathfindR_outputs_stage_3$`GO-CC`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_CC_map$Stage_4 = ifelse(Top100_GO_CC_map$Term %in% pathfindR_outputs_stage_4$`GO-CC`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_CC_map$Blood = ifelse(Top100_GO_CC_map$Term %in% pathfindR_outputs_blood$`GO-CC`$Term_Description[1:100],
+                                "Present", "Absent")
+Top100_GO_CC_map[which(Top100_GO_CC_map$Stage_1 == "Present" & Top100_GO_CC_map$Stage_2 == "Absent" &
+                         Top100_GO_CC_map$Stage_3 == "Absent" & Top100_GO_CC_map$Stage_4 == "Absent" &
+                         Top100_GO_CC_map$Blood == "Present"),]
+
+# GO-MF
+Top100_GO_MF_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$`GO-MF`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_1$`GO-MF`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_2$`GO-MF`$Term_Description[1:100], 
+                                                             pathfindR_outputs_stage_3$`GO-MF`$Term_Description[1:100],
+                                                             pathfindR_outputs_stage_4$`GO-MF`$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_GO_MF_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_GO_MF_map$Term = sort(unique(c(pathfindR_outputs_blood$`GO-MF`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_1$`GO-MF`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_2$`GO-MF`$Term_Description[1:100], 
+                                      pathfindR_outputs_stage_3$`GO-MF`$Term_Description[1:100],
+                                      pathfindR_outputs_stage_4$`GO-MF`$Term_Description[1:100])))
+Top100_GO_MF_map$Stage_1 = ifelse(Top100_GO_MF_map$Term %in% pathfindR_outputs_stage_1$`GO-MF`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_MF_map$Stage_2 = ifelse(Top100_GO_MF_map$Term %in% pathfindR_outputs_stage_2$`GO-MF`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_MF_map$Stage_3 = ifelse(Top100_GO_MF_map$Term %in% pathfindR_outputs_stage_3$`GO-MF`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_MF_map$Stage_4 = ifelse(Top100_GO_MF_map$Term %in% pathfindR_outputs_stage_4$`GO-MF`$Term_Description[1:100],
+                                  "Present", "Absent")
+Top100_GO_MF_map$Blood = ifelse(Top100_GO_MF_map$Term %in% pathfindR_outputs_blood$`GO-MF`$Term_Description[1:100],
+                                "Present", "Absent")
+Top100_GO_MF_map[which(Top100_GO_MF_map$Stage_1 == "Present" & Top100_GO_MF_map$Stage_2 == "Absent" &
+                         Top100_GO_MF_map$Stage_3 == "Absent" & Top100_GO_MF_map$Stage_4 == "Absent" &
+                         Top100_GO_MF_map$Blood == "Present"),]
+
+# KEGG
+Top100_KEGG_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$KEGG$Term_Description[1:100], 
+                                                            pathfindR_outputs_stage_1$KEGG$Term_Description[1:100],
+                                                            pathfindR_outputs_stage_2$KEGG$Term_Description[1:100], 
+                                                            pathfindR_outputs_stage_3$KEGG$Term_Description[1:100],
+                                                            pathfindR_outputs_stage_4$KEGG$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_KEGG_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_KEGG_map$Term = sort(unique(c(pathfindR_outputs_blood$KEGG$Term_Description[1:100], 
+                                     pathfindR_outputs_stage_1$KEGG$Term_Description[1:100],
+                                     pathfindR_outputs_stage_2$KEGG$Term_Description[1:100], 
+                                     pathfindR_outputs_stage_3$KEGG$Term_Description[1:100],
+                                     pathfindR_outputs_stage_4$KEGG$Term_Description[1:100])))
+Top100_KEGG_map$Stage_1 = ifelse(Top100_KEGG_map$Term %in% pathfindR_outputs_stage_1$KEGG$Term_Description[1:100],
                                  "Present", "Absent")
-GO_Reactome_map$Stage_2 = ifelse(GO_Reactome_map$Term %in% pathfindR_outputs_stage_2$Reactome$Term_Description,
+Top100_KEGG_map$Stage_2 = ifelse(Top100_KEGG_map$Term %in% pathfindR_outputs_stage_2$KEGG$Term_Description[1:100],
                                  "Present", "Absent")
-GO_Reactome_map$Stage_3 = ifelse(GO_Reactome_map$Term %in% pathfindR_outputs_stage_3$Reactome$Term_Description,
+Top100_KEGG_map$Stage_3 = ifelse(Top100_KEGG_map$Term %in% pathfindR_outputs_stage_3$KEGG$Term_Description[1:100],
                                  "Present", "Absent")
-GO_Reactome_map$Stage_4 = ifelse(GO_Reactome_map$Term %in% pathfindR_outputs_stage_4$Reactome$Term_Description,
+Top100_KEGG_map$Stage_4 = ifelse(Top100_KEGG_map$Term %in% pathfindR_outputs_stage_4$KEGG$Term_Description[1:100],
                                  "Present", "Absent")
-GO_Reactome_map$Blood = ifelse(GO_Reactome_map$Term %in% pathfindR_outputs_blood$Reactome$Term_Description,
+Top100_KEGG_map$Blood = ifelse(Top100_KEGG_map$Term %in% pathfindR_outputs_blood$KEGG$Term_Description[1:100],
                                "Present", "Absent")
-GO_Reactome_map[which(GO_Reactome_map$Stage_1 == "Present" & GO_Reactome_map$Stage_2 == "Absent" &
-                        GO_Reactome_map$Stage_3 == "Absent" & GO_Reactome_map$Stage_4 == "Absent" &
-                        GO_Reactome_map$Blood == "Present"),]
+Top100_KEGG_map[which(Top100_KEGG_map$Stage_1 == "Present" & Top100_KEGG_map$Stage_2 == "Absent" &
+                        Top100_KEGG_map$Stage_3 == "Absent" & Top100_KEGG_map$Stage_4 == "Absent" &
+                        Top100_KEGG_map$Blood == "Present"),]
+
+# Reactome
+Top100_Reactome_map = as.data.frame(matrix(nrow=length(unique(c(pathfindR_outputs_blood$Reactome$Term_Description[1:100], 
+                                                                pathfindR_outputs_stage_1$Reactome$Term_Description[1:100],
+                                                                pathfindR_outputs_stage_2$Reactome$Term_Description[1:100], 
+                                                                pathfindR_outputs_stage_3$Reactome$Term_Description[1:100],
+                                                                pathfindR_outputs_stage_4$Reactome$Term_Description[1:100]))), ncol = 6))
+colnames(Top100_Reactome_map) = c("Term", "Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
+Top100_Reactome_map$Term = sort(unique(c(pathfindR_outputs_blood$Reactome$Term_Description[1:100], 
+                                         pathfindR_outputs_stage_1$Reactome$Term_Description[1:100],
+                                         pathfindR_outputs_stage_2$Reactome$Term_Description[1:100], 
+                                         pathfindR_outputs_stage_3$Reactome$Term_Description[1:100],
+                                         pathfindR_outputs_stage_4$Reactome$Term_Description[1:100])))
+Top100_Reactome_map$Stage_1 = ifelse(Top100_Reactome_map$Term %in% pathfindR_outputs_stage_1$Reactome$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_Reactome_map$Stage_2 = ifelse(Top100_Reactome_map$Term %in% pathfindR_outputs_stage_2$Reactome$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_Reactome_map$Stage_3 = ifelse(Top100_Reactome_map$Term %in% pathfindR_outputs_stage_3$Reactome$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_Reactome_map$Stage_4 = ifelse(Top100_Reactome_map$Term %in% pathfindR_outputs_stage_4$Reactome$Term_Description[1:100],
+                                     "Present", "Absent")
+Top100_Reactome_map$Blood = ifelse(Top100_Reactome_map$Term %in% pathfindR_outputs_blood$Reactome$Term_Description[1:100],
+                                   "Present", "Absent")
+Top100_Reactome_map[which(Top100_Reactome_map$Stage_1 == "Present" & Top100_Reactome_map$Stage_2 == "Absent" &
+                            Top100_Reactome_map$Stage_3 == "Absent" & Top100_Reactome_map$Stage_4 == "Absent" &
+                            Top100_Reactome_map$Blood == "Present"),]
 
 #####
 # Load volcano plots from tumor stage DGEA as an .RData file:
@@ -1559,3 +1715,17 @@ multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
 m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
 dev.off(); rm(m)
 
+# Exploring miR21 further
+mir21_1 = read.xlsx("Mienturnet/MIR21_predictions_(unique_common_stage_1_blood_up).xlsx",
+                    sheet = 1) %>%
+  dplyr::select(-X7)
+mir21_2 = read.xlsx("Mienturnet/MIR21_predictions_(unique_common_stage_1_blood_up).xlsx",
+                    sheet = 2) %>%
+  dplyr::select(-X7)
+mir21 = rbind(mir21_1, mir21_2); rm(mir21_1, mir21_2)
+mir21_DEG_targets_stage_1 = intersect(mir21$Gene.Symbol, sig_DGEA[["Stage_1"]][["Gene.Symbol_pre"]])
+mir21_DEG_targets_blood = intersect(mir21$Gene.Symbol, sig_DGEA[["Blood"]][["Gene.Symbol_pre"]])
+sig_DGEA[["Stage_1"]][sig_DGEA[["Stage_1"]][["Gene.Symbol_pre"]]
+                      %in% mir21_DEG_targets_stage_1,]
+sig_DGEA[["Blood"]][sig_DGEA[["Blood"]][["Gene.Symbol_pre"]]
+                    %in% mir21_DEG_targets_blood,]
