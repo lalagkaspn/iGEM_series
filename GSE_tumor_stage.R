@@ -864,7 +864,7 @@ rm(fdata62165)
 
 # GSE102238
 # No information for corresponding genes provided in GEOset
-# Two separate .fasta files were prepared based on the probe sequences
+# Four separate .fasta files were prepared based on the probe sequences
 # available at the GPL file.
 # BLASTN alignment (against Nucleotide sequences, "nt") was performed
 # to annotate probes with RefSeq gene IDs
@@ -1054,8 +1054,7 @@ original_pca$Type = factor(original_pca$Type)
 original_pca$X1 = as.numeric(original_pca$X1)
 original_pca$X2 = as.numeric(original_pca$X2)
 
-tiff("QC/Tumor_stage/Original_MDS.tif", width = 1920, height = 1080, res = 100)
-ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
+original_MDS = ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
   geom_point(size = 3) +
   scale_color_brewer(palette = "Dark2") +
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -1072,8 +1071,10 @@ ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
         legend.title = element_text(size = 17),
         legend.key.size = unit(1, "cm"))+
   labs(title = "Multidimensional Scaling Plot",
-       x = paste0("\nLeading logFC dimension 1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("Leading logFC dimension 2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
+       x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
+tiff("QC/Tumor_stage/Original_MDS.tif", width = 1920, height = 1080, res = 100)
+Original_MDS
 dev.off()
 
 # Multidimensional scaling plot: z-score normalised matrix
@@ -1087,8 +1088,7 @@ z_pca$Type = factor(z_pca$Type)
 z_pca$X1 = as.numeric(z_pca$X1)
 z_pca$X2 = as.numeric(z_pca$X2)
 
-tiff("QC/Tumor_stage/KBZ_MDS.tif", width = 1920, height = 1080, res = 100)
-ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
+KBZ_MDS_plot = ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
   geom_point(size = 3) +
   scale_color_brewer(palette = "Dark2") +
   theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
@@ -1105,14 +1105,71 @@ ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
         legend.title = element_text(size = 17),
         legend.key.size = unit(1, "cm"))+
   labs(title = "Multidimensional Scaling Plot: z-score-normalised data",
-       x = paste0("\nLeading logFC dimension 1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("Leading logFC dimension 2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
+       x = paste0("\nPC1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
+       y = paste0("PC2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
+tiff("QC/Tumor_stage/KBZ_MDS.tif", width = 1920, height = 1080, res = 100)
+KBZ_MDS_plot
 dev.off()
+
+# Defining the multiplot function
+
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+# End of multiplot function
+
+tiff("QC/Tumor_stage/MDS_multiplot.tif", 
+     width = 2160, height = 3840, res = 150)
+multiplot(original_MDS, KBZ_MDS_plot, cols = 1)
+m = ggplot(multiplot(Original_MDS, KBZ_MDS_plot, cols = 1))
+dev.off(); rm(m)
 
 # Global expression boxplot: original matrix
 original_eset = as.data.frame(original_exprs_nonas)
-tiff("QC/Tumor_stage/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
-ggplot(melt(original_eset), aes(x=variable, y=value)) +
+original_boxplot = ggplot(melt(original_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
@@ -1134,12 +1191,13 @@ ggplot(melt(original_eset), aes(x=variable, y=value)) +
   labs(title = "Boxplot of expression",
        x = "\nSamples",
        y = "Expression\n")
+tiff("QC/Tumor_stage/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
+original_boxplot
 dev.off()
 
 # Global expression boxplot: z-score normalised matrix
 z_eset = as.data.frame(z_exprs_nonas)
-tiff("QC/Tumor_stage/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
-ggplot(melt(z_eset), aes(x=variable, y=value)) +
+KBZ_boxplot = ggplot(melt(z_eset), aes(x=variable, y=value)) +
   geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
                fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
@@ -1161,7 +1219,15 @@ ggplot(melt(z_eset), aes(x=variable, y=value)) +
   labs(title = "Boxplot of expression: z-score-normalised data",
        x = "\nSamples",
        y = "Expression\n")
+tiff("QC/Tumor_stage/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
+KBZ_boxplot
 dev.off()
+
+tiff("QC/Tumor_stage/Boxplot_multiplot.tif", 
+     width = 3840, height = 3840, res = 150)
+multiplot(original_boxplot, KBZ_boxplot, cols = 1)
+m = ggplot(multiplot(original_boxplot, KBZ_boxplot, cols = 1))
+dev.off(); rm(m)
 
 # Heatmaps
 save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
