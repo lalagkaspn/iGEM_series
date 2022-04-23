@@ -1861,11 +1861,15 @@ union_stages_volcano = EnhancedVolcano(DE_maps[["earlyvslate"]],
                                    lab = DE_maps[["earlyvslate"]][, "Gene.Symbol"],
                                    x = 'logFC',
                                    y = 'adj.P.Val',
-                                   title = "Stage 3/4 vs. Stage 1/2",
+                                   title = "Stage 1/2 vs. Stage 3/4",
                                    pCutoff = 0.05,
                                    FCcutoff = 1,
                                    col=c('grey', 'pink', 'purple4', 'red4'),
-                                   colAlpha = 0.7)
+                                   colAlpha = 0.7,
+                                   xlim = c(-5, 5),
+                                   ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                   xlab = "\nDifferential expression (units: sd)",
+                                   legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_Stages_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_stages_volcano
 dev.off()
@@ -1878,7 +1882,11 @@ union_one_four_stages_volcano = EnhancedVolcano(DE_maps[["onevsfour"]],
                                        pCutoff = 0.05,
                                        FCcutoff = 1,
                                        col=c('grey', 'pink', 'purple4', 'red4'),
-                                       colAlpha = 0.7)
+                                       colAlpha = 0.7,
+                                       xlim = c(-5, 5),
+                                       ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                       xlab = "\nDifferential expression (units: sd)",
+                                       legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_One_Four_Stages_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_one_four_stages_volcano
 dev.off()
@@ -1891,7 +1899,11 @@ union_one_normal_volcano = EnhancedVolcano(DE_maps[["onevsnormal"]],
                                                 pCutoff = 0.05,
                                                 FCcutoff = 1,
                                                 col=c('grey', 'pink', 'purple4', 'red4'),
-                                                colAlpha = 0.7)
+                                                colAlpha = 0.7,
+                                                xlim = c(-5, 5),
+                                                ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                                xlab = "\nDifferential expression (units: sd)",
+                                                legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_One_Normal_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_one_normal_volcano
 dev.off()
@@ -1904,7 +1916,11 @@ union_two_normal_volcano = EnhancedVolcano(DE_maps[["twovsnormal"]],
                                            pCutoff = 0.05,
                                            FCcutoff = 1,
                                            col=c('grey', 'pink', 'purple4', 'red4'),
-                                           colAlpha = 0.7)
+                                           colAlpha = 0.7,
+                                           xlim = c(-5, 5),
+                                           ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                           xlab = "\nDifferential expression (units: sd)",
+                                           legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_Two_Normal_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_two_normal_volcano
 dev.off()
@@ -1917,7 +1933,11 @@ union_three_normal_volcano = EnhancedVolcano(DE_maps[["threevsnormal"]],
                                            pCutoff = 0.05,
                                            FCcutoff = 1,
                                            col=c('grey', 'pink', 'purple4', 'red4'),
-                                           colAlpha = 0.7)
+                                           colAlpha = 0.7,
+                                           xlim = c(-5, 5),
+                                           ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                           xlab = "\nDifferential expression (units: sd)",
+                                           legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_Three_Normal_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_three_normal_volcano
 dev.off()
@@ -1930,12 +1950,24 @@ union_four_normal_volcano = EnhancedVolcano(DE_maps[["fourvsnormal"]],
                                            pCutoff = 0.05,
                                            FCcutoff = 1,
                                            col=c('grey', 'pink', 'purple4', 'red4'),
-                                           colAlpha = 0.7)
+                                           colAlpha = 0.7,
+                                           xlim = c(-5, 5),
+                                           ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                                           xlab = "\nDifferential expression (units: sd)",
+                                           legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
 tiff("DGEA/Union/Union_Four_Normal_Volcano.tif", width = 1920, height = 1080, res = 100)
 union_four_normal_volcano
 dev.off()
 
 rm(gene_union, i, j)
+
+tiff("DGEA/Union//Volcano_multiplot.tif", 
+     width = 3840, height = 2160, res = 150)
+multiplot(union_one_normal_volcano, union_two_normal_volcano,
+          union_three_normal_volcano, union_four_normal_volcano, cols = 2)
+m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano,
+                     union_three_normal_volcano, union_four_normal_volcano, cols = 2))
+dev.off(); rm(m)
 
 # Useful to save the volcano plots only as an .RData file that will be later used
 # to create additional plots after pathway analysis:
