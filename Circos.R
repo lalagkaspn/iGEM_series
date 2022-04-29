@@ -17,11 +17,21 @@ library(tidyr)
 # Keep only the clustered results plus the miRNA analysis results:
 rm(list=setdiff(ls(), c("clustered_results_stage_1", "clustered_results_stage_2",
                         "clustered_results_stage_3", "clustered_results_stage_4",
-                        "clustered_results_blood", "clean_miRNA_venn", "miRNA_venn", "sig_DGEA")))
+                        "clustered_results_blood", "clean_miRNA_venn", "miRNA_venn", 
+                        "sig_DGEA")))
+
+# Import the all-stage-blood-overlap set
+consistent = read.xlsx("DGEA/all_stage_blood_concordant_overlap_set.xlsx")
+for (i in 1:length(sig_DGEA)){
+  sig_DGEA[[i]]$status = "inconsistent"
+  sig_DGEA[[i]]$status[which(sig_DGEA[[i]]$EntrezGene.ID %in% consistent$EntrezGene.ID)] = "consistent"
+}; rm(i)
 
 ##### Importing ATC drug category data #####
 ATC = read.xlsx("ATC_Drugs.xlsx", sheet = 3) # full set
 ATC$ATC_Name = gsub(" ", "_", ATC$ATC_Name)
+ind = which(ATC$ATC_Name == "antithymocyte_immunoglobulin_(rabbit)")
+ATC$ATC_Name[ind] = "antithym_IgG_rbt"; rm(ind)
 ATC = ATC %>% dplyr::rename(API = ATC_Name)
 antineoplastics = ATC %>%
   dplyr::filter(Name1 == "ANTINEOPLASTIC AGENTS")
@@ -690,7 +700,7 @@ circos_path = list(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists, B
 names(circos_path) = c("Stage_1", "Stage_2", "Stage_3", "Stage_4", "Blood")
 rm(Stage_1_lists, Stage_2_lists, Stage_3_lists, Stage_4_lists, Blood_lists); gc()
 
-for (i in 1:5){ # 4 stages plus blood
+for (i in 1:length(clustered_results)){ # 4 stages plus blood
   for (k in c("BioCarta", "KEGG")){ # databases of interest
     for (j in 1:10){ # top 10 representative terms
       up = scan(text = clustered_results[[i]][[k]]$Up_regulated[clustered_results[[i]][[k]]$Status == "Representative"][j], what = "")
@@ -724,7 +734,7 @@ for (i in 1:5){ # 4 stages plus blood
         circos_path[[i]][[k]][[j]] = NA
       }
     }
-    names(circos_path[[i]][[k]]) = clustered_results[[i]][[k]][["Term_Description"]][1:10]
+    names(circos_path[[i]][[k]]) = clustered_results[[i]][[k]]$Term_Description[clustered_results[[i]][[k]]$Status == "Representative"][1:10]
   }
 }
 
@@ -820,11 +830,11 @@ COSMIC = COSMIC[order(COSMIC$Ratio, decreasing = TRUE), ] %>%
 
 concordance = length(which(COSMIC$Gene.name %in% official_df$Gene.Symbol == TRUE))/nrow(COSMIC)
 mismatch = COSMIC$Gene.name[which(COSMIC$Gene.name %in% official_df$Gene.Symbol == FALSE)]
-a_concordance = length(which(mismatch %in% ID_Map$probe == TRUE))/length(mismatch)
-discordance = mismatch[-which(mismatch %in% ID_Map$probe == TRUE)]
+a_concordance = length(which(mismatch %in% ID_Map$Gene.Symbol == TRUE))/length(mismatch)
+discordance = mismatch[-which(mismatch %in% ID_Map$Gene.Symbol == TRUE)]
 discordance
 
-# discordance contains 19 genes some of which can be matched to Entrez ID's
+# Known disagreements from previous work
 # (https://www.genenames.org/tools/search/#!/?query=)
 
 COSMIC$probe = COSMIC$Gene.name
@@ -875,7 +885,7 @@ PDAC_drivers = census_annot_pancr$Gene.Symbol
 # Basic Circos files Gene labels, Drug labels #####
 # BC = BioCarta, KG = KEGG
 
-for (i in 1:5){ # 4 stages + blood
+for (i in 1:length(circos_path)){ # 4 stages + blood
   BC = melt(circos_path[[i]][["BioCarta"]]) %>%
     dplyr::rename(PathChr = L1, Gene.Symbol = value)
   BC$PathChr = gsub("BIOCARTA_", "", BC$PathChr)
@@ -896,7 +906,7 @@ for (i in 1:5){ # 4 stages + blood
   rm(k)
   
   BC = BC %>% left_join(sig_DGEA[[i]], by = c("Gene.Symbol" = "Gene.Symbol_pre")) %>%
-    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val)) %>%
+    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val, ",status=", status)) %>%
     dplyr::select(PathChr, GStart, GEnd, Gene.Symbol, GVars)
   
   KG = melt(circos_path[[i]][["KEGG"]]) %>%
@@ -921,7 +931,7 @@ for (i in 1:5){ # 4 stages + blood
   rm(k)
   
   KG = KG %>% left_join(sig_DGEA[[i]], by = c("Gene.Symbol" = "Gene.Symbol_pre")) %>%
-    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val)) %>%
+    mutate(GVars = paste0("logfc=", logFC, ",adjpval=", adj.P.Val, ",status=", status)) %>%
     dplyr::select(PathChr, GStart, GEnd, Gene.Symbol, GVars)
   
   
@@ -1025,13 +1035,16 @@ for (i in 1:5){ # 4 stages + blood
     dplyr::select(PathChr, GStart, GEnd, Ratio, MVars) %>%
     dplyr::rename(logRatio = Ratio)
   
-  # Drivers
+  # Drivers & Connectors
   BC_drivers = BC %>% dplyr::select(-GVars)
   gdriver_index = which(BC_drivers$Gene.Symbol %in% general_drivers)
   pdriver_index = which(BC_drivers$Gene.Symbol %in% PDAC_drivers)
   BC_drivers$gdriver = "no"; BC_drivers$pdriver = "no"
   BC_drivers$gdriver[gdriver_index] = "yes"; BC_drivers$pdriver[pdriver_index] = "yes"
-  rm(gdriver_index, pdriver_index)
+  # Preparing the connectors at the same time
+  BC_connectors = BC_drivers
+  BC_connectors$r_0 = NA; BC_connectors$r_1 = NA;
+  #
   BC_drivers$glyph_color = "white"
   BC_drivers$glyph_color[BC_drivers$gdriver=="yes"] = "vdred_a15"
   BC_drivers$glyph_color[BC_drivers$pdriver=="yes"] = "vdgreen_a15"
@@ -1040,12 +1053,32 @@ for (i in 1:5){ # 4 stages + blood
                            ",glyphcolor=", glyph_color)) %>%
     dplyr::select(-gdriver, -pdriver, -glyph_color)
   
+  for (d in 1:nrow(BC_connectors)){
+    if (BC_connectors$gdriver[d]=="yes"){
+      BC_connectors$r_0[d] = BC_connectors$GEnd[d] - 3
+      BC_connectors$r_1[d] = BC_connectors$GEnd[d] - 2
+    }
+  }
+  
+  for (d in 1:nrow(BC_connectors)){
+    if (BC_connectors$pdriver[d]=="yes"){
+      BC_connectors$r_0[d] = BC_connectors$GEnd[d] - 3
+      BC_connectors$r_1[d] = BC_connectors$GEnd[d] - 2
+    }
+  }
+  
+  BC_connectors = BC_connectors %>% dplyr::select(PathChr, r_0, r_1) %>% na.omit()
+  rm(gdriver_index, pdriver_index, d)
+  
   KG_drivers = KG %>% dplyr::select(-GVars)
   gdriver_index = which(KG_drivers$Gene.Symbol %in% general_drivers)
   pdriver_index = which(KG_drivers$Gene.Symbol %in% PDAC_drivers)
   KG_drivers$gdriver = "no"; KG_drivers$pdriver = "no"
   KG_drivers$gdriver[gdriver_index] = "yes"; KG_drivers$pdriver[pdriver_index] = "yes"
-  rm(gdriver_index, pdriver_index)
+  # Preparing the connectors at the same time
+  KG_connectors = KG_drivers
+  KG_connectors$r_0 = NA; KG_connectors$r_1 = NA;
+  #
   KG_drivers$glyph_color = "white"
   KG_drivers$glyph_color[KG_drivers$gdriver=="yes"] = "vdred_a15"
   KG_drivers$glyph_color[KG_drivers$pdriver=="yes"] = "vdgreen_a15"
@@ -1054,21 +1087,41 @@ for (i in 1:5){ # 4 stages + blood
                            ",glyphcolor=", glyph_color)) %>%
     dplyr::select(-gdriver, -pdriver, -glyph_color)
   
+  for (d in 1:nrow(KG_connectors)){
+    if (KG_connectors$gdriver[d]=="yes"){
+      KG_connectors$r_0[d] = KG_connectors$GEnd[d] - 3
+      KG_connectors$r_1[d] = KG_connectors$GEnd[d] - 2
+    }
+  }
+  
+  for (d in 1:nrow(KG_connectors)){
+    if (KG_connectors$pdriver[d]=="yes"){
+      KG_connectors$r_0[d] = KG_connectors$GEnd[d] - 3
+      KG_connectors$r_1[d] = KG_connectors$GEnd[d] - 2
+    }
+  }
+  
+  KG_connectors = KG_connectors %>% dplyr::select(PathChr, r_0, r_1) %>% na.omit()
+  rm(gdriver_index, pdriver_index, d)
+  
   # Create histogram files for the genes for -log10(adjpval), degree, logfc:
   # logfc
-  BC_histogram_logfc = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol, -degree) %>%
+  BC_histogram_logfc = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", 
+                                                                  "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -degree, -status) %>%
     dplyr::rename(histvars = adjpval)
   BC_histogram_logfc$logfc = gsub("logfc=", "", BC_histogram_logfc$logfc)
   
-  KG_histogram_logfc = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol, -degree) %>%
+  KG_histogram_logfc = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval",
+                                                                  "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -degree, -status) %>%
     dplyr::rename(histvars = adjpval)
   KG_histogram_logfc$logfc = gsub("logfc=", "", KG_histogram_logfc$logfc)
   
   # adjpval
-  BC_histogram_adjpval = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol, -logfc, -degree)
+  BC_histogram_adjpval = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval",
+                                                                    "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -logfc, -degree, -status)
   BC_histogram_adjpval$adjpval = gsub("adjpval=", "", BC_histogram_adjpval$adjpval)
   nas = which(BC_histogram_adjpval$adjpval == "NA")
   if (length(nas) > 0){
@@ -1079,8 +1132,9 @@ for (i in 1:5){ # 4 stages + blood
   BC_histogram_adjpval = BC_histogram_adjpval %>%
     dplyr::rename(`neglogadjpval` = adjpval)
   
-  KG_histogram_adjpval = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol, -logfc, -degree)
+  KG_histogram_adjpval = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval",
+                                                                    "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -logfc, -degree, -status)
   KG_histogram_adjpval$adjpval = gsub("adjpval=", "", KG_histogram_adjpval$adjpval)
   nas = which(KG_histogram_adjpval$adjpval == "NA")
   if (length(nas) > 0){
@@ -1092,14 +1146,16 @@ for (i in 1:5){ # 4 stages + blood
     dplyr::rename(`neglogadjpval` = adjpval)
   
   # degree (how many miRNAs a gene interacts with)
-  BC_histogram_degree = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol) %>%
+  BC_histogram_degree = BC %>% separate(GVars, sep = ",", into = c("logfc", "adjpval",
+                                                                  "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -status) %>%
     dplyr::mutate(histvars = paste0(logfc, ",", adjpval)) %>%
     dplyr::select(-logfc, -adjpval)
   BC_histogram_degree$degree = gsub("degree=", "", BC_histogram_degree$degree)
   
-  KG_histogram_degree = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval", "degree")) %>%
-    dplyr::select(-Gene.Symbol) %>%
+  KG_histogram_degree = KG %>% separate(GVars, sep = ",", into = c("logfc", "adjpval",
+                                                                   "status", "degree")) %>%
+    dplyr::select(-Gene.Symbol, -status) %>%
     dplyr::mutate(histvars = paste0(logfc, ",", adjpval)) %>%
     dplyr::select(-logfc, -adjpval)
   KG_histogram_degree$degree = gsub("degree=", "", KG_histogram_degree$degree)
@@ -1246,12 +1302,14 @@ for (i in 1:5){ # 4 stages + blood
   Circos_universe[[i]][["BioCarta"]][[9]]  = BC_mutation
   Circos_universe[[i]][["BioCarta"]][[10]] = BC_drivers
   Circos_universe[[i]][["BioCarta"]][[11]] = miRNA_histogram_degree
+  Circos_universe[[i]][["BioCarta"]][[12]] = BC_connectors
   names(Circos_universe[[i]][["BioCarta"]]) = c("Karyotype", "Gene_Labels", "Drug_Labels", "miRNA_Labels",
                              "Links", "adjpval_histogram", "logFC_histogram", 
-                             "degree_histogram", "Mutations", "Drivers", "miRNA_histogram")
+                             "degree_histogram", "Mutations", "Drivers", "miRNA_histogram",
+                             "Connectors")
   
   rm(BC_karyotype, BC, BC_Drugs, BC_links, BC_histogram_adjpval, BC_histogram_degree,
-     BC_histogram_logfc, BC_mutation, BC_drivers)
+     BC_histogram_logfc, BC_mutation, BC_drivers, BC_connectors)
   
   Circos_universe[[i]][["KEGG"]][[1]]  = KG_karyotype
   Circos_universe[[i]][["KEGG"]][[2]]  = KG
@@ -1264,12 +1322,14 @@ for (i in 1:5){ # 4 stages + blood
   Circos_universe[[i]][["KEGG"]][[9]]  = KG_mutation
   Circos_universe[[i]][["KEGG"]][[10]] = KG_drivers
   Circos_universe[[i]][["KEGG"]][[11]] = miRNA_histogram_degree
+  Circos_universe[[i]][["KEGG"]][[12]] = KG_connectors
   names(Circos_universe[[i]][["KEGG"]]) = c("Karyotype", "Gene_Labels", "Drug_Labels", "miRNA_Labels",
                              "Links", "adjpval_histogram", "logFC_histogram", 
-                             "degree_histogram", "Mutations", "Drivers", "miRNA_histogram")
+                             "degree_histogram", "Mutations", "Drivers", "miRNA_histogram",
+                             "Connectors")
   
   rm(KG_karyotype, KG, KG_Drugs, miRNA, KG_links, KG_histogram_adjpval, KG_histogram_degree,
-     KG_histogram_logfc, KG_mutation, KG_drivers, miRNA_histogram_degree)
+     KG_histogram_logfc, KG_mutation, KG_drivers, miRNA_histogram_degree, KG_connectors)
   
   # Write out the .txt files that are necessary for the plots
   for(r in 1:length(Circos_universe[[i]][["BioCarta"]])){ # we will use BioCarta for both

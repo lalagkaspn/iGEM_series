@@ -741,7 +741,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                FCcutoff = 1,
                                col=c('grey', 'pink', 'purple4', 'red4'),
                                colAlpha = 0.7)
-tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1920, height = 1080, res = 100)
+tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1500, height = 1920, res = 100)
 TN_z_volcano
 dev.off()
 
