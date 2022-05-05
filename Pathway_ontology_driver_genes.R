@@ -5,12 +5,12 @@ library(pathfindR)
 library(openxlsx)
 library(dplyr)
 library(ggplot2)
+library(cowplot)
 
 # Visualisations of pathways have been moved to a folder outside the repository
 # due to large size and difficulties with uploading to GitHub
 gene_sets = c("BioCarta", "GO-BP", "GO-CC", "GO-MF", "KEGG", "Reactome")
-axis_text_size = c(10, 5, 5, 5, 5, 10)
-names(axis_text_size) = gene_sets
+axis_text_size = c(8, 5, 5, 5, 6, 8)
 
 # Stage 1 #####
 # Loading the input to pathfindR (the stage 1 vs normal topTable output):
@@ -56,17 +56,42 @@ names(clustered_results_stage_1) = cluster_names
 # GO-MF    : The maximum average silhouette width was 0.12 for k = 172
 # KEGG     : The maximum average silhouette width was 0.14 for k = 108 
 
+# Wrapping the text of terms with too many characters in their description
+wrapped_pathfindR_outputs_stage_1 = pathfindR_outputs_stage_1
+for (i in 1:length(wrapped_pathfindR_outputs_stage_1)){
+  wrapped_pathfindR_outputs_stage_1[[i]]$Term_Description = stringr::str_wrap(pathfindR_outputs_stage_1[[i]]$Term_Description, 
+                                                                      width = 41)
+}
+rm(i)
+
+wrapped_clustered_pathfindR_outputs_stage_1 = clustered_results_stage_1
+for (i in 1:length(wrapped_clustered_pathfindR_outputs_stage_1)){
+  wrapped_clustered_pathfindR_outputs_stage_1[[i]]$Term_Description = stringr::str_wrap(clustered_results_stage_1[[i]]$Term_Description, 
+                                                                                width = 41)
+}
+rm(i)
+
+stages = c("Stage 1", "Stage 2", "Stage 3", "Stage 4", "Blood samples")
+names(stages) = c("stage_1", "stage_2", "stage_3", "stage_4", "blood")
+
 enrichment_dotplots_stage_1 = list()
 cluster_enrichment_dotplots_stage_1 = list()
 
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs_stage_1)){
   # unclustered results
-  enrichment_dotplots_stage_1[[i]] = enrichment_chart(result_df = pathfindR_outputs_stage_1[[i]],
-                                                      top_terms = 10)
-  tiff(paste0("pathfindR/Stage_1/", names(pathfindR_outputs_stage_1)[i], "/",
+  enrichment_dotplots_stage_1[[i]] = enrichment_chart(result_df = wrapped_pathfindR_outputs_stage_1[[i]],
+                                                      top_terms = 10)+
+    scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+    theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+          axis.text.y = element_text(color = "black", size = 14),
+          axis.text.x = element_text(color = "black", size = 14),
+          axis.title.x = element_text(size = 15, face = "bold"))+
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_1)[i],
+                        " terms enrichment dotplot - (", stages["stage_1"], ")"))
+  tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
              names(pathfindR_outputs_stage_1)[i], "_top10_dotplot.tif"), 
-      width = 1920, height = 1080, res = 150)
+       width = 2880, height = 1620, res = 210)
   print(enrichment_dotplots_stage_1[[i]])
   dev.off()
   
@@ -75,13 +100,20 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
       names(pathfindR_outputs_stage_1)[i] == "GO-MF" |
       names(pathfindR_outputs_stage_1)[i] == "KEGG"){
     # clustered results
-    cluster_enrichment_dotplots_stage_1[[i]] = enrichment_chart(result_df = clustered_results_stage_1[[names(pathfindR_outputs_stage_1)[i]]][clustered_results_stage_1[[names(pathfindR_outputs_stage_1)[i]]]$Status
+    cluster_enrichment_dotplots_stage_1[[i]] = enrichment_chart(result_df = wrapped_clustered_pathfindR_outputs_stage_1[[names(pathfindR_outputs_stage_1)[i]]][clustered_results_stage_1[[names(pathfindR_outputs_stage_1)[i]]]$Status
                                                                                                                     == "Representative", ][1:10,],
                                                                 top_terms = NULL,
-                            plot_by_cluster = TRUE)
-    tiff(paste0("pathfindR/Stage_1/", names(pathfindR_outputs_stage_1)[i], "/",
+                            plot_by_cluster = TRUE)+
+      scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+      theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+            axis.text.y = element_text(color = "black", size = 12),
+            axis.text.x = element_text(color = "black", size = 14),
+            axis.title.x = element_text(size = 15, face = "bold"))+
+      labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_1)[i],
+                          " terms enrichment dotplot - (", stages["stage_1"], ")"))
+    tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
                names(pathfindR_outputs_stage_1)[i], "_top10_dotplot_clustered.tif"), 
-         width = 1920, height = 1080, res = 150)
+         width = 2880, height = 1620, res = 210)
     print(cluster_enrichment_dotplots_stage_1[[i]])
     dev.off()
   }
@@ -125,34 +157,88 @@ saveWorkbook(wb2, file = "pathfindR/Stage_1/Representative_terms.xlsx",
              overwrite = TRUE); rm(wb2)
 
 # Term-gene heatmaps and term-gene graphs #####
+
+# Defining a legend alignment function 
+align_legend <- function(p, hjust = 0.5)
+{
+  # extract legend
+  g <- cowplot::plot_to_gtable(p)
+  grobs <- g$grobs
+  legend_index <- which(sapply(grobs, function(x) x$name) == "guide-box")
+  legend <- grobs[[legend_index]]
+  
+  # extract guides table
+  guides_index <- which(sapply(legend$grobs, function(x) x$name) == "layout")
+  
+  # there can be multiple guides within one legend box  
+  for (gi in guides_index) {
+    guides <- legend$grobs[[gi]]
+    
+    # add extra column for spacing
+    # guides$width[5] is the extra spacing from the end of the legend text
+    # to the end of the legend title. If we instead distribute it by `hjust:(1-hjust)` on
+    # both sides, we get an aligned legend
+    spacing <- guides$width[5]
+    guides <- gtable::gtable_add_cols(guides, hjust*spacing, 1)
+    guides$widths[6] <- (1-hjust)*spacing
+    title_index <- guides$layout$name == "title"
+    guides$layout$l[title_index] <- 2
+    
+    # reconstruct guides and write back
+    legend$grobs[[gi]] <- guides
+  }
+  
+  # reconstruct legend and write back
+  g$grobs[[legend_index]] <- legend
+  g
+}
+
 term_gene_heatmaps_stage_1 = list()
 term_gene_graphs_stage_1 = list()
 
 for (i in 1:length(pathfindR_outputs_stage_1)){
   # term-gene heatmaps
-  term_gene_heatmaps_stage_1[[i]] = term_gene_heatmap(result_df = pathfindR_outputs_stage_1[[i]],
+  term_gene_heatmaps_stage_1[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_stage_1[[i]],
                                               genes_df = Stage_1_tT,
                                               num_terms = 5,
                                               use_description = TRUE,
                                               low = "darkgreen",
                                               high = "darkred",
                                               mid = "black")+
-    theme(axis.text.x = element_text(size = axis_text_size[[i]]),
-          axis.text.y = element_text(size = 12))
-  tiff(paste0("pathfindR/Stage_1/", names(pathfindR_outputs_stage_1)[i], "/",
-             names(pathfindR_outputs_stage_1)[i], "_top5_term_gene_heatmap.tif"), 
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          axis.text.x = element_text(size = axis_text_size[i], vjust = 0.5, color = "black"),
+          axis.text.y = element_text(size = 13),
+          legend.title = element_text(size = 13),
+          legend.title.align = 0.5,
+          legend.direction = "vertical") +
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_1)[i], 
+                        " terms - differentially expressed genes heatmap (",
+                        stages["stage_1"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_term_gene_heatmap.tif"), 
       width = 3840, height = 648, res = 150)
-  print(term_gene_heatmaps_stage_1[[i]])
+  print(ggdraw(align_legend(term_gene_heatmaps_stage_1[[i]], hjust = 0.5)))
   dev.off()
   
   # term-gene graphs
   term_gene_graphs_stage_1[[i]] = term_gene_graph(result_df = pathfindR_outputs_stage_1[[i]],
                                               num_terms = 3,
                                               use_description = TRUE,
-                                          node_size = "p_val")
-  tiff(paste0("pathfindR/Stage_1/", names(pathfindR_outputs_stage_1)[i], "/",
-             names(pathfindR_outputs_stage_1)[i], "_top3_term_gene_graph.tif"), 
-      width = 1920, height = 1080, res = 100)
+                                          node_size = "p_val")+
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5, vjust = 0.5),
+          legend.title = element_text(size = 15),
+          legend.title.align = 0.5,
+          legend.direction = "vertical",
+          legend.text = element_text(size = 13))+
+    labs(title = paste0("Top 3 ", names(wrapped_pathfindR_outputs_stage_1)[i], 
+                        " term - gene graph (",
+                        stages["stage_1"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top3_term_gene_graph.tif"), 
+       width = 1920, height = 1080, res = 100)
   print(term_gene_graphs_stage_1[[i]])
   dev.off()
 }
@@ -160,8 +246,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
 # UpSet plots #####
 UpSet_plots_stage_1 = list()
 for (i in 1:length(pathfindR_outputs_stage_1)){
-  # term-gene heatmaps
-  UpSet_plots_stage_1[[i]] = UpSet_plot(result_df = pathfindR_outputs_stage_1[[i]],
+  # UpSet plot
+  UpSet_plots_stage_1[[i]] = UpSet_plot(result_df = wrapped_pathfindR_outputs_stage_1[[i]],
                                 genes_df = Stage_1_tT,
                                 num_terms = 5,
                                 use_description = TRUE,
@@ -169,8 +255,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
                                 high = "darkred",
                                 mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
-  tiff(paste0("pathfindR/Stage_1/", names(pathfindR_outputs_stage_1)[i], "/",
-             names(pathfindR_outputs_stage_1)[i], "_top5_UpSet_plot.tif"), 
+  tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_UpSet_plot.tif"), 
       width = 1444, height = 3840, res = 150)
   print(UpSet_plots_stage_1[[i]])
   dev.off()
@@ -224,17 +310,39 @@ names(clustered_results_stage_2) = cluster_names
 # GO-MF    : The maximum average silhouette width was 0.09 for k = 168 
 # KEGG     : The maximum average silhouette width was 0.13 for k = 78 
 
+# Wrapping the text of terms with too many characters in their description
+wrapped_pathfindR_outputs_stage_2 = pathfindR_outputs_stage_2
+for (i in 1:length(wrapped_pathfindR_outputs_stage_2)){
+  wrapped_pathfindR_outputs_stage_2[[i]]$Term_Description = stringr::str_wrap(pathfindR_outputs_stage_2[[i]]$Term_Description, 
+                                                                              width = 41)
+}
+rm(i)
+
+wrapped_clustered_pathfindR_outputs_stage_2 = clustered_results_stage_2
+for (i in 1:length(wrapped_clustered_pathfindR_outputs_stage_2)){
+  wrapped_clustered_pathfindR_outputs_stage_2[[i]]$Term_Description = stringr::str_wrap(clustered_results_stage_2[[i]]$Term_Description, 
+                                                                                        width = 41)
+}
+rm(i)
+
 enrichment_dotplots_stage_2 = list()
 cluster_enrichment_dotplots_stage_2 = list()
 
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs_stage_2)){
   # unclustered results
-  enrichment_dotplots_stage_2[[i]] = enrichment_chart(result_df = pathfindR_outputs_stage_2[[i]],
-                                                      top_terms = 10)
-  tiff(paste0("pathfindR/Stage_2/", names(pathfindR_outputs_stage_2)[i], "/",
+  enrichment_dotplots_stage_2[[i]] = enrichment_chart(result_df = wrapped_pathfindR_outputs_stage_2[[i]],
+                                                      top_terms = 10)+
+    scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+    theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+          axis.text.y = element_text(color = "black", size = 14),
+          axis.text.x = element_text(color = "black", size = 14),
+          axis.title.x = element_text(size = 15, face = "bold"))+
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_2)[i],
+                        " terms enrichment dotplot - (", stages["stage_2"], ")"))
+  tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
               names(pathfindR_outputs_stage_2)[i], "_top10_dotplot.tif"), 
-       width = 1920, height = 1080, res = 150)
+       width = 2880, height = 1620, res = 210)
   print(enrichment_dotplots_stage_2[[i]])
   dev.off()
   
@@ -243,13 +351,20 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
       names(pathfindR_outputs_stage_2)[i] == "GO-MF" |
       names(pathfindR_outputs_stage_2)[i] == "KEGG"){
     # clustered results
-    cluster_enrichment_dotplots_stage_2[[i]] = enrichment_chart(result_df = clustered_results_stage_2[[names(pathfindR_outputs_stage_2)[i]]][clustered_results_stage_2[[names(pathfindR_outputs_stage_2)[i]]]$Status
-                                                                                                           == "Representative", ][1:10,],
+    cluster_enrichment_dotplots_stage_2[[i]] = enrichment_chart(result_df = wrapped_clustered_pathfindR_outputs_stage_2[[names(pathfindR_outputs_stage_2)[i]]][clustered_results_stage_2[[names(pathfindR_outputs_stage_2)[i]]]$Status
+                                                                                                                                                               == "Representative", ][1:10,],
                                                                 top_terms = NULL,
-                                                                plot_by_cluster = TRUE)
-    tiff(paste0("pathfindR/Stage_2/", names(pathfindR_outputs_stage_2)[i], "/",
+                                                                plot_by_cluster = TRUE)+
+      scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+      theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+            axis.text.y = element_text(color = "black", size = 12),
+            axis.text.x = element_text(color = "black", size = 14),
+            axis.title.x = element_text(size = 15, face = "bold"))+
+      labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_2)[i],
+                          " terms enrichment dotplot - (", stages["stage_2"], ")"))
+    tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
                 names(pathfindR_outputs_stage_2)[i], "_top10_dotplot_clustered.tif"), 
-         width = 1920, height = 1080, res = 150)
+         width = 2880, height = 1620, res = 210)
     print(cluster_enrichment_dotplots_stage_2[[i]])
     dev.off()
   }
@@ -296,30 +411,49 @@ saveWorkbook(wb2, file = "pathfindR/Stage_2/Representative_terms.xlsx",
 term_gene_heatmaps_stage_2 = list()
 term_gene_graphs_stage_2 = list()
 
+# Loop not executable for the term-gene graph for i = 2 #
 for (i in 1:length(pathfindR_outputs_stage_2)){
   # term-gene heatmaps
-  term_gene_heatmaps_stage_2[[i]] = term_gene_heatmap(result_df = pathfindR_outputs_stage_2[[i]],
+  term_gene_heatmaps_stage_2[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_stage_2[[i]],
                                                       genes_df = Stage_2_tT,
                                                       num_terms = 5,
                                                       use_description = TRUE,
                                                       low = "darkgreen",
                                                       high = "darkred",
                                                       mid = "black")+
-    theme(axis.text.x = element_text(size = axis_text_size[[i]]),
-          axis.text.y = element_text(size = 12))
-  tiff(paste0("pathfindR/Stage_2/", names(pathfindR_outputs_stage_2)[i], "/",
-              names(pathfindR_outputs_stage_2)[i], "_top5_term_gene_heatmap.tif"), 
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          axis.text.x = element_text(size = axis_text_size[i], vjust = 0.5, color = "black"),
+          axis.text.y = element_text(size = 13),
+          legend.title = element_text(size = 13),
+          legend.title.align = 0.5,
+          legend.direction = "vertical") +
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_2)[i], 
+                        " terms - differentially expressed genes heatmap (",
+                        stages["stage_2"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_term_gene_heatmap.tif"), 
        width = 3840, height = 648, res = 150)
-  print(term_gene_heatmaps_stage_2[[i]])
+  print(ggdraw(align_legend(term_gene_heatmaps_stage_2[[i]], hjust = 0.5)))
   dev.off()
-  
-  # term-gene graphs (fatal error for i = 2)
+
+  # term-gene graphs
   term_gene_graphs_stage_2[[i]] = term_gene_graph(result_df = pathfindR_outputs_stage_2[[i]],
                                                   num_terms = 3,
                                                   use_description = TRUE,
-                                                  node_size = "p_val")
-  tiff(paste0("pathfindR/Stage_2/", names(pathfindR_outputs_stage_2)[i], "/",
-              names(pathfindR_outputs_stage_2)[i], "_top3_term_gene_graph.tif"), 
+                                                  node_size = "p_val")+
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5, vjust = 0.5),
+          legend.title = element_text(size = 15),
+          legend.title.align = 0.5,
+          legend.direction = "vertical",
+          legend.text = element_text(size = 13))+
+    labs(title = paste0("Top 3 ", names(wrapped_pathfindR_outputs_stage_2)[i], 
+                        " term - gene graph (",
+                        stages["stage_2"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top3_term_gene_graph.tif"), 
        width = 1920, height = 1080, res = 100)
   print(term_gene_graphs_stage_2[[i]])
   dev.off()
@@ -328,8 +462,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
 # UpSet plots #####
 UpSet_plots_stage_2 = list()
 for (i in 1:length(pathfindR_outputs_stage_2)){
-  # term-gene heatmaps
-  UpSet_plots_stage_2[[i]] = UpSet_plot(result_df = pathfindR_outputs_stage_2[[i]],
+  # UpSet plot
+  UpSet_plots_stage_2[[i]] = UpSet_plot(result_df = wrapped_pathfindR_outputs_stage_2[[i]],
                                         genes_df = Stage_2_tT,
                                         num_terms = 5,
                                         use_description = TRUE,
@@ -337,8 +471,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
                                         high = "darkred",
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
-  tiff(paste0("pathfindR/Stage_2/", names(pathfindR_outputs_stage_2)[i], "/",
-              names(pathfindR_outputs_stage_2)[i], "_top5_UpSet_plot.tif"), 
+  tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_UpSet_plot.tif"), 
        width = 1444, height = 3840, res = 150)
   print(UpSet_plots_stage_2[[i]])
   dev.off()
@@ -392,17 +526,39 @@ names(clustered_results_stage_3) = cluster_names
 # GO-MF   : The maximum average silhouette width was 0.1  for k = 186
 # KEGG    : The maximum average silhouette width was 0.13 for k = 75
 
+# Wrapping the text of terms with too many characters in their description
+wrapped_pathfindR_outputs_stage_3 = pathfindR_outputs_stage_3
+for (i in 1:length(wrapped_pathfindR_outputs_stage_3)){
+  wrapped_pathfindR_outputs_stage_3[[i]]$Term_Description = stringr::str_wrap(pathfindR_outputs_stage_3[[i]]$Term_Description, 
+                                                                              width = 41)
+}
+rm(i)
+
+wrapped_clustered_pathfindR_outputs_stage_3 = clustered_results_stage_3
+for (i in 1:length(wrapped_clustered_pathfindR_outputs_stage_3)){
+  wrapped_clustered_pathfindR_outputs_stage_3[[i]]$Term_Description = stringr::str_wrap(clustered_results_stage_3[[i]]$Term_Description, 
+                                                                                        width = 41)
+}
+rm(i)
+
 enrichment_dotplots_stage_3 = list()
 cluster_enrichment_dotplots_stage_3 = list()
 
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs_stage_3)){
   # unclustered results
-  enrichment_dotplots_stage_3[[i]] = enrichment_chart(result_df = pathfindR_outputs_stage_3[[i]],
-                                                      top_terms = 10)
-  tiff(paste0("pathfindR/Stage_3/", names(pathfindR_outputs_stage_3)[i], "/",
+  enrichment_dotplots_stage_3[[i]] = enrichment_chart(result_df = wrapped_pathfindR_outputs_stage_3[[i]],
+                                                      top_terms = 10)+
+    scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+    theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+          axis.text.y = element_text(color = "black", size = 14),
+          axis.text.x = element_text(color = "black", size = 14),
+          axis.title.x = element_text(size = 15, face = "bold"))+
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_3)[i],
+                        " terms enrichment dotplot - (", stages["stage_3"], ")"))
+  tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
               names(pathfindR_outputs_stage_3)[i], "_top10_dotplot.tif"), 
-       width = 1920, height = 1080, res = 150)
+       width = 2880, height = 1620, res = 210)
   print(enrichment_dotplots_stage_3[[i]])
   dev.off()
   
@@ -411,13 +567,20 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
       names(pathfindR_outputs_stage_3)[i] == "GO-MF" |
       names(pathfindR_outputs_stage_3)[i] == "KEGG"){
     # clustered results
-    cluster_enrichment_dotplots_stage_3[[i]] = enrichment_chart(result_df = clustered_results_stage_3[[names(pathfindR_outputs_stage_3)[i]]][clustered_results_stage_3[[names(pathfindR_outputs_stage_3)[i]]]$Status
-                                                                                                           == "Representative", ][1:10,],
+    cluster_enrichment_dotplots_stage_3[[i]] = enrichment_chart(result_df = wrapped_clustered_pathfindR_outputs_stage_3[[names(pathfindR_outputs_stage_3)[i]]][clustered_results_stage_3[[names(pathfindR_outputs_stage_3)[i]]]$Status
+                                                                                                                                                               == "Representative", ][1:10,],
                                                                 top_terms = NULL,
-                                                                plot_by_cluster = TRUE)
-    tiff(paste0("pathfindR/Stage_3/", names(pathfindR_outputs_stage_3)[i], "/",
+                                                                plot_by_cluster = TRUE)+
+      scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+      theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+            axis.text.y = element_text(color = "black", size = 12),
+            axis.text.x = element_text(color = "black", size = 14),
+            axis.title.x = element_text(size = 15, face = "bold"))+
+      labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_3)[i],
+                          " terms enrichment dotplot - (", stages["stage_3"], ")"))
+    tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
                 names(pathfindR_outputs_stage_3)[i], "_top10_dotplot_clustered.tif"), 
-         width = 1920, height = 1080, res = 150)
+         width = 2880, height = 1620, res = 210)
     print(cluster_enrichment_dotplots_stage_3[[i]])
     dev.off()
   }
@@ -466,28 +629,46 @@ term_gene_graphs_stage_3 = list()
 
 for (i in 1:length(pathfindR_outputs_stage_3)){
   # term-gene heatmaps
-  term_gene_heatmaps_stage_3[[i]] = term_gene_heatmap(result_df = pathfindR_outputs_stage_3[[i]],
+  term_gene_heatmaps_stage_3[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_stage_3[[i]],
                                                       genes_df = Stage_3_tT,
                                                       num_terms = 5,
                                                       use_description = TRUE,
                                                       low = "darkgreen",
                                                       high = "darkred",
                                                       mid = "black")+
-    theme(axis.text.x = element_text(size = axis_text_size[[i]]),
-          axis.text.y = element_text(size = 12))
-  tiff(paste0("pathfindR/Stage_3/", names(pathfindR_outputs_stage_3)[i], "/",
-              names(pathfindR_outputs_stage_3)[i], "_top5_term_gene_heatmap.tif"), 
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          axis.text.x = element_text(size = axis_text_size[i], vjust = 0.5, color = "black"),
+          axis.text.y = element_text(size = 13),
+          legend.title = element_text(size = 13),
+          legend.title.align = 0.5,
+          legend.direction = "vertical") +
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_3)[i], 
+                        " terms - differentially expressed genes heatmap (",
+                        stages["stage_3"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_term_gene_heatmap.tif"), 
        width = 3840, height = 648, res = 150)
-  print(term_gene_heatmaps_stage_3[[i]])
+  print(ggdraw(align_legend(term_gene_heatmaps_stage_3[[i]], hjust = 0.5)))
   dev.off()
   
   # term-gene graphs
   term_gene_graphs_stage_3[[i]] = term_gene_graph(result_df = pathfindR_outputs_stage_3[[i]],
                                                   num_terms = 3,
                                                   use_description = TRUE,
-                                                  node_size = "p_val")
-  tiff(paste0("pathfindR/Stage_3/", names(pathfindR_outputs_stage_3)[i], "/",
-              names(pathfindR_outputs_stage_3)[i], "_top3_term_gene_graph.tif"), 
+                                                  node_size = "p_val")+
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5, vjust = 0.5),
+          legend.title = element_text(size = 15),
+          legend.title.align = 0.5,
+          legend.direction = "vertical",
+          legend.text = element_text(size = 13))+
+    labs(title = paste0("Top 3 ", names(wrapped_pathfindR_outputs_stage_3)[i], 
+                        " term - gene graph (",
+                        stages["stage_3"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top3_term_gene_graph.tif"), 
        width = 1920, height = 1080, res = 100)
   print(term_gene_graphs_stage_3[[i]])
   dev.off()
@@ -496,8 +677,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
 # UpSet plots #####
 UpSet_plots_stage_3 = list()
 for (i in 1:length(pathfindR_outputs_stage_3)){
-  # term-gene heatmaps
-  UpSet_plots_stage_3[[i]] = UpSet_plot(result_df = pathfindR_outputs_stage_3[[i]],
+  # UpSet plot
+  UpSet_plots_stage_3[[i]] = UpSet_plot(result_df = wrapped_pathfindR_outputs_stage_3[[i]],
                                         genes_df = Stage_3_tT,
                                         num_terms = 5,
                                         use_description = TRUE,
@@ -505,8 +686,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
                                         high = "darkred",
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
-  tiff(paste0("pathfindR/Stage_3/", names(pathfindR_outputs_stage_3)[i], "/",
-              names(pathfindR_outputs_stage_3)[i], "_top5_UpSet_plot.tif"), 
+  tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_UpSet_plot.tif"), 
        width = 1444, height = 3840, res = 150)
   print(UpSet_plots_stage_3[[i]])
   dev.off()
@@ -560,17 +741,39 @@ names(clustered_results_stage_4) = cluster_names
 # GO-MF   : The maximum average silhouette width was 0.11 for k = 188
 # KEGG    : The maximum average silhouette width was 0.14 for k = 109
 
+# Wrapping the text of terms with too many characters in their description
+wrapped_pathfindR_outputs_stage_4 = pathfindR_outputs_stage_4
+for (i in 1:length(wrapped_pathfindR_outputs_stage_4)){
+  wrapped_pathfindR_outputs_stage_4[[i]]$Term_Description = stringr::str_wrap(pathfindR_outputs_stage_4[[i]]$Term_Description, 
+                                                                              width = 41)
+}
+rm(i)
+
+wrapped_clustered_pathfindR_outputs_stage_4 = clustered_results_stage_4
+for (i in 1:length(wrapped_clustered_pathfindR_outputs_stage_4)){
+  wrapped_clustered_pathfindR_outputs_stage_4[[i]]$Term_Description = stringr::str_wrap(clustered_results_stage_4[[i]]$Term_Description, 
+                                                                                        width = 41)
+}
+rm(i)
+
 enrichment_dotplots_stage_4 = list()
 cluster_enrichment_dotplots_stage_4 = list()
 
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs_stage_4)){
   # unclustered results
-  enrichment_dotplots_stage_4[[i]] = enrichment_chart(result_df = pathfindR_outputs_stage_4[[i]],
-                                                      top_terms = 10)
-  tiff(paste0("pathfindR/Stage_4/", names(pathfindR_outputs_stage_4)[i], "/",
+  enrichment_dotplots_stage_4[[i]] = enrichment_chart(result_df = wrapped_pathfindR_outputs_stage_4[[i]],
+                                                      top_terms = 10)+
+    scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+    theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+          axis.text.y = element_text(color = "black", size = 14),
+          axis.text.x = element_text(color = "black", size = 14),
+          axis.title.x = element_text(size = 15, face = "bold"))+
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_4)[i],
+                        " terms enrichment dotplot - (", stages["stage_4"], ")"))
+  tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
               names(pathfindR_outputs_stage_4)[i], "_top10_dotplot.tif"), 
-       width = 1920, height = 1080, res = 150)
+       width = 2880, height = 1620, res = 210)
   print(enrichment_dotplots_stage_4[[i]])
   dev.off()
   
@@ -579,13 +782,20 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
       names(pathfindR_outputs_stage_4)[i] == "GO-MF" |
       names(pathfindR_outputs_stage_4)[i] == "KEGG"){
     # clustered results
-    cluster_enrichment_dotplots_stage_4[[i]] = enrichment_chart(result_df = clustered_results_stage_4[[names(pathfindR_outputs_stage_4)[i]]][clustered_results_stage_4[[names(pathfindR_outputs_stage_4)[i]]]$Status
-                                                                                                           == "Representative", ][1:10,],
+    cluster_enrichment_dotplots_stage_4[[i]] = enrichment_chart(result_df = wrapped_clustered_pathfindR_outputs_stage_4[[names(pathfindR_outputs_stage_4)[i]]][clustered_results_stage_4[[names(pathfindR_outputs_stage_4)[i]]]$Status
+                                                                                                                                                               == "Representative", ][1:10,],
                                                                 top_terms = NULL,
-                                                                plot_by_cluster = TRUE)
-    tiff(paste0("pathfindR/Stage_4/", names(pathfindR_outputs_stage_4)[i], "/",
+                                                                plot_by_cluster = TRUE)+
+      scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+      theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+            axis.text.y = element_text(color = "black", size = 12),
+            axis.text.x = element_text(color = "black", size = 14),
+            axis.title.x = element_text(size = 15, face = "bold"))+
+      labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_4)[i],
+                          " terms enrichment dotplot - (", stages["stage_4"], ")"))
+    tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
                 names(pathfindR_outputs_stage_4)[i], "_top10_dotplot_clustered.tif"), 
-         width = 1920, height = 1080, res = 150)
+         width = 2880, height = 1620, res = 210)
     print(cluster_enrichment_dotplots_stage_4[[i]])
     dev.off()
   }
@@ -634,28 +844,46 @@ term_gene_graphs_stage_4 = list()
 
 for (i in 1:length(pathfindR_outputs_stage_4)){
   # term-gene heatmaps
-  term_gene_heatmaps_stage_4[[i]] = term_gene_heatmap(result_df = pathfindR_outputs_stage_4[[i]],
+  term_gene_heatmaps_stage_4[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_stage_4[[i]],
                                                       genes_df = Stage_4_tT,
                                                       num_terms = 5,
                                                       use_description = TRUE,
                                                       low = "darkgreen",
                                                       high = "darkred",
                                                       mid = "black")+
-    theme(axis.text.x = element_text(size = axis_text_size[[i]]),
-          axis.text.y = element_text(size = 12))
-  tiff(paste0("pathfindR/Stage_4/", names(pathfindR_outputs_stage_4)[i], "/",
-              names(pathfindR_outputs_stage_4)[i], "_top5_term_gene_heatmap.tif"), 
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          axis.text.x = element_text(size = axis_text_size[i], vjust = 0.5, color = "black"),
+          axis.text.y = element_text(size = 13),
+          legend.title = element_text(size = 13),
+          legend.title.align = 0.5,
+          legend.direction = "vertical") +
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_4)[i], 
+                        " terms - differentially expressed genes heatmap (",
+                        stages["stage_4"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_term_gene_heatmap.tif"), 
        width = 3840, height = 648, res = 150)
-  print(term_gene_heatmaps_stage_4[[i]])
+  print(ggdraw(align_legend(term_gene_heatmaps_stage_4[[i]], hjust = 0.5)))
   dev.off()
   
   # term-gene graphs
   term_gene_graphs_stage_4[[i]] = term_gene_graph(result_df = pathfindR_outputs_stage_4[[i]],
                                                   num_terms = 3,
                                                   use_description = TRUE,
-                                                  node_size = "p_val")
-  tiff(paste0("pathfindR/Stage_4/", names(pathfindR_outputs_stage_4)[i], "/",
-              names(pathfindR_outputs_stage_4)[i], "_top3_term_gene_graph.tif"), 
+                                                  node_size = "p_val")+
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5, vjust = 0.5),
+          legend.title = element_text(size = 15),
+          legend.title.align = 0.5,
+          legend.direction = "vertical",
+          legend.text = element_text(size = 13))+
+    labs(title = paste0("Top 3 ", names(wrapped_pathfindR_outputs_stage_4)[i], 
+                        " term - gene graph (",
+                        stages["stage_4"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top3_term_gene_graph.tif"), 
        width = 1920, height = 1080, res = 100)
   print(term_gene_graphs_stage_4[[i]])
   dev.off()
@@ -664,8 +892,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
 # UpSet plots #####
 UpSet_plots_stage_4 = list()
 for (i in 1:length(pathfindR_outputs_stage_4)){
-  # term-gene heatmaps
-  UpSet_plots_stage_4[[i]] = UpSet_plot(result_df = pathfindR_outputs_stage_4[[i]],
+  # UpSet plot
+  UpSet_plots_stage_4[[i]] = UpSet_plot(result_df = wrapped_pathfindR_outputs_stage_4[[i]],
                                         genes_df = Stage_4_tT,
                                         num_terms = 5,
                                         use_description = TRUE,
@@ -673,8 +901,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
                                         high = "darkred",
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
-  tiff(paste0("pathfindR/Stage_4/", names(pathfindR_outputs_stage_4)[i], "/",
-              names(pathfindR_outputs_stage_4)[i], "_top5_UpSet_plot.tif"), 
+  tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_UpSet_plot.tif"), 
        width = 1444, height = 3840, res = 150)
   print(UpSet_plots_stage_4[[i]])
   dev.off()
@@ -728,17 +956,39 @@ names(clustered_results_blood) = cluster_names
 # GO-MF   : The maximum average silhouette width was 0.12 for k = 135
 # KEGG    : The maximum average silhouette width was 0.13 for k = 70
 
+# Wrapping the text of terms with too many characters in their description
+wrapped_pathfindR_outputs_blood = pathfindR_outputs_blood
+for (i in 1:length(wrapped_pathfindR_outputs_blood)){
+  wrapped_pathfindR_outputs_blood[[i]]$Term_Description = stringr::str_wrap(pathfindR_outputs_blood[[i]]$Term_Description, 
+                                                                            width = 41)
+}
+rm(i)
+
+wrapped_clustered_pathfindR_outputs_blood = clustered_results_blood
+for (i in 1:length(wrapped_clustered_pathfindR_outputs_blood)){
+  wrapped_clustered_pathfindR_outputs_blood[[i]]$Term_Description = stringr::str_wrap(clustered_results_blood[[i]]$Term_Description, 
+                                                                                      width = 41)
+}
+rm(i)
+
 enrichment_dotplots_blood = list()
 cluster_enrichment_dotplots_blood = list()
 
 # Producing dotplots with the results
 for (i in 1:length(pathfindR_outputs_blood)){
   # unclustered results
-  enrichment_dotplots_blood[[i]] = enrichment_chart(result_df = pathfindR_outputs_blood[[i]],
-                                                    top_terms = 10)
-  tiff(paste0("pathfindR/Blood/", names(pathfindR_outputs_blood)[i], "/",
+  enrichment_dotplots_blood[[i]] = enrichment_chart(result_df = wrapped_pathfindR_outputs_blood[[i]],
+                                                    top_terms = 10)+
+    scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+    theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+          axis.text.y = element_text(color = "black", size = 14),
+          axis.text.x = element_text(color = "black", size = 14),
+          axis.title.x = element_text(size = 15, face = "bold"))+
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_blood)[i],
+                        " terms enrichment dotplot - (", stages["blood"], ")"))
+  tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
               names(pathfindR_outputs_blood)[i], "_top10_dotplot.tif"), 
-       width = 1920, height = 1080, res = 150)
+       width = 2880, height = 1620, res = 210)
   print(enrichment_dotplots_blood[[i]])
   dev.off()
   
@@ -747,13 +997,20 @@ for (i in 1:length(pathfindR_outputs_blood)){
       names(pathfindR_outputs_blood)[i] == "GO-MF" |
       names(pathfindR_outputs_blood)[i] == "KEGG"){
     # clustered results
-    cluster_enrichment_dotplots_blood[[i]] = enrichment_chart(result_df = clustered_results_blood[[names(pathfindR_outputs_blood)[i]]][clustered_results_blood[[names(pathfindR_outputs_blood)[i]]]$Status
-                                                                                                       == "Representative", ][1:10,],
+    cluster_enrichment_dotplots_blood[[i]] = enrichment_chart(result_df = wrapped_clustered_pathfindR_outputs_blood[[names(pathfindR_outputs_blood)[i]]][clustered_results_blood[[names(pathfindR_outputs_blood)[i]]]$Status
+                                                                                                                                                         == "Representative", ][1:10,],
                                                               top_terms = NULL,
-                                                              plot_by_cluster = TRUE)
-    tiff(paste0("pathfindR/Blood/", names(pathfindR_outputs_blood)[i], "/",
+                                                              plot_by_cluster = TRUE)+
+      scale_color_gradient(low = "#fca4a4", high = "#fc0303")+
+      theme(plot.title = element_text(size = 15, face = "bold", vjust = 1),
+            axis.text.y = element_text(color = "black", size = 12),
+            axis.text.x = element_text(color = "black", size = 14),
+            axis.title.x = element_text(size = 15, face = "bold"))+
+      labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_blood)[i],
+                          " terms enrichment dotplot - (", stages["blood"], ")"))
+    tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
                 names(pathfindR_outputs_blood)[i], "_top10_dotplot_clustered.tif"), 
-         width = 1920, height = 1080, res = 150)
+         width = 2880, height = 1620, res = 210)
     print(cluster_enrichment_dotplots_blood[[i]])
     dev.off()
   }
@@ -802,28 +1059,46 @@ term_gene_graphs_blood = list()
 
 for (i in 1:length(pathfindR_outputs_blood)){
   # term-gene heatmaps
-  term_gene_heatmaps_blood[[i]] = term_gene_heatmap(result_df = pathfindR_outputs_blood[[i]],
+  term_gene_heatmaps_blood[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_blood[[i]],
                                                     genes_df = Blood_tT,
                                                     num_terms = 5,
                                                     use_description = TRUE,
                                                     low = "darkgreen",
                                                     high = "darkred",
                                                     mid = "black")+
-    theme(axis.text.x = element_text(size = axis_text_size[[i]]),
-          axis.text.y = element_text(size = 12))
-  tiff(paste0("pathfindR/Blood/", names(pathfindR_outputs_blood)[i], "/",
-              names(pathfindR_outputs_blood)[i], "_top5_term_gene_heatmap.tif"), 
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          axis.text.x = element_text(size = rel(1), vjust = 0.5, color = "black"),
+          axis.text.y = element_text(size = 13),
+          legend.title = element_text(size = 13),
+          legend.title.align = 0.5,
+          legend.direction = "vertical") +
+    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_blood)[i], 
+                        " terms - differentially expressed genes heatmap (",
+                        stages["blood"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
+              names(wrapped_pathfindR_outputs_blood)[i], "_top5_term_gene_heatmap.tif"), 
        width = 3840, height = 648, res = 150)
-  print(term_gene_heatmaps_blood[[i]])
+  print(ggdraw(align_legend(term_gene_heatmaps_blood[[i]], hjust = 0.5)))
   dev.off()
   
   # term-gene graphs
   term_gene_graphs_blood[[i]] = term_gene_graph(result_df = pathfindR_outputs_blood[[i]],
                                                 num_terms = 3,
                                                 use_description = TRUE,
-                                                node_size = "p_val")
-  tiff(paste0("pathfindR/Blood/", names(pathfindR_outputs_blood)[i], "/",
-              names(pathfindR_outputs_blood)[i], "_top3_term_gene_graph.tif"), 
+                                                node_size = "p_val")+
+    theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5, vjust = 0.5),
+          plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5, vjust = 0.5),
+          legend.title = element_text(size = 15),
+          legend.title.align = 0.5,
+          legend.direction = "vertical",
+          legend.text = element_text(size = 13))+
+    labs(title = paste0("Top 3 ", names(wrapped_pathfindR_outputs_blood)[i], 
+                        " term - gene graph (",
+                        stages["blood"], ")"),
+         fill = "Differential\nExpression\nunits: sd")
+  tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
+              names(wrapped_pathfindR_outputs_blood)[i], "_top3_term_gene_graph.tif"), 
        width = 1920, height = 1080, res = 100)
   print(term_gene_graphs_blood[[i]])
   dev.off()
@@ -832,8 +1107,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
 # UpSet plots #####
 UpSet_plots_blood = list()
 for (i in 1:length(pathfindR_outputs_blood)){
-  # term-gene heatmaps
-  UpSet_plots_blood[[i]] = UpSet_plot(result_df = pathfindR_outputs_blood[[i]],
+  # UpSet plot
+  UpSet_plots_blood[[i]] = UpSet_plot(result_df = wrapped_pathfindR_outputs_blood[[i]],
                                       genes_df = Blood_tT,
                                       num_terms = 5,
                                       use_description = TRUE,
@@ -841,8 +1116,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
                                       high = "darkred",
                                       mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
-  tiff(paste0("pathfindR/Blood/", names(pathfindR_outputs_blood)[i], "/",
-              names(pathfindR_outputs_blood)[i], "_top5_UpSet_plot.tif"), 
+  tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
+              names(wrapped_pathfindR_outputs_blood)[i], "_top5_UpSet_plot.tif"), 
        width = 1444, height = 3840, res = 150)
   print(UpSet_plots_blood[[i]])
   dev.off()
@@ -1567,7 +1842,7 @@ Top100_Reactome_map[which(Top100_Reactome_map$Stage_1 == "Present" & Top100_Reac
 
 # All-stage(+blood)-volcano-dotplot (BioCarta)-pairs
 tiff("Additional_plots/all_Volcano_CE_Dotplot_multiplot.tif", 
-     width = 7680, height = 4320, res = 100)
+     width = 4320, height = 7680, res = 100)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
               union_three_normal_volcano, union_four_normal_volcano, 
           TN_z_volcano,

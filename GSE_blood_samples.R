@@ -739,9 +739,15 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                title = "Tumor vs. Non-tumor (Blood)",
                                pCutoff = 0.05,
                                FCcutoff = 1,
+                               ylim = c(0,10),
+                               xlim = c(-2,2),
                                col=c('grey', 'pink', 'purple4', 'red4'),
-                               colAlpha = 0.7)
-tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.png", width = 1500, height = 1920, res = 100)
+                               colAlpha = 0.7,
+                               ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
+                               xlab = "\nDifferential expression (units: sd)",
+                               legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.tif", width = 1500, height = 1920, 
+     res = 130)
 TN_z_volcano
 dev.off()
 
