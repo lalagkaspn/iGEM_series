@@ -1310,12 +1310,20 @@ tiff("Additional_plots/Venn/ggVennDiagram_stages_DEG_Venn.tif",
 diagram2
 dev.off()
 
-# DEG venn with blood and tumors multiplot
+# DEG venn with blood and tumors multiplot (horizontal)
 tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot.tif", 
      width = 2880, height = 1620, res = 150)
 multiplot(diagram1, diagram2, cols = 2)
 m = ggplot(multiplot(diagram1, diagram2, cols = 2))
-dev.off(); rm(m, diagram1, diagram2)
+dev.off(); rm(m)
+
+# DEG venn with blood and tumors multiplot (vertical)
+tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot_vertical.tif", 
+     width = 1620, height = 2880, res = 150)
+multiplot(diagram1, diagram2, cols = 2)
+m = ggplot(multiplot(diagram2, diagram1, cols = 1))
+dev.off(); rm(m)
+rm(diagram1, diagram2)
 
 # Create a 2x3 Venn diagram multiplot that compares the subnetwork enrichment
 # between 4 stages with respect to BioCarta, GO-BP, GO-CC, GO-MF, KEGG, Reactome
@@ -1864,7 +1872,7 @@ dev.off(); rm(m)
 # 2 pairs: Stages 1-2, Stages 3-4
 # Stages 1-2
 tiff("Additional_plots/Stages_1_2_Volcano_CE_Dotplot_multiplot.tif", 
-     width = 3840, height = 2160, res = 150)
+     width = 4320, height = 3840, res = 200)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]],
           cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
@@ -1875,7 +1883,7 @@ dev.off(); rm(m)
 
 # Stages 3-4
 tiff("Additional_plots/Stages_3_4_Volcano_CE_Dotplot_multiplot.tif", 
-     width = 3840, height = 2160, res = 150)
+     width = 4320, height = 3840, res = 200)
 multiplot(union_three_normal_volcano, union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]],
           cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
@@ -1887,7 +1895,7 @@ dev.off(); rm(m)
 # Unique pairs
 # Stage 1
 tiff("Additional_plots/Stage_1_Volcano_CE_Dotplot.tif", 
-     width = 1920, height = 1080, res = 150)
+     width = 3456, height = 2160, res = 170)
 multiplot(union_one_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_one_normal_volcano, 
@@ -1896,7 +1904,7 @@ dev.off(); rm(m)
 
 # Stage 2
 tiff("Additional_plots/Stage_2_Volcano_CE_Dotplot.tif", 
-     width = 1920, height = 1080, res = 150)
+     width = 3456, height = 2160, res = 170)
 multiplot(union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_two_normal_volcano, 
@@ -1905,7 +1913,7 @@ dev.off(); rm(m)
 
 # Stage 3
 tiff("Additional_plots/Stage_3_Volcano_CE_Dotplot.tif", 
-     width = 1920, height = 1080, res = 150)
+     width = 3456, height = 2160, res = 170)
 multiplot(union_three_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_three_normal_volcano, 
@@ -1914,7 +1922,7 @@ dev.off(); rm(m)
 
 # Stage 4
 tiff("Additional_plots/Stage_4_Volcano_CE_Dotplot.tif", 
-     width = 1920, height = 1080, res = 150)
+     width = 3456, height = 2160, res = 170)
 multiplot(union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_four_normal_volcano, 
@@ -1923,7 +1931,7 @@ dev.off(); rm(m)
 
 # Blood
 tiff("Additional_plots/Blood_Volcano_CE_Dotplot.tif", 
-     width = 1920, height = 1080, res = 150)
+     width = 3456, height = 2160, res = 170)
 multiplot(TN_z_volcano, 
           cluster_enrichment_dotplots_blood[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(TN_z_volcano, 
