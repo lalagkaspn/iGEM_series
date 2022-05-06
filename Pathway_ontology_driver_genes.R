@@ -1127,6 +1127,42 @@ names(term_gene_graphs_blood) = names(pathfindR_outputs_blood)
 names(term_gene_heatmaps_blood) = names(pathfindR_outputs_blood)
 names(UpSet_plots_blood) = names(pathfindR_outputs_blood)
 
+# Comparing results using compare_pathfindR_results() #####
+# A list of lists
+combined_df_stage_1_vs_stage_2 = list()
+combined_df_stage_1_vs_stage_4 = list()
+combined_df_blood_vs_stage_1 = list()
+combined_df_blood_vs_stage_2 = list()
+combined_df_blood_vs_stage_3 = list()
+combined_df_blood_vs_stage_4 = list()
+directories = list.dirs("pathfindR/Comparisons")[2:7]
+combinations = list(combined_df_blood_vs_stage_1, combined_df_blood_vs_stage_2,
+                    combined_df_blood_vs_stage_3, combined_df_blood_vs_stage_4,
+                    combined_df_stage_1_vs_stage_2, combined_df_stage_1_vs_stage_4)
+rm(combined_df_stage_1_vs_stage_2, combined_df_stage_1_vs_stage_4,
+   combined_df_blood_vs_stage_1, combined_df_blood_vs_stage_2,
+   combined_df_blood_vs_stage_3, combined_df_blood_vs_stage_4)
+comparisons_A = list(wrapped_pathfindR_outputs_blood, wrapped_pathfindR_outputs_blood,
+                     wrapped_pathfindR_outputs_blood, wrapped_pathfindR_outputs_blood,
+                     wrapped_pathfindR_outputs_stage_1, wrapped_pathfindR_outputs_stage_1)
+comparisons_B = list(wrapped_pathfindR_outputs_stage_1, wrapped_pathfindR_outputs_stage_2,
+                     wrapped_pathfindR_outputs_stage_3, wrapped_pathfindR_outputs_stage_4,
+                     wrapped_pathfindR_outputs_stage_2, wrapped_pathfindR_outputs_stage_4)
+
+for (j in 1:length(combinations)){
+  for (i in 1:length(gene_sets)){
+    combinations[[j]][[gene_sets[i]]] = combine_pathfindR_results(result_A = comparisons_A[[j]][[gene_sets[i]]],
+                                            result_B = comparisons_B[[j]][[gene_sets[i]]],
+                                            plot_common = FALSE)
+    tiff(paste0(directories[j], "/", gene_sets[i], "_comparison.tif"), 
+         width = 3840, height = 2160, res = 200)
+    print(combined_results_graph(combinations[[j]][[gene_sets[i]]], 
+                           use_description = TRUE,
+                           selected_terms = combinations[[j]][[gene_sets[i]]]$Term_Description[1:5]))
+    dev.off();
+  }
+}
+
 ##### REQUIRES COMPLETE-CASE MATRIX - CANNOT BE RUN IN OUR CASE #####
 # Calculate agglomerated z-scores for representative terms and plot heatmap 
 # using term descriptions
@@ -1998,7 +2034,7 @@ multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
 m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
 dev.off(); rm(m)
 
-# Exploring miR21 further
+# Exploring miR-21 further
 mir21_1 = read.xlsx("Mienturnet/MIR21_predictions_(unique_common_stage_1_blood_up).xlsx",
                     sheet = 1) %>%
   dplyr::select(-X7)
@@ -2012,3 +2048,65 @@ sig_DGEA[["Stage_1"]][sig_DGEA[["Stage_1"]][["Gene.Symbol_pre"]]
                       %in% mir21_DEG_targets_stage_1,]
 sig_DGEA[["Blood"]][sig_DGEA[["Blood"]][["Gene.Symbol_pre"]]
                     %in% mir21_DEG_targets_blood,]
+
+# Exploring miR-375 further
+# Importing the all-stage-blood concordant overlap list
+sig820 = read.xlsx("DGEA/all_stage_blood_concordant_overlap_set.xlsx") %>%
+  dplyr::select(EntrezGene.ID, Gene.Symbol, logFC_stage_1) %>%
+  mutate(Deregulation = ifelse(sign(logFC_stage_1) == 1, "Up", "Down")) %>%
+  dplyr::select(-logFC_stage_1)
+
+miR375 = read.xlsx("Mienturnet/All_stage_blood_concordant_overlap/Concordance_Mienturnet_Enrichment_results_miRTarBase.xlsx")[1:2,]
+colnames(miR375) = miR375[1,]; miR375 = miR375[2,]
+miR375_targets = as.character(miR375[1,6:56])
+sig820_miR375 = sig820[sig820$Gene.Symbol %in% miR375_targets,]
+
+# number of down-regulated targets:
+nrow(sig820_miR375[sig820_miR375$Deregulation == "Down",]) # 15
+
+# number of iup-regulated targets:
+nrow(sig820_miR375[sig820_miR375$Deregulation == "Up",]) # 36
+  
+# Exploring miR-192_5p further
+miR192_5p = read.xlsx("Mienturnet/All_stage_blood_concordant_overlap/Concordance_Mienturnet_Enrichment_results_miRTarBase.xlsx")[c(1,4),]
+colnames(miR192_5p) = miR192_5p[1,]; miR192_5p = miR192_5p[2,]
+miR192_5p_targets = as.character(miR192_5p[1,6:82])
+sig820_miR192_5p = sig820[sig820$Gene.Symbol %in% miR192_5p_targets,]
+
+# number of down-regulated targets:
+nrow(sig820_miR192_5p[sig820_miR192_5p$Deregulation == "Down",]) # 25
+
+# number of iup-regulated targets:
+nrow(sig820_miR192_5p[sig820_miR192_5p$Deregulation == "Up",]) # 52
+
+# blood-tissue miRNA overlaps
+temp_blood = read.xlsx("Paper Supplementary Files/Supplementary File 4.xlsx",
+                       sheet = 5, cols = c(8, 9, 10))
+temp_stage_1 = read.xlsx("Paper Supplementary Files/Supplementary File 4.xlsx",
+                         sheet = 1, cols = c(8, 9, 10))
+temp_stage_2 = read.xlsx("Paper Supplementary Files/Supplementary File 4.xlsx",
+                         sheet = 2, cols = c(8, 9, 10))
+temp_stage_3 = read.xlsx("Paper Supplementary Files/Supplementary File 4.xlsx",
+                         sheet = 3, cols = c(8, 9, 10))
+temp_stage_4 = read.xlsx("Paper Supplementary Files/Supplementary File 4.xlsx",
+                         sheet = 4, cols = c(8, 9, 10))
+
+intersect(temp_blood$Gene.Symbol, temp_stage_1$Gene.Symbol) # miR-21, already established
+intersect(temp_blood$Gene.Symbol, temp_stage_2$Gene.Symbol)
+# "MIR152"  "MIR331"  "MIR222"  "MIR29C"  "MIR148B"
+sign(temp_stage_2$`expression.(sd.units.from.the.mean)`[temp_stage_2$Gene.Symbol 
+                                                        %in% intersect(temp_blood$Gene.Symbol, temp_stage_2$Gene.Symbol)]) ==
+  sign(temp_blood$`expression.(sd.units.from.the.mean)`[temp_blood$Gene.Symbol 
+                                                        %in% intersect(temp_blood$Gene.Symbol, temp_stage_2$Gene.Symbol)])
+# "MIR331"  "MIR222"  "MIR29C"  "MIR148B" are good candidates
+
+intersect(temp_blood$Gene.Symbol, temp_stage_3$Gene.Symbol)
+# "MIR376C" "MIR29C"  "MIR451A"
+sign(temp_stage_3$`expression.(sd.units.from.the.mean)`[temp_stage_3$Gene.Symbol 
+                                                        %in% intersect(temp_blood$Gene.Symbol, temp_stage_3$Gene.Symbol)]) ==
+  sign(temp_blood$`expression.(sd.units.from.the.mean)`[temp_blood$Gene.Symbol 
+                                                        %in% intersect(temp_blood$Gene.Symbol, temp_stage_3$Gene.Symbol)])
+# "MIR376C" "MIR29C" are good candidates
+
+intersect(temp_blood$Gene.Symbol, temp_stage_4$Gene.Symbol)
+# no overlap
