@@ -892,6 +892,22 @@ write.xlsx(all_stage_blood_concordant_overlap_set,
            "DGEA/all_stage_blood_concordant_overlap_set.xlsx",
            overwrite = TRUE)
 
+# Check if any of the 820 genes were in the lists of Collisson, Moffitt or Bailey
+# Loading the lists from an external file:
+Collisson = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 1)
+Moffitt = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 2)
+Bailey = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 3)
+
+signature_overlap_Collisson = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
+                                       Collisson$Sig.Collisson) # no overlap
+
+signature_overlap_Moffitt = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
+                                       Collisson$Sig.Moffitt) 
+# 6-gene overlap: AIM2, HK2, HMMR, S100P, PMAIP1, CEACAM6
+
+signature_overlap_Bailey = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
+                                       Collisson$Sig.Bailey) # no overlap
+
 # Save the volcano after loading the previous volcano plots. Use the same
 # .RData file as before:
 
