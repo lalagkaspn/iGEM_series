@@ -1074,7 +1074,7 @@ original_MDS = ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
        x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
        y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
 tiff("QC/Tumor_stage/Original_MDS.tif", width = 1920, height = 1080, res = 100)
-Original_MDS
+original_MDS
 dev.off()
 
 # Multidimensional scaling plot: z-score normalised matrix
@@ -1164,7 +1164,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 tiff("QC/Tumor_stage/MDS_multiplot.tif", 
      width = 2160, height = 3840, res = 150)
 multiplot(original_MDS, KBZ_MDS_plot, cols = 1)
-m = ggplot(multiplot(Original_MDS, KBZ_MDS_plot, cols = 1))
+m = ggplot(multiplot(original_MDS, KBZ_MDS_plot, cols = 1))
 dev.off(); rm(m)
 
 # Global expression boxplot: original matrix
