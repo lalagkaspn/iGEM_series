@@ -28,7 +28,7 @@ for (i in 1:length(sig_DGEA)){
 }; rm(i)
 
 ##### Importing ATC drug category data #####
-ATC = read.xlsx("ATC_Drugs.xlsx", sheet = 3) # full set
+ATC = read.xlsx("data/ATC_Drugs.xlsx", sheet = 3) # full set
 ATC$ATC_Name = gsub(" ", "_", ATC$ATC_Name)
 ind = which(ATC$ATC_Name == "antithymocyte_immunoglobulin_(rabbit)")
 ATC$ATC_Name[ind] = "antithym_IgG_rbt"; rm(ind)
@@ -45,9 +45,9 @@ non_antineoplastics = anti_join(ATC, antineoplastics)
 # one column but separated by semicolons, were subjected to "text-to-column"
 # transformation in MS Excel firstly.
 
-directory_pre = read_csv("DrugBank_Directory_pre.csv")
-interaction_pre_pharmacological = read_csv("DrugBank_Interactions_pharmacological_pre.csv")
-interaction_pre = read_csv("DrugBank_Interactions_all_pre.csv")
+directory_pre = read_csv("data/DrugBank_Directory_pre.csv")
+interaction_pre_pharmacological = read_csv("data/DrugBank_Interactions_pharmacological_pre.csv")
+interaction_pre = read_csv("data/DrugBank_Interactions_all_pre.csv")
 
 interaction_pre_pharmacological = interaction_pre_pharmacological %>%
   dplyr::filter(Species=="Humans") %>%

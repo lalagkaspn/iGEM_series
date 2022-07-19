@@ -892,11 +892,16 @@ write.xlsx(all_stage_blood_concordant_overlap_set,
            "DGEA/all_stage_blood_concordant_overlap_set.xlsx",
            overwrite = TRUE)
 
-# Check if any of the 820 genes were in the lists of Collisson, Moffitt or Bailey
-# Loading the lists from an external file:
-Collisson = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 1)
-Moffitt = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 2)
-Bailey = read.xlsx("Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 3)
+# Check if any of the 820 genes were in the lists of Collisson, Moffitt, Bailey or Haider
+# Collisson: https://pubmed.ncbi.nlm.nih.gov/21460848/
+# Bailey: https://pubmed.ncbi.nlm.nih.gov/26909576/
+# Moffitt: https://pubmed.ncbi.nlm.nih.gov/26343385/
+# Haider: https://pubmed.ncbi.nlm.nih.gov/25587357/
+# Loading the lists from external files:
+Collisson = read.xlsx("Signatures/Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 1)
+Moffitt = read.xlsx("Signatures/Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 2)
+Bailey = read.xlsx("Signatures/Collisson_Moffit_Bailey-gene_signatures.xlsx", sheet = 3)
+Haider = read.xlsx("Signatures/Haider_signature.xlsx", sheet = 4)
 
 signature_overlap_Collisson = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
                                        Collisson$Sig.Collisson) # no overlap
@@ -907,6 +912,65 @@ signature_overlap_Moffitt = intersect(all_stage_blood_concordant_overlap_set$Gen
 
 signature_overlap_Bailey = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
                                        Collisson$Sig.Bailey) # no overlap
+
+signature_overlap_Haider = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
+                                     Haider$Gene) 
+# 2-gene overlap: CNNM3, QDPR
+
+# Metagene #####
+# Mean score of the signature in samples (na.rm = TRUE; caution when interpreting)
+# Load the tumor expression matrix from the RDS file you saved in the previous script
+tumor_tissue_expression = readRDS("tumor_expression.rds")[all_stage_blood_concordant_overlap_set$EntrezGene.ID,]
+blood_expression = z_exprs_blood[all_stage_blood_concordant_overlap_set$EntrezGene.ID,]
+rownames(tumor_tissue_expression) = rownames(blood_expression) = all_stage_blood_concordant_overlap_set$Gene.Symbol
+tumor_pheno = read.xlsx("DGEA/Pheno.xlsx")
+blood_pheno = full_pdata %>% mutate(AJCC_classification = 
+                                      ifelse(Tissue_type == "tumor", "blood", "normal"))
+metapheno = rbind(tumor_pheno, blood_pheno)
+metaexp = cbind(tumor_tissue_expression, blood_expression)
+metagene = data.frame(colMeans(metaexp, na.rm = TRUE)) %>%
+  mutate(rownames(.))
+colnames(metagene) = c("Metascore", "Sample.ID")
+metagene = metagene[metagene$Sample.ID %in% metapheno$GEO_accession,]
+metagene$group = factor(metapheno$AJCC_classification, 
+                        levels = c("normal", "1a", "1b", "2a", "2b", "3", "4", "blood"),
+                        labels = c("Normal", "Stage 1", "Stage 1", "Stage 2", 
+                                   "Stage 2", "Stage 3", "Stage 4", "Blood"))
+metagene$DRS = colMeans(metaexp[all_stage_blood_concordant_overlap_set$Gene.Symbol[all_stage_blood_concordant_overlap_set$logFC_stage_1<0],], na.rm = TRUE)
+metagene$URS = colMeans(metaexp[all_stage_blood_concordant_overlap_set$Gene.Symbol[all_stage_blood_concordant_overlap_set$logFC_stage_1>0],], na.rm = TRUE)
+metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
+  geom_boxplot(width=0.35)+
+  scale_fill_brewer(palette = "RdPu") +
+  theme(panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.line = element_line(),
+        plot.title = element_text(face = "bold", hjust = 0.5)) +
+  labs(x = "Sample type",
+       y = "Mean expression of down-regulated genes",
+       title = "Boxplots of mean expression: down-regulated genes",
+       fill = "Legend")
+metaplot1
+
+metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
+  geom_boxplot(width=0.35)+
+  scale_fill_brewer(palette = "RdPu") +
+  theme(panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.line = element_line(),
+        plot.title = element_text(face = "bold", hjust = 0.5)) +
+  labs(x = "Sample type",
+       y = "Mean expression of up-regulated genes",
+       title = "Boxplots of mean expression: up-regulated genes",
+       fill = "Legend")
+metaplot2
+
+tiff("Signatures/Our_signature_metaplots.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(metaplot1, metaplot2, cols = 2)
+m = ggplot(multiplot(metaplot1, metaplot2, cols = 2))
+dev.off(); rm(m)
 
 # Save the volcano after loading the previous volcano plots. Use the same
 # .RData file as before:

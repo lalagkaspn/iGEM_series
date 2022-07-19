@@ -871,10 +871,10 @@ rm(fdata62165)
 # https://blast.ncbi.nlm.nih.gov/Blast.cgi
 # Read csv results from BLASTN
 
-blastn_1 = read.csv(file = "Sequences_1.csv", header = FALSE)
-blastn_2 = read.csv(file = "Sequences_2.csv", header = FALSE)
-blastn_3 = read.csv(file = "Sequences_3.csv", header = FALSE)
-blastn_4 = read.csv(file = "Sequences_4.csv", header = FALSE)
+blastn_1 = read.csv(file = "data/Sequences_1.csv", header = FALSE)
+blastn_2 = read.csv(file = "data/Sequences_2.csv", header = FALSE)
+blastn_3 = read.csv(file = "data/Sequences_3.csv", header = FALSE)
+blastn_4 = read.csv(file = "data/Sequences_4.csv", header = FALSE)
 blastn = rbind(blastn_1, blastn_2, blastn_3, blastn_4)
 blastn$V2 = gsub("\\..", "", blastn$V2) # RefSeq column: keep main nomenclature - ignore variants
 blastn = blastn %>%
@@ -1387,6 +1387,9 @@ cont.matrix_full = makeContrasts(onevsnormal = (Stage_1a + Stage_1b)/2 - normal,
                                  earlyvslate = (Stage_1a + Stage_1b + Stage_2a + Stage_2b)/4 - (Stage_3 + Stage_4)/2,
                                  onevsfour = (Stage_1a + Stage_1b)/2 - Stage_4, 
                                  onevstwo = (Stage_1a + Stage_1b)/2 - (Stage_2a + Stage_2b)/2, levels = design_full)
+
+# Write out the union_z_exprs_final as an RDS file
+saveRDS(union_z_exprs_final, "tumor_expression.rds")
 
 # Model fitting with limma
 union_z_fit = lmFit(union_z_exprs_final, design_full)

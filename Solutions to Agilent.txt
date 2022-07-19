@@ -1,5 +1,0 @@
-BLAST to Genome
-BLAST to Genes
-https://www.biostars.org/p/212923/ - genomicRanges?
-BiomaRt? https://www.biostars.org/p/212923/
-Ensembl?: https://www.biostars.org/p/394061/      https://www.ensembl.org/Multi/Tools/Blast?db=core

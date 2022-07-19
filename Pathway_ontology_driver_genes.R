@@ -1202,7 +1202,7 @@ for (i in c(1,3)){
 #####
 
 # Driver genes from CIRCOS census list #####
-census = read.csv("COSMIC_census_09_02_2022.csv") %>%
+census = read.csv("data/COSMIC_census_09_02_2022.csv") %>%
   dplyr::rename(EntrezGene.ID = Entrez.GeneId, Gene.Symbol_COSMIC = Gene.Symbol) %>%
   dplyr::select(EntrezGene.ID, Gene.Symbol_COSMIC, Name, everything())
 census$EntrezGene.ID = as.character(census$EntrezGene.ID)
