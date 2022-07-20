@@ -131,15 +131,21 @@ metagene$DRS = colMeans(metaexp[intersect(rownames(z_TCGA_exp_norm), signature$G
 metagene$URS = colMeans(metaexp[intersect(rownames(z_TCGA_exp_norm), signature$Gene.Symbol[signature$logFC_stage_1>0]),], na.rm = TRUE)
 
 t.test(metagene$DRS[metagene$group=="Dead"], metagene$DRS[metagene$group=="Alive"])
-# t = -2.2014, p = 0.02902
+DescTools::CohenD(metagene$DRS[metagene$group=="Dead"], metagene$DRS[metagene$group=="Alive"],
+                  correct = TRUE)
+# t = -2.2014, p = 0.02902, d = -0.33: small effect size
 
 t.test(metagene$URS[metagene$group=="Dead"], metagene$URS[metagene$group=="Alive"])
-# t = 2.8918, p = 0.004363 
+DescTools::CohenD(metagene$URS[metagene$group=="Dead"], metagene$URS[metagene$group=="Alive"],
+                  correct = TRUE)
+# t = 2.8918, p = 0.004363, d = 0.43: small effect size 
 
 # Metaplots
+# Without overlaid points
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
@@ -154,6 +160,7 @@ metaplot1
 metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
@@ -164,6 +171,37 @@ metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) +
        title = "Boxplots of mean expression: up-regulated genes",
        fill = "Legend")
 metaplot2
+
+# Metaplots with overlaid points (jitter)
+metaplot1_jitter = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
+  geom_boxplot(width=0.35)+
+  scale_fill_brewer(palette = "RdPu") +
+  geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
+  theme(panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.line = element_line(),
+        plot.title = element_text(face = "bold", hjust = 0.5)) +
+  labs(x = "Sample type",
+       y = "Mean expression of down-regulated genes",
+       title = "Boxplots of mean expression: down-regulated genes",
+       fill = "Legend")
+metaplot1_jitter
+
+metaplot2_jitter = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
+  geom_boxplot(width=0.35)+
+  scale_fill_brewer(palette = "RdPu") +
+  geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
+  theme(panel.background = element_rect(fill = "white", 
+                                        colour = "white"),
+        panel.grid = element_blank(),
+        axis.line = element_line(),
+        plot.title = element_text(face = "bold", hjust = 0.5)) +
+  labs(x = "Sample type",
+       y = "Mean expression of up-regulated genes",
+       title = "Boxplots of mean expression: up-regulated genes",
+       fill = "Legend")
+metaplot2_jitter
 
 # Defining the multiplot function
 
@@ -214,8 +252,17 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 
 # End of multiplot function
+
+# Multiplot without overlaid points
 tiff("Signatures/TCGA_signature_metaplots.tif", 
      width = 1920, height = 1080, res = 150)
 multiplot(metaplot1, metaplot2, cols = 2)
 m = ggplot(multiplot(metaplot1, metaplot2, cols = 2))
+dev.off(); rm(m)
+
+# Metaplots with overlaid points
+tiff("Signatures/TCGA_signature_metaplots_jitter.tif", 
+     width = 1920, height = 1080, res = 150)
+multiplot(metaplot1_jitter, metaplot2_jitter, cols = 2)
+m = ggplot(multiplot(metaplot1_jitter, metaplot2_jitter, cols = 2))
 dev.off(); rm(m)
