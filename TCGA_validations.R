@@ -143,32 +143,60 @@ DescTools::CohenD(metagene$URS[metagene$group=="Dead"], metagene$URS[metagene$gr
 # Metaplots
 # Without overlaid points
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.25)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
+  ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
+              map_signif_level=TRUE) +
+  annotate("text", x = 1.5, y = -1.8, size = 3, parse = TRUE,
+           label = "italic(t) == -2.2\n") +
+  annotate("text", x = 1.5, y = -2.0, size = 3,
+           label = paste0("\n", 
+                          "p = 0.03")) +
+  annotate("text", x = 1.5, y = -2.4, size = 3,
+           label = paste0("\n", 
+                          "d = -0.33")) +
+  geom_rect(aes(xmin = 1.3, xmax = 1.7, ymin = -1.65, ymax = -2.75),
+            fill = "transparent", color = "black", size = 0.5) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of down-regulated genes",
-       title = "Boxplots of mean expression: down-regulated genes",
+       title = "Boxplots of mean expression: down-regulated genes (TCGA data)",
        fill = "Legend")
 metaplot1
 
 metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
+  ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
+                        map_signif_level=TRUE) +
+  annotate("text", x = 1.5, y = -1.8, size = 3, parse = TRUE,
+           label = "italic(t) == 2.9\n") +
+  annotate("text", x = 1.5, y = -2.0, size = 3,
+           label = paste0("\n", 
+                          "p = 0.004")) +
+  annotate("text", x = 1.5, y = -2.4, size = 3,
+           label = paste0("\n", 
+                          "d = 0.43")) +
+  geom_rect(aes(xmin = 1.3, xmax = 1.7, ymin = -1.65, ymax = -2.75),
+            fill = "transparent", color = "black", size = 0.5) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of up-regulated genes",
-       title = "Boxplots of mean expression: up-regulated genes",
+       title = "Boxplots of mean expression: up-regulated genes (TCGA data)",
        fill = "Legend")
 metaplot2
 
@@ -176,30 +204,34 @@ metaplot2
 metaplot1_jitter = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of down-regulated genes",
-       title = "Boxplots of mean expression: down-regulated genes",
+       title = "Boxplots of mean expression: down-regulated genes (TCGA data)",
        fill = "Legend")
 metaplot1_jitter
 
 metaplot2_jitter = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of up-regulated genes",
-       title = "Boxplots of mean expression: up-regulated genes",
+       title = "Boxplots of mean expression: up-regulated genes (TCGA data)",
        fill = "Legend")
 metaplot2_jitter
 

@@ -739,7 +739,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                title = "Tumor vs. Non-tumor (Blood)",
                                pCutoff = 0.05,
                                FCcutoff = 1,
-                               ylim = c(0,10),
+                               ylim = c(0,9),
                                xlim = c(-2,2),
                                col=c('grey', 'pink', 'purple4', 'red4'),
                                colAlpha = 0.7,
@@ -938,14 +938,131 @@ metagene$group = factor(metapheno$AJCC_classification,
                                    "Stage 2", "Stage 3", "Stage 4", "Blood"))
 metagene$DRS = colMeans(metaexp[all_stage_blood_concordant_overlap_set$Gene.Symbol[all_stage_blood_concordant_overlap_set$logFC_stage_1<0],], na.rm = TRUE)
 metagene$URS = colMeans(metaexp[all_stage_blood_concordant_overlap_set$Gene.Symbol[all_stage_blood_concordant_overlap_set$logFC_stage_1>0],], na.rm = TRUE)
+
+# t-tests
+# Stage 1
+dt1 = t.test(metagene$DRS[metagene$group=="Normal"],metagene$DRS[metagene$group=="Stage 1"])
+dd1 = DescTools::CohenD(metagene$DRS[metagene$group=="Normal"],
+                  metagene$DRS[metagene$group=="Stage 1"], correct = TRUE)
+
+ut1 = t.test(metagene$URS[metagene$group=="Normal"],metagene$URS[metagene$group=="Stage 1"])
+ud1 = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
+                  metagene$URS[metagene$group=="Stage 1"], correct = TRUE)
+
+# Stage 2
+dt2 = t.test(metagene$DRS[metagene$group=="Normal"],metagene$DRS[metagene$group=="Stage 2"])
+dd2 = DescTools::CohenD(metagene$DRS[metagene$group=="Normal"],
+                        metagene$DRS[metagene$group=="Stage 2"], correct = TRUE)
+
+ut2 = t.test(metagene$URS[metagene$group=="Normal"],metagene$URS[metagene$group=="Stage 2"])
+ud2 = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
+                        metagene$URS[metagene$group=="Stage 2"], correct = TRUE)
+
+# Stage 3
+dt3 = t.test(metagene$DRS[metagene$group=="Normal"],metagene$DRS[metagene$group=="Stage 3"])
+dd3 = DescTools::CohenD(metagene$DRS[metagene$group=="Normal"],
+                        metagene$DRS[metagene$group=="Stage 3"], correct = TRUE)
+
+ut3 = t.test(metagene$URS[metagene$group=="Normal"],metagene$URS[metagene$group=="Stage 3"])
+ud3 = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
+                        metagene$URS[metagene$group=="Stage 3"], correct = TRUE)
+
+# Stage 4
+dt4 = t.test(metagene$DRS[metagene$group=="Normal"],metagene$DRS[metagene$group=="Stage 4"])
+dd4 = DescTools::CohenD(metagene$DRS[metagene$group=="Normal"],
+                        metagene$DRS[metagene$group=="Stage 4"], correct = TRUE)
+
+ut4 = t.test(metagene$URS[metagene$group=="Normal"],metagene$URS[metagene$group=="Stage 4"])
+ud4 = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
+                        metagene$URS[metagene$group=="Stage 4"], correct = TRUE)
+
+# Blood
+dtBlood = t.test(metagene$DRS[metagene$group=="Normal"],metagene$DRS[metagene$group=="Blood"])
+ddBlood = DescTools::CohenD(metagene$DRS[metagene$group=="Normal"],
+                            metagene$DRS[metagene$group=="Blood"], correct = TRUE)
+
+utBlood = t.test(metagene$URS[metagene$group=="Normal"],metagene$URS[metagene$group=="Blood"])
+udBlood = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
+                            metagene$URS[metagene$group=="Blood"], correct = TRUE)
+
+# Boxplots
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 6), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4, 5, 6)) +
+  ggpubr::stat_compare_means(comparisons = list(c("Normal", "Stage 1"),
+                                                c("Normal", "Stage 2"),
+                                                c("Normal", "Stage 3"),
+                                                c("Normal", "Stage 4"),
+                                                c("Normal", "Blood")), method = "t.test",
+                             aes(label = ..p.signif..)) +
+  # Stage 1
+  annotate("text", x = 2.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(dt1$statistic,2))) +
+  annotate("text", x = 2.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(dt1$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(dt1$p.value, 4))))) +
+  annotate("text", x = 2.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(dd1,2))) +
+  geom_rect(aes(xmin = 1.7, xmax = 2.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 2
+  annotate("text", x = 3.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(dt2$statistic,2))) +
+  annotate("text", x = 3.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(dt2$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(dt2$p.value, 4))))) +
+  annotate("text", x = 3.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(dd2,2))) +
+  geom_rect(aes(xmin = 2.7, xmax = 3.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 3
+  annotate("text", x = 4.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(dt3$statistic,2))) +
+  annotate("text", x = 4.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(dt3$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(dt3$p.value, 4))))) +
+  annotate("text", x = 4.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(dd3,2))) +
+  geom_rect(aes(xmin = 3.7, xmax = 4.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 4
+  annotate("text", x = 5.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(dt4$statistic,2))) +
+  annotate("text", x = 5.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(dt4$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(dt4$p.value, 4))))) +
+  annotate("text", x = 5.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(dd4,2))) +
+  geom_rect(aes(xmin = 4.7, xmax = 5.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Blood
+  annotate("text", x = 6.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(dtBlood$statistic,2))) +
+  annotate("text", x = 6.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(dtBlood$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(dtBlood$p.value, 4))))) +
+  annotate("text", x = 6.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(ddBlood,2))) +
+  geom_rect(aes(xmin = 5.7, xmax = 6.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of down-regulated genes",
        title = "Boxplots of mean expression: down-regulated genes",
@@ -955,11 +1072,80 @@ metaplot1
 metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
   geom_boxplot(width=0.35)+
   scale_fill_brewer(palette = "RdPu") +
+  scale_y_continuous(limits = c(-3.5, 4.5), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4)) +
+  ggpubr::stat_compare_means(comparisons = list(c("Normal", "Stage 1"),
+                                           c("Normal", "Stage 2"),
+                                           c("Normal", "Stage 3"),
+                                           c("Normal", "Stage 4"),
+                                           c("Normal", "Blood")), method = "t.test",
+                             aes(label = ..p.signif..)) +
+  # Stage 1
+  annotate("text", x = 2.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(ut1$statistic,2))) +
+  annotate("text", x = 2.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(ut1$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(ut1$p.value, 4))))) +
+  annotate("text", x = 2.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(ud1,2))) +
+  geom_rect(aes(xmin = 1.7, xmax = 2.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 2
+  annotate("text", x = 3.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(ut2$statistic,2))) +
+  annotate("text", x = 3.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(ut2$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(ut2$p.value, 4))))) +
+  annotate("text", x = 3.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(ud2,2))) +
+  geom_rect(aes(xmin = 2.7, xmax = 3.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 3
+  annotate("text", x = 4.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(ut3$statistic,2))) +
+  annotate("text", x = 4.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(ut3$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(ut3$p.value, 4))))) +
+  annotate("text", x = 4.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(ud3,2))) +
+  geom_rect(aes(xmin = 3.7, xmax = 4.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Stage 4
+  annotate("text", x = 5.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(ut4$statistic,2))) +
+  annotate("text", x = 5.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(ut4$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(ut4$p.value, 4))))) +
+  annotate("text", x = 5.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(ud4,2))) +
+  geom_rect(aes(xmin = 4.7, xmax = 5.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # Blood
+  annotate("text", x = 6.0, y = -2.4, size = 2.5, parse = TRUE,
+           label = paste0("italic(t) == ", round(utBlood$statistic,2))) +
+  annotate("text", x = 6.0, y = -2.7, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "p ", ifelse(round(utBlood$p.value, 4)<0.0001, "< 0.0001", 
+                                       paste0("==",  round(utBlood$p.value, 4))))) +
+  annotate("text", x = 6.0, y = -3.0, size = 2.5, parse = TRUE,
+           label = paste0("\n", 
+                          "d == ", round(udBlood,2))) +
+  geom_rect(aes(xmin = 5.7, xmax = 6.3, ymin = -2.25, ymax = -3.25),
+            fill = "transparent", color = "black", size = 0.5) +
+  # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
         axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5)) +
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
+        axis.title = element_text(face = "bold")) +
   labs(x = "Sample type",
        y = "Mean expression of up-regulated genes",
        title = "Boxplots of mean expression: up-regulated genes",
@@ -969,7 +1155,8 @@ metaplot2
 tiff("Signatures/Our_signature_metaplots.tif", 
      width = 1920, height = 1080, res = 150)
 multiplot(metaplot1, metaplot2, cols = 2)
-m = ggplot(multiplot(metaplot1, metaplot2, cols = 2))
+m = ggplot(multiplot(metaplot1, metaplot2, cols = 2),
+           axis.title = element_text(face = "bold"))
 dev.off(); rm(m)
 
 # Save the volcano after loading the previous volcano plots. Use the same
