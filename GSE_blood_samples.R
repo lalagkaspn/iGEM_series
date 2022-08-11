@@ -745,7 +745,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                colAlpha = 0.7,
                                ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                xlab = "\nDifferential expression (units: sd)",
-                               legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                               legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.tif", width = 1500, height = 1920, 
      res = 130)
 TN_z_volcano

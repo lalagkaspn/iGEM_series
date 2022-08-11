@@ -1872,7 +1872,7 @@ union_stages_volcano = EnhancedVolcano(DE_maps[["earlyvslate"]],
                                        xlim = c(-5, 5),
                                        ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                        xlab = "\nDifferential expression (units: sd)",
-                                       legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                       legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_Stages_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_stages_volcano
 dev.off()
@@ -1889,7 +1889,7 @@ union_one_four_stages_volcano = EnhancedVolcano(DE_maps[["onevsfour"]],
                                                 xlim = c(-5, 5),
                                                 ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                                 xlab = "\nDifferential expression (units: sd)",
-                                                legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                                legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_One_Four_Stages_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_one_four_stages_volcano
 dev.off()
@@ -1907,7 +1907,7 @@ union_one_normal_volcano = EnhancedVolcano(DE_maps[["onevsnormal"]],
                                            ylim = c(0, 10),
                                            ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                            xlab = "\nDifferential expression (units: sd)",
-                                           legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                           legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_One_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_one_normal_volcano
 dev.off()
@@ -1925,7 +1925,7 @@ union_two_normal_volcano = EnhancedVolcano(DE_maps[["twovsnormal"]],
                                            ylim = c(0, 35),
                                            ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                            xlab = "\nDifferential expression (units: sd)",
-                                           legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                           legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_Two_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_two_normal_volcano
 dev.off()
@@ -1943,7 +1943,7 @@ union_three_normal_volcano = EnhancedVolcano(DE_maps[["threevsnormal"]],
                                              ylim = c(0, 12.5),
                                              ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                              xlab = "\nDifferential expression (units: sd)",
-                                             legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                             legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_Three_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_three_normal_volcano
 dev.off()
@@ -1961,7 +1961,7 @@ union_four_normal_volcano = EnhancedVolcano(DE_maps[["fourvsnormal"]],
                                             ylim = c(0, 15),
                                             ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
                                             xlab = "\nDifferential expression (units: sd)",
-                                            legendLabels = c("NS", "Differential expression", "BH-adj.p-value", "BH-adj.p-value & Differential expression"))
+                                            legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
 tiff("DGEA/Union/Union_Four_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
 union_four_normal_volcano
 dev.off()
