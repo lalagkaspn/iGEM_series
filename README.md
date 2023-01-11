@@ -9,7 +9,7 @@ In this work we identify a set of *820 genes* which are consistently deregulated
 There are five scripts:
 
 - `GSE_tumor_stage.R` is the script used to download, preprocess and conduct Differential Gene Expression Analysis (*DGEA*) on clinical PDAC samples with tumor staging information available.
-- `GSE_blood_samples.R` is the script used to download, preprocess and conduct DGEA on clincal PDAC blood samples (results not adjusted for tumor stage).
+- `GSE_blood_samples.R` is the script used to download, preprocess and conduct DGEA on clinical PDAC blood samples (results not adjusted for tumor stage).
 - `Pathway_ontology_driver_genes.R` contains the code for performing Active Subnetwork Enrichment analysis with the `pathfindR` package, annotating genes of interest with cancer driver information from the Catalogue Of Somatic Mutations In Cancer (*COSMIC*) and checking the overlaps between significant genes and pathways across stages and sample types.
 - `Circos.R` is the script in which the code for generating all the files necessary to produce the Circos plots are generated.
 - `TCGA_validations.R` contains the code for downloading relative TCGA PDAC data and validating our signature on them.
