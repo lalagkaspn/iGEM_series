@@ -4,6 +4,8 @@
 
 ## Code authors: Aristeidis Sionakidis, Panagiotis Nikolaos Lalagkas
 
+Link to article preprint [here](https://www.researchsquare.com/article/rs-2172022/v2).
+
 In this work we identify a set of *820 genes* which are consistently deregulated across tumor stages and sample types in PDAC and whose predictive potential is validated on The Cancer Genome Atlas (*TCGA*) data. We use the `pathfindR` package to identify enriched networks and map the genes of these networks to approved drugs (DrugBank) to explore pharmacogenomic relationships. Additionally, we focus on differentially expressed microRNAs (*miRNAs*) and enriched miRNAs as these are predicted by [Mienturnet](http://userver.bio.uniroma1.it/apps/mienturnet/) based on the differentially expressed genes we found. We finally generate Circos plots which illustrate the pharmacogenomic relationships of interest along with miRNA-gene interactions and which also provide additional annotations for genes (e.g. mutational status, cancer driver status).
 
 There are five scripts:
