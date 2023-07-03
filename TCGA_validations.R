@@ -2,6 +2,9 @@
 library(TCGAbiolinks)
 library(dplyr)
 library(limma)
+library(ggplot2)
+library(survminer)
+library(survival)
 
 query.miRNA = GDCquery(
   project = "TCGA-PAAD", 
@@ -115,9 +118,11 @@ signature = read.xlsx("DGEA/all_stage_blood_concordant_overlap_set.xlsx")
 # Variables: names(dataAssy.exp@colData@listData)
 outcomes = data.frame(cbind(dataAssy.exp@colData@listData$barcode,
                             dataAssy.exp@colData@listData$vital_status,
-                            dataAssy.exp@colData@listData$days_to_death))
-colnames(outcomes) = c("Sample.ID", "Vital Status", "Days to Death")
+                            dataAssy.exp@colData@listData$days_to_death,
+                            dataAssy.exp@colData@listData$days_to_last_follow_up))
+colnames(outcomes) = c("Sample.ID", "Vital Status", "Days to Death", "Days to Last Follow-up")
 rownames(outcomes) = outcomes$Sample.ID
+outcomes$Deceased = ifelse(outcomes$`Vital Status` == "Alive", FALSE, TRUE)
 
 metaexp = z_TCGA_exp_norm[intersect(rownames(z_TCGA_exp_norm), signature$Gene.Symbol),]
 metagene = data.frame(colMeans(metaexp, na.rm = TRUE)) %>%
@@ -143,95 +148,115 @@ DescTools::CohenD(metagene$URS[metagene$group=="Dead"], metagene$URS[metagene$gr
 # Metaplots
 # Without overlaid points
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
-  geom_boxplot(width=0.25)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
-              map_signif_level=TRUE) +
-  annotate("text", x = 1.5, y = -1.8, size = 3, parse = TRUE,
+                        map_signif_level=TRUE, size = 0.25, textsize = 3) +
+  annotate("text", x = 1.5, y = -1.8, size = 1.5, parse = TRUE,
            label = "italic(t) == -2.2\n") +
-  annotate("text", x = 1.5, y = -2.0, size = 3,
+  annotate("text", x = 1.5, y = -2.0, size = 1.5,
            label = paste0("\n", 
                           "p = 0.03")) +
-  annotate("text", x = 1.5, y = -2.4, size = 3,
+  annotate("text", x = 1.5, y = -2.4, size = 1.5,
            label = paste0("\n", 
                           "d = -0.33")) +
   geom_rect(aes(xmin = 1.3, xmax = 1.7, ymin = -1.65, ymax = -2.75),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.25) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of down-regulated genes",
-       title = "Boxplots of mean expression: down-regulated genes (TCGA data)",
+       y = "Mean DRS expression",
+       title = "Boxplots of mean expression: DRS",
        fill = "Legend")
 metaplot1
 
 metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
-                        map_signif_level=TRUE) +
-  annotate("text", x = 1.5, y = -1.8, size = 3, parse = TRUE,
+                        map_signif_level=TRUE, size = 0.25, textsize = 3) +
+  annotate("text", x = 1.5, y = -1.8, size = 1.5, parse = TRUE,
            label = "italic(t) == 2.9\n") +
-  annotate("text", x = 1.5, y = -2.0, size = 3,
+  annotate("text", x = 1.5, y = -2.0, size = 1.5,
            label = paste0("\n", 
                           "p = 0.004")) +
-  annotate("text", x = 1.5, y = -2.4, size = 3,
+  annotate("text", x = 1.5, y = -2.4, size = 1.5,
            label = paste0("\n", 
                           "d = 0.43")) +
   geom_rect(aes(xmin = 1.3, xmax = 1.7, ymin = -1.65, ymax = -2.75),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.25) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of up-regulated genes",
-       title = "Boxplots of mean expression: up-regulated genes (TCGA data)",
+       y = "Mean URS expression",
+       title = "Boxplots of mean expression: URS",
        fill = "Legend")
 metaplot2
 
 # Metaplots with overlaid points (jitter)
 metaplot1_jitter = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of down-regulated genes",
-       title = "Boxplots of mean expression: down-regulated genes (TCGA data)",
+       y = "Mean DRS expression",
+       title = "Boxplots of mean expression: DRS",
        fill = "Legend")
 metaplot1_jitter
 
 metaplot2_jitter = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
   geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of up-regulated genes",
-       title = "Boxplots of mean expression: up-regulated genes (TCGA data)",
+       y = "Mean URS expression",
+       title = "Boxplots of mean expression: URS",
        fill = "Legend")
 metaplot2_jitter
 
@@ -286,15 +311,98 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 # End of multiplot function
 
 # Multiplot without overlaid points
-tiff("Signatures/TCGA_signature_metaplots.tif", 
-     width = 1920, height = 1080, res = 150)
+tiff("Signatures/TCGA_signature_metaplots.tiff", 
+     width = 1920*2, height = 1920, res = 700, compression = "lzw")
 multiplot(metaplot1, metaplot2, cols = 2)
 m = ggplot(multiplot(metaplot1, metaplot2, cols = 2))
 dev.off(); rm(m)
 
-# Metaplots with overlaid points
-tiff("Signatures/TCGA_signature_metaplots_jitter.tif", 
-     width = 1920, height = 1080, res = 150)
+# Multiplots with overlaid points
+tiff("Signatures/TCGA_signature_metaplots_jitter.tiff", 
+     width = 1920*2, height = 1920, res = 700, compression = "lzw")
 multiplot(metaplot1_jitter, metaplot2_jitter, cols = 2)
 m = ggplot(multiplot(metaplot1_jitter, metaplot2_jitter, cols = 2))
 dev.off(); rm(m)
+
+# Survival analysis #####
+metagene$DRS_group = ifelse(metagene$DRS < 0, "Low", "High")
+metagene$URS_group = ifelse(metagene$URS < 0, "Low", "High")
+metagene$URS_group = factor(metagene$URS_group, levels = c("High", "Low"),
+                            labels = c("High", "Low"))
+metagene$DRS_group = factor(metagene$DRS_group, levels = c("High", "Low"),
+                            labels = c("High", "Low"))
+
+# create an "overall survival" variable that is equal to days_to_death
+# for dead patients, and to days_to_last_follow_up for patients who
+# are still alive
+outcomes$`Days to Death` = as.numeric(outcomes$`Days to Death`)
+outcomes$`Days to Last Follow-up` = as.numeric(outcomes$`Days to Last Follow-up`)
+outcomes$overall_survival = ifelse(outcomes$`Vital Status` == "Alive",
+                                   outcomes$`Days to Last Follow-up`,
+                                   outcomes$`Days to Death`)
+
+metagene_surv = metagene %>% inner_join(outcomes, by = "Sample.ID")
+
+# fitting survival curve -----------
+# URS
+URS_survfit = survfit(Surv(overall_survival, Deceased) ~ URS_group, data = metagene_surv)
+URS_survfit
+
+survurs = ggsurvplot(URS_survfit,
+                     title = "Survival curves for URS groups",
+                     data = metagene_surv,
+                     pval = T,
+                     size = 0.35,
+                     censor.size = 2.5,
+                     pval.size = 2,
+                     risk.table = F,
+                     legend.labs = c("URS > 0", "URS < 0"),
+                     legend = c(0.9, 1),
+                     font.legend = 4,
+                     ggtheme = theme_classic()+
+                       theme(plot.title = element_text(face = "bold", size = 6),
+                             axis.title = element_text(face = "bold", size = 5),
+                             axis.text = element_text(size = 5)))
+
+tiff("Signatures/URS_survival_curve.tiff", width = 1920, height = 1920,
+     res = 700, units = "px", compression = "lzw")
+survurs
+dev.off()
+
+URS_survfit2 = survdiff(Surv(overall_survival, Deceased) ~ URS_group, data = metagene_surv)
+
+# DRS
+DRS_survfit = survfit(Surv(overall_survival, Deceased) ~ DRS_group, data = metagene_surv)
+DRS_survfit
+
+survdrs = ggsurvplot(DRS_survfit,
+                     title = "Survival curves for DRS groups",
+                     data = metagene_surv,
+                     pval = T,
+                     size = 0.35,
+                     censor.size = 2.5,
+                     pval.size = 2,
+                     risk.table = F,
+                     legend.labs = c("DRS > 0", "DRS < 0"),
+                     legend = c(0.9, 1),
+                     font.legend = 4,
+                     ggtheme = theme_classic()+
+                       theme(plot.title = element_text(face = "bold", size = 6),
+                             axis.title = element_text(face = "bold", size = 5),
+                             axis.text = element_text(size = 5)))
+
+tiff("Signatures/DRS_survival_curve.tiff", width = 1920, height = 1920,
+     res = 700, units = "px", compression = "lzw")
+survdrs
+dev.off()
+
+DRS_survfit2 = survdiff(Surv(overall_survival, Deceased) ~ DRS_group, data = metagene_surv)
+
+# All plots
+ggpubr::ggarrange(metaplot2, metaplot1, survurs$plot, survdrs$plot,
+                  ncol = 2, nrow = 2, labels = c("a", "b", "c", "d"),
+                  font.label = list(size = 5))
+ggsave("TCGA_metaplots_and_survcurves.tiff",
+       path = "Signatures/",
+       width = 1920*2, height = 1920*2, dpi = 700, compression = "lzw",
+       units = "px", device = "tiff")
