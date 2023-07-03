@@ -1861,21 +1861,78 @@ writeData(dichotomizers, "Stage_3_vs_4", dichotomizers_3_4)
 saveWorkbook(dichotomizers, "DGEA/Union/Dichotomizers.xlsx", overwrite = TRUE)
 
 # Union volcanoes #####
+# create custom key-value pairs for stat. sig genes (p.adj < 0.05) and n.s genes
+keyvals.colours = list()
+for (i in 1:length(DE_maps)) {
+  tab = DE_maps[[i]]
+  keyvals.colour <- ifelse(
+    tab$logFC < -1 & tab$adj.P.Val < 0.05, 'royalblue',
+    ifelse(tab$logFC > 1 & tab$adj.P.Val < 0.05, 'red4',
+           ifelse(abs(tab$logFC) < 1 & tab$adj.P.Val > 0.05, 'pink', 
+                  'grey')))
+  # keyvals.colour[is.na(keyvals.colour)] <- 'black'
+  names(keyvals.colour)[keyvals.colour == 'royalblue'] <- 'Down-regulated'
+  names(keyvals.colour)[keyvals.colour == 'red4'] <- 'Up-regulated'
+  names(keyvals.colour)[keyvals.colour == 'pink'] <- '|DE| < 1'
+  names(keyvals.colour)[keyvals.colour == 'grey'] <- 'p.adj > 0.05'
+  keyvals.colours[[i]] = keyvals.colour
+}
+names(keyvals.colours) = names(DE_maps)
+
 union_stages_volcano = EnhancedVolcano(DE_maps[["earlyvslate"]],
                                        lab = DE_maps[["earlyvslate"]][, "Gene.Symbol"],
+                                       caption = NULL,
                                        x = 'logFC',
                                        y = 'adj.P.Val',
                                        title = "Stage 1/2 vs. Stage 3/4",
                                        pCutoff = 0.05,
+                                       cutoffLineType = "dashed",
+                                       cutoffLineWidth = 0.3,
+                                       cutoffLineCol = "black",
                                        FCcutoff = 1,
-                                       col=c('grey', 'pink', 'purple4', 'red4'),
+                                       colCustom = keyvals.colour,
                                        colAlpha = 0.7,
                                        xlim = c(-5, 5),
-                                       ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                       xlab = "\nDifferential expression (units: sd)",
-                                       legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_Stages_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                       ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                       xlab = "\nDifferential expression",
+                                       pointSize = 1.5,
+                                       axisLabSize = 7,
+                                       subtitle = NULL,
+                                       labSize = 2,
+                                       selectLab = DE_maps[["earlyvslate"]][1, "Gene.Symbol"], # only one significant gene
+                                       legendLabSize = 6,
+                                       legendIconSize = 4,
+                                       labFace = "bold",
+                                       boxedLabels = TRUE,
+                                       drawConnectors = TRUE,
+                                       typeConnectors = "closed",
+                                       arrowheads = FALSE,
+                                       widthConnectors = 0.3,
+                                       max.overlaps = Inf,
+                                       legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                        "p.adj < 0.05", 
+                                                        "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_stages_volcano
+ggsave(filename = "Union_early_vs_late_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 union_one_four_stages_volcano = EnhancedVolcano(DE_maps[["onevsfour"]],
@@ -1883,16 +1940,55 @@ union_one_four_stages_volcano = EnhancedVolcano(DE_maps[["onevsfour"]],
                                                 x = 'logFC',
                                                 y = 'adj.P.Val',
                                                 title = "Stage 1 vs. Stage 4",
+                                                caption = NULL,
                                                 pCutoff = 0.05,
+                                                cutoffLineType = "dashed",
+                                                cutoffLineWidth = 0.3,
+                                                cutoffLineCol = "black",
                                                 FCcutoff = 1,
-                                                col=c('grey', 'pink', 'purple4', 'red4'),
+                                                colCustom = keyvals.colour,
                                                 colAlpha = 0.7,
                                                 xlim = c(-5, 5),
-                                                ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                                xlab = "\nDifferential expression (units: sd)",
-                                                legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_One_Four_Stages_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                                ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                                xlab = "\nDifferential expression",
+                                                pointSize = 1.5,
+                                                axisLabSize = 7,
+                                                subtitle = NULL,
+                                                labSize = 2,
+                                                selectLab = NULL, # no significant genes
+                                                legendLabSize = 6,
+                                                legendIconSize = 4,
+                                                labFace = "bold",
+                                                boxedLabels = TRUE,
+                                                drawConnectors = TRUE,
+                                                typeConnectors = "closed",
+                                                arrowheads = FALSE,
+                                                widthConnectors = 0.3,
+                                                max.overlaps = Inf,
+                                                legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                                 "p.adj < 0.05", 
+                                                                 "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_one_four_stages_volcano
+ggsave(filename = "Union_One_Four_Stages_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 union_one_normal_volcano = EnhancedVolcano(DE_maps[["onevsnormal"]],
@@ -1900,17 +1996,55 @@ union_one_normal_volcano = EnhancedVolcano(DE_maps[["onevsnormal"]],
                                            x = 'logFC',
                                            y = 'adj.P.Val',
                                            title = "Stage 1 vs. Normal",
+                                           caption = NULL,
                                            pCutoff = 0.05,
+                                           cutoffLineType = "dashed",
+                                           cutoffLineWidth = 0.3,
+                                           cutoffLineCol = "black",
                                            FCcutoff = 1,
-                                           col=c('grey', 'pink', 'purple4', 'red4'),
+                                           colCustom = keyvals.colours[["onevsnormal"]],
                                            colAlpha = 0.7,
                                            xlim = c(-5, 5),
-                                           ylim = c(0, 10),
-                                           ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                           xlab = "\nDifferential expression (units: sd)",
-                                           legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_One_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                           ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                           xlab = "\nDifferential expression",
+                                           pointSize = 1,
+                                           axisLabSize = 7,
+                                           subtitle = NULL,
+                                           labSize = 2,
+                                           selectLab = DE_maps[["onevsnormal"]][1:10, "Gene.Symbol"], # top 10 significant genes
+                                           legendLabSize = 6,
+                                           legendIconSize = 4,
+                                           labFace = "bold",
+                                           boxedLabels = TRUE,
+                                           drawConnectors = TRUE,
+                                           typeConnectors = "closed",
+                                           arrowheads = FALSE,
+                                           widthConnectors = 0.3,
+                                           max.overlaps = Inf,
+                                           legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                            "p.adj < 0.05", 
+                                                            "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_one_normal_volcano
+ggsave(filename = "Union_One_Normal_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 union_two_normal_volcano = EnhancedVolcano(DE_maps[["twovsnormal"]],
@@ -1918,17 +2052,55 @@ union_two_normal_volcano = EnhancedVolcano(DE_maps[["twovsnormal"]],
                                            x = 'logFC',
                                            y = 'adj.P.Val',
                                            title = "Stage 2 vs. Normal",
+                                           caption = NULL,
                                            pCutoff = 0.05,
+                                           cutoffLineType = "dashed",
+                                           cutoffLineWidth = 0.3,
+                                           cutoffLineCol = "black",
                                            FCcutoff = 1,
-                                           col=c('grey', 'pink', 'purple4', 'red4'),
+                                           colCustom = keyvals.colours[["twovsnormal"]],
                                            colAlpha = 0.7,
                                            xlim = c(-5, 5),
-                                           ylim = c(0, 35),
-                                           ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                           xlab = "\nDifferential expression (units: sd)",
-                                           legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_Two_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                           ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                           xlab = "\nDifferential expression",
+                                           pointSize = 1,
+                                           axisLabSize = 7,
+                                           subtitle = NULL,
+                                           labSize = 2,
+                                           selectLab = DE_maps[["twovsnormal"]][1:10, "Gene.Symbol"], # top 10 significant genes
+                                           legendLabSize = 6,
+                                           legendIconSize = 4,
+                                           labFace = "bold",
+                                           boxedLabels = TRUE,
+                                           drawConnectors = TRUE,
+                                           typeConnectors = "closed",
+                                           arrowheads = FALSE,
+                                           widthConnectors = 0.3,
+                                           max.overlaps = Inf,
+                                           legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                            "p.adj < 0.05", 
+                                                            "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_two_normal_volcano
+ggsave(filename = "Union_Two_Normal_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 union_three_normal_volcano = EnhancedVolcano(DE_maps[["threevsnormal"]],
@@ -1936,17 +2108,55 @@ union_three_normal_volcano = EnhancedVolcano(DE_maps[["threevsnormal"]],
                                              x = 'logFC',
                                              y = 'adj.P.Val',
                                              title = "Stage 3 vs. Normal",
+                                             caption = NULL,
                                              pCutoff = 0.05,
+                                             cutoffLineType = "dashed",
+                                             cutoffLineWidth = 0.3,
+                                             cutoffLineCol = "black",
                                              FCcutoff = 1,
-                                             col=c('grey', 'pink', 'purple4', 'red4'),
+                                             colCustom = keyvals.colours[["threevsnormal"]],
                                              colAlpha = 0.7,
                                              xlim = c(-5, 5),
-                                             ylim = c(0, 12.5),
-                                             ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                             xlab = "\nDifferential expression (units: sd)",
-                                             legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_Three_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                             ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                             xlab = "\nDifferential expression",
+                                             pointSize = 1,
+                                             axisLabSize = 7,
+                                             subtitle = NULL,
+                                             labSize = 2,
+                                             selectLab = DE_maps[["threevsnormal"]][1:10, "Gene.Symbol"], # top 10 significant genes
+                                             legendLabSize = 6,
+                                             legendIconSize = 4,
+                                             labFace = "bold",
+                                             boxedLabels = TRUE,
+                                             drawConnectors = TRUE,
+                                             typeConnectors = "closed",
+                                             arrowheads = FALSE,
+                                             widthConnectors = 0.3,
+                                             max.overlaps = Inf,
+                                             legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                              "p.adj < 0.05", 
+                                                              "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_three_normal_volcano
+ggsave(filename = "Union_Three_Normal_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 union_four_normal_volcano = EnhancedVolcano(DE_maps[["fourvsnormal"]],
@@ -1954,28 +2164,133 @@ union_four_normal_volcano = EnhancedVolcano(DE_maps[["fourvsnormal"]],
                                             x = 'logFC',
                                             y = 'adj.P.Val',
                                             title = "Stage 4 vs. Normal",
+                                            caption = NULL,
                                             pCutoff = 0.05,
+                                            cutoffLineType = "dashed",
+                                            cutoffLineWidth = 0.3,
+                                            cutoffLineCol = "black",
                                             FCcutoff = 1,
-                                            col=c('grey', 'pink', 'purple4', 'red4'),
+                                            colCustom = keyvals.colours[["fourvsnormal"]],
                                             colAlpha = 0.7,
                                             xlim = c(-5, 5),
-                                            ylim = c(0, 15),
-                                            ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                                            xlab = "\nDifferential expression (units: sd)",
-                                            legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Union_Four_Normal_Volcano.tif", width = 1500, height = 1920, res = 100)
+                                            ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                            xlab = "\nDifferential expression",
+                                            pointSize = 1,
+                                            axisLabSize = 7,
+                                            subtitle = NULL,
+                                            labSize = 2,
+                                            selectLab = DE_maps[["fourvsnormal"]][1:10, "Gene.Symbol"], # top 10 significant genes
+                                            legendLabSize = 6,
+                                            legendIconSize = 4,
+                                            labFace = "bold",
+                                            boxedLabels = TRUE,
+                                            drawConnectors = TRUE,
+                                            typeConnectors = "closed",
+                                            arrowheads = FALSE,
+                                            widthConnectors = 0.3,
+                                            max.overlaps = Inf,
+                                            legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                             "p.adj < 0.05", 
+                                                             "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 union_four_normal_volcano
+ggsave(filename = "Union_Four_Normal_Volcano.tiff",
+       path = "DGEA/Union/", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 rm(gene_union, i, j)
 
-tiff("DGEA/Union//Volcano_multiplot.tif", 
-     width = 3000, height = 3840, res = 150)
-multiplot(union_one_normal_volcano, union_two_normal_volcano,
-          union_three_normal_volcano, union_four_normal_volcano, cols = 2)
-m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano,
-                     union_three_normal_volcano, union_four_normal_volcano, cols = 2))
-dev.off(); rm(m)
+library(gridExtra)
+# Create user-defined function, which extracts legends from ggplots
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+
+# Apply user-defined function to extract legend from mock plot
+union_four_normal_volcano_legend = EnhancedVolcano(DE_maps[["fourvsnormal"]],
+                                            lab = DE_maps[["fourvsnormal"]][, "Gene.Symbol"],
+                                            x = 'logFC',
+                                            y = 'adj.P.Val',
+                                            title = "Stage 4 vs. Normal",
+                                            caption = NULL,
+                                            pCutoff = 0.05,
+                                            cutoffLineType = "dashed",
+                                            cutoffLineWidth = 0.3,
+                                            cutoffLineCol = "black",
+                                            FCcutoff = 1,
+                                            colCustom = keyvals.colours[["fourvsnormal"]],
+                                            colAlpha = 0.7,
+                                            xlim = c(-5, 5),
+                                            ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                                            xlab = "\nDifferential expression",
+                                            pointSize = 1,
+                                            axisLabSize = 7,
+                                            subtitle = NULL,
+                                            labSize = 2,
+                                            selectLab = DE_maps[["fourvsnormal"]][1:10, "Gene.Symbol"], # top 10 significant genes
+                                            legendLabSize = 12,
+                                            legendIconSize = 3,
+                                            labFace = "bold",
+                                            boxedLabels = TRUE,
+                                            drawConnectors = TRUE,
+                                            typeConnectors = "closed",
+                                            arrowheads = FALSE,
+                                            widthConnectors = 0.3,
+                                            max.overlaps = Inf,
+                                            legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                             "p.adj < 0.05", 
+                                                             "p.adj < 0.05 & |DE| > 1 s.d."))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.5, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
+shared_legend <- extract_legend(union_four_normal_volcano_legend)
+
+tiff("DGEA/Union/Volcano_multiplot.tiff", width = 200, height = 284, units ="mm",
+     res = 700, compression = "lzw")
+grid.arrange(arrangeGrob(union_one_normal_volcano + theme(legend.position = "none"), 
+                         union_two_normal_volcano + theme(legend.position = "none"),
+                         union_three_normal_volcano + theme(legend.position = "none"),
+                         union_four_normal_volcano + theme(legend.position = "none"),
+                         ncol = 2),
+             shared_legend, nrow = 2, heights = c(12, 1))
+dev.off()
+
+# Create sessionInfo directory
+dir.create("sessionInfo")
+sessionInfo()
 
 # Useful to save the volcano plots only as an .RData file that will be later used
 # to create additional plots after pathway analysis:
