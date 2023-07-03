@@ -487,19 +487,20 @@ for(i in 1:length(filt_pdata$GSE62165$Tissue_type)){
 # Select pData
 filt_pdata[["GSE102238"]] = pdata$GSE102238 %>%
   dplyr::select(GEO_accession = geo_accession,
-         Patient_ID = title,
-         Platform = platform_id,
-         Gender = "genderï¼ˆmale=0ï¼Œfemale=1ï¼‰:ch1",     # column 45               # 0: male           1: female
-         Age_grouped = "ageï¼ˆâ‰¤65=0ï¼Œï¼ž65=1ï¼‰:ch1",   # column 43               # 0: <=65           1: >65
-         Tissue_type =  "source_name_ch1",
-         T_stage = "t stage:ch1",
-         N_stage = "n stageï¼ˆâ€\u009dn0=0,n1=1):ch1",     # column 48 
-         M_stage = "m stage(m0=0.m1=1):ch1",
-         Vascular_invasion = "vessel invasion(absence=0,present=1):ch1",             # 0: absence        1: present
-         Differentiation = "differentiation(well/moderate=0,poor=1):ch1",            # 0: well/moderate  1: poor
-         Survival_status = "survival status(alive=0,dead=1):ch1",                    # 0: alive          1: dead
-         Survival_days = "survival time(day):ch1",
-         Tumor_localization = "localization of tumor(head=1,body/tail=2):ch1")       # 1: head           2: body/tail
+                Patient_ID = title,
+                Platform = platform_id,
+                45,     # gender            # 0: male           1: female
+                43,   # grouped age               # 0: <=65           1: >65
+                Tissue_type =  "source_name_ch1",
+                T_stage = "t stage:ch1",
+                48,     # N stage 
+                M_stage = "m stage(m0=0.m1=1):ch1",
+                Vascular_invasion = "vessel invasion(absence=0,present=1):ch1",             # 0: absence        1: present
+                Differentiation = "differentiation(well/moderate=0,poor=1):ch1",            # 0: well/moderate  1: poor
+                Survival_status = "survival status(alive=0,dead=1):ch1",                    # 0: alive          1: dead
+                Survival_days = "survival time(day):ch1",
+                Tumor_localization = "localization of tumor(head=1,body/tail=2):ch1") 
+colnames(filt_pdata[["GSE102238"]])[c(4, 5, 8)] = c("Gender", "Age_grouped", "N_stage")
 
 # Separate information in Tissue_type
 # Patient_ID
@@ -1238,7 +1239,7 @@ save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
 }
 
 save_pheatmap_tiff <- function(x, filename, width=2600, height=1800, res = 130) {
-  png(filename, width = width, height = height, res = res)
+  tiff(filename, width = width, height = height, res = res)
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
