@@ -1056,26 +1056,37 @@ original_pca$X1 = as.numeric(original_pca$X1)
 original_pca$X2 = as.numeric(original_pca$X2)
 
 original_MDS = ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
-  geom_point(size = 3) +
+  geom_point(size = 0.2) +
   scale_color_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  theme(plot.title = element_text(face = "bold", size = 5, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                 size = 15),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
-                                  size = 20),
-        axis.line = element_line(),
+        axis.text = element_text(angle = 0, hjust = 0.5, vjust = 0.5,
+                                 margin = margin(t = 1, unit = "cm"),
+                                 size = 2.5),
+        axis.title = element_text(angle = 0, hjust = 0.5, face = "bold", 
+                                  margin = margin(t = 3, unit = "cm"),
+                                  size = 3.5),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks = element_line(linewidth = 0.2),
         legend.position = "right",
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 17),
-        legend.key.size = unit(1, "cm"))+
+        legend.key.size = unit(1, units = "mm"),
+        legend.key.height = unit(1.5, "mm"),
+        legend.text = element_text(size = 2.5),
+        legend.title = element_text(face = "bold", size = 3),
+        legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(1, units = "mm"))+
   labs(title = "Multidimensional Scaling Plot",
-       x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
-tiff("QC/Tumor_stage/Original_MDS.tif", width = 1920, height = 1080, res = 100)
+       # x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       # y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n")
+       x = "MDS1", y = "MDS2")
 original_MDS
+ggsave(filename = "Original_MDS.tiff",
+       path = "QC/Tumor_stage", 
+       width = 1920, height = 1080, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 # Multidimensional scaling plot: z-score normalised matrix
@@ -1090,26 +1101,37 @@ z_pca$X1 = as.numeric(z_pca$X1)
 z_pca$X2 = as.numeric(z_pca$X2)
 
 KBZ_MDS_plot = ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
-  geom_point(size = 3) +
+  geom_point(size = 0.2) +
   scale_color_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  theme(plot.title = element_text(face = "bold", size = 5, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                 size = 15),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
-                                  size = 20),
-        axis.line = element_line(),
+        axis.text = element_text(angle = 0, hjust = 0.5, vjust = 0.5,
+                                 margin = margin(t = 1, unit = "cm"),
+                                 size = 2.5),
+        axis.title = element_text(angle = 0, hjust = 0.5, face = "bold", 
+                                  margin = margin(t = 3, unit = "cm"),
+                                  size = 3.5),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks = element_line(linewidth = 0.2),
         legend.position = "right",
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 17),
-        legend.key.size = unit(1, "cm"))+
-  labs(title = "Multidimensional Scaling Plot: z-score-normalised data",
-       x = paste0("\nPC1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("PC2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
-tiff("QC/Tumor_stage/KBZ_MDS.tif", width = 1920, height = 1080, res = 100)
+        legend.key.size = unit(1, units = "mm"),
+        legend.key.height = unit(1.5, "mm"),
+        legend.text = element_text(size = 2.5),
+        legend.title = element_text(face = "bold", size = 3),
+        legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(1, units = "mm"))+
+  labs(title = "Multidimensional Scaling Plot: normalized data",
+       # x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       # y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n")
+       x = "MDS1", y = "MDS2")
 KBZ_MDS_plot
+ggsave(filename = "z_MDS.tiff",
+       path = "QC/Tumor_stage", 
+       width = 1920, height = 1080, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 # Defining the multiplot function
@@ -1162,8 +1184,8 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 # End of multiplot function
 
-tiff("QC/Tumor_stage/MDS_multiplot.tif", 
-     width = 2160, height = 3840, res = 150)
+tiff("QC/Tumor_stage/MDS_multiplot.tiff", 
+     width = 2160, height = 3840, res = 700, compression = "lzw")
 multiplot(original_MDS, KBZ_MDS_plot, cols = 1)
 m = ggplot(multiplot(original_MDS, KBZ_MDS_plot, cols = 1))
 dev.off(); rm(m)
@@ -1171,75 +1193,93 @@ dev.off(); rm(m)
 # Global expression boxplot: original matrix
 original_eset = as.data.frame(original_exprs_nonas)
 original_boxplot = ggplot(melt(original_eset), aes(x=variable, y=value)) +
-  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
+  geom_boxplot(outlier.size = 0.01, outlier.shape = 20, linewidth = 0.02,
                fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
                         rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
-  scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
-                     breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  scale_y_continuous("Expression",
+                     limits = c(-10,
+                                round(max(reshape2::melt(original_eset)$value, na.rm = TRUE)+1)), 
+                     breaks = seq(-10,
+                                  round(max(reshape2::melt(original_eset)$value, na.rm = TRUE)+1), 500))+
+  theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                   size = 5),
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, 
-                                   margin = margin(t = .05, unit = "cm") ),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
-                                  size = 25, face = "bold"),
-        axis.line = element_line())+
-  labs(title = "Boxplot of expression",
+        axis.text.y = element_text(angle = 0, hjust = 1, #margin = margin(t = 1, unit = "cm"),
+                                   size = 3),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 1.5), 
+        #margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, #margin = margin(t = 1, unit = "cm"),
+                                  size = 10, face = "bold"),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks.x = element_line(linewidth = 0.1),
+        axis.ticks.y = element_line(linewidth = 0.1))+
+  labs(title = "Boxplot of expression: original values",
        x = "\nSamples",
        y = "Expression\n")
-tiff("QC/Tumor_stage/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
+
 original_boxplot
+ggsave(filename = "Original_boxplot.tiff",
+       path = "QC/Tumor_stage", 
+       width = 7680, height = 3240, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 # Global expression boxplot: z-score normalised matrix
 z_eset = as.data.frame(z_exprs_nonas)
 KBZ_boxplot = ggplot(melt(z_eset), aes(x=variable, y=value)) +
-  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
+  geom_boxplot(outlier.size = 0.01, outlier.shape = 20, linewidth = 0.02,
                fill = c(rep("cyan", 34), rep("chartreuse", 11),
                         rep("orange", 12), rep("red", 130), rep("grey", 131),
                         rep("purple", 100), 
                         rep("pink", 30)), outlier.alpha = 0.1)+
-  scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
-                     breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  scale_y_continuous("Expression",
+                     limits = c(round(min(reshape2::melt(z_eset)$value, na.rm = TRUE)-1),
+                                round(max(reshape2::melt(z_eset)$value, na.rm = TRUE)+1)), 
+                     breaks = seq(round(min(reshape2::melt(z_eset)$value, na.rm = TRUE)-1),
+                                  round(max(reshape2::melt(z_eset)$value, na.rm = TRUE)+1), 1))+
+  theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                   size = 5),
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, 
-                                   margin = margin(t = .05, unit = "cm") ),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
-                                  size = 25, face = "bold"),
-        axis.line = element_line())+
-  labs(title = "Boxplot of expression: z-score-normalised data",
+        axis.text.y = element_text(angle = 0, hjust = 1, #margin = margin(t = 1, unit = "cm"),
+                                   size = 3),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 1.5), 
+        #margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, #margin = margin(t = 1, unit = "cm"),
+                                  size = 10, face = "bold"),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks.x = element_line(linewidth = 0.1),
+        axis.ticks.y = element_line(linewidth = 0.1))+
+  labs(title = "Boxplot of expression: normalized values",
        x = "\nSamples",
        y = "Expression\n")
-tiff("QC/Tumor_stage/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
+
 KBZ_boxplot
+ggsave(filename = "z_boxplot.tiff",
+       path = "QC/Tumor_stage", 
+       width = 7680, height = 3240, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
-tiff("QC/Tumor_stage/Boxplot_multiplot.tif", 
-     width = 3840, height = 3840, res = 150)
+tiff("QC/Tumor_stage/Boxplot_multiplot.tiff", 
+     width = 7680, height = 6480, res = 700, compression = "lzw")
 multiplot(original_boxplot, KBZ_boxplot, cols = 1)
 m = ggplot(multiplot(original_boxplot, KBZ_boxplot, cols = 1))
 dev.off(); rm(m)
 
 # Heatmaps
-save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
+save_pheatmap_png <- function(x, filename, width=2600*2, height=1800*2, res = 700) {
   png(filename, width = width, height = height, res = res)
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
 }
 
-save_pheatmap_tiff <- function(x, filename, width=2600, height=1800, res = 130) {
-  tiff(filename, width = width, height = height, res = res)
+save_pheatmap_tiff <- function(x, filename, width=2600*2, height=1800*2, res = 700) {
+  tiff(filename, width = width, height = height, res = res, compression = "lzw")
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
@@ -1271,11 +1311,12 @@ original_heatmap = pheatmap(t(original_dists), col = hmcol,
                             show_rownames = F,
                             show_colnames = F,
                             treeheight_col = 0,
+                            fontsize = 5,
                             legend_breaks = c(min(original_dists, na.rm = TRUE), 
                                               max(original_dists, na.rm = TRUE)), 
                             legend_labels = (c("small distance", "large distance")),
                             main = "Original heatmap")
-save_pheatmap_tiff(original_heatmap, "QC/Tumor_stage/original_heatmap.tif")
+save_pheatmap_tiff(original_heatmap, "QC/Tumor_stage/original_heatmap.tiff")
 
 # Z-score version
 annotation_for_heatmap = full_pdata_filt[, c("Study", "Tissue_type")]
@@ -1303,11 +1344,12 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      show_rownames = F,
                      show_colnames = F,
                      treeheight_col = 0,
+                     fontsize = 5,
                      legend_breaks = c(min(z_dists, na.rm = TRUE), 
                                        max(z_dists, na.rm = TRUE)), 
                      legend_labels = (c("small distance", "large distance")),
-                     main = "Z-score normalisation heatmap")
-save_pheatmap_tiff(z_heatmap, "QC/Tumor_stage/KBZ_heatmap.tif")
+                     main = "Normalized data heatmap")
+save_pheatmap_tiff(z_heatmap, "QC/Tumor_stage/z_heatmap.tiff")
 
 ##### Differential Gene Expression (DGEA) #####
 # 6 types of DGEA:
@@ -1449,7 +1491,7 @@ for (i in 1:ncol(union_z_fit2)){
 saveWorkbook(DGEA_topTables, "DGEA/Union/DGEA_results.xlsx", overwrite = TRUE)
 names(DE_maps) = colnames(union_z_fit2)
 
-##### Condcordance and Discordance between stages #####
+##### Concordance and Discordance between stages #####
 # Stage 1 vs. Normal / Stage 2 vs. Normal
 # Save differences between Stage1/Normal and Stage2/Normal DEGs
 # in a variable called "dichotomizers". However, the real dichotomizers are both
