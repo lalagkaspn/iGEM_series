@@ -454,26 +454,39 @@ original_pca$Type = factor(original_pca$Type)
 original_pca$X1 = as.numeric(original_pca$X1)
 original_pca$X2 = as.numeric(original_pca$X2)
 
-tiff("QC/Blood_samples/Original_MDS.tif", width = 1920, height = 1080, res = 100)
-ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
-  geom_point(size = 3) +
+original_MDS = ggplot(original_pca, aes(X1, X2, color = Study, shape = Type)) +
+  geom_point(size = 0.2) +
   scale_color_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  theme(plot.title = element_text(face = "bold", size = 5, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                 size = 15),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
-                                  size = 20),
-        axis.line = element_line(),
+        axis.text = element_text(angle = 0, hjust = 0.5, vjust = 0.5,
+                                 margin = margin(t = 1, unit = "cm"),
+                                 size = 2.5),
+        axis.title = element_text(angle = 0, hjust = 0.5, face = "bold", 
+                                  margin = margin(t = 3, unit = "cm"),
+                                  size = 3.5),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks = element_line(linewidth = 0.2),
         legend.position = "right",
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 17),
-        legend.key.size = unit(1, "cm"))+
+        legend.key.size = unit(1, units = "mm"),
+        legend.key.height = unit(1.5, "mm"),
+        legend.text = element_text(size = 2.5),
+        legend.title = element_text(face = "bold", size = 3),
+        legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(1, units = "mm"))+
   labs(title = "Multidimensional Scaling Plot",
-       x = paste0("\nLeading logFC dimension 1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("Leading logFC dimension 2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n"))
+       # x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       # y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n")
+       x = "MDS1", y = "MDS2")
+
+original_MDS
+ggsave(filename = "blood_Original_MDS.tiff",
+       path = "QC/Blood_samples", 
+       width = 1920, height = 1080, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 # Multidimensional scaling plot: z-score normalised matrix
@@ -487,87 +500,181 @@ z_pca$Type = factor(z_pca$Type)
 z_pca$X1 = as.numeric(z_pca$X1)
 z_pca$X2 = as.numeric(z_pca$X2)
 
-tiff("QC/Blood_samples/KBZ_MDS.tif", width = 1920, height = 1080, res = 100)
-ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
-  geom_point(size = 3) +
+z_MDS = ggplot(z_pca, aes(X1, X2, color = Study, shape = Type)) +
+  geom_point(size = 0.2) +
   scale_color_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  theme(plot.title = element_text(face = "bold", size = 5, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                 size = 15),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 3, unit = "cm"),
-                                  size = 20),
-        axis.line = element_line(),
+        axis.text = element_text(angle = 0, hjust = 0.5, vjust = 0.5,
+                                 margin = margin(t = 1, unit = "cm"),
+                                 size = 2.5),
+        axis.title = element_text(angle = 0, hjust = 0.5, face = "bold", 
+                                  margin = margin(t = 3, unit = "cm"),
+                                  size = 3.5),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks = element_line(linewidth = 0.2),
         legend.position = "right",
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 17),
-        legend.key.size = unit(1, "cm"))+
-  labs(title = "Multidimensional Scaling Plot: z-score-normalised data",
-       x = paste0("\nLeading logFC dimension 1 (", round(100*z_mds$var.explained[1],2), "% of variance)"),
-       y = paste0("Leading logFC dimension 2 (", round(100*z_mds$var.explained[2],2), "% of variance)\n"))
+        legend.key.size = unit(1, units = "mm"),
+        legend.key.height = unit(1.5, "mm"),
+        legend.text = element_text(size = 2.5),
+        legend.title = element_text(face = "bold", size = 3),
+        legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(1, units = "mm"))+
+  labs(title = "Multidimensional Scaling Plot: normalized data",
+       # x = paste0("\nPC1 (", round(100*original_mds$var.explained[1],2), "% of variance)"),
+       # y = paste0("PC2 (", round(100*original_mds$var.explained[2],2), "% of variance)\n")
+       x = "MDS1", y = "MDS2")
+z_MDS
+ggsave(filename = "blood_z_MDS.tiff",
+       path = "QC/Blood_samples", 
+       width = 1920, height = 1080, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
+
+# Defining the multiplot function
+
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+# End of multiplot function
+
+tiff("QC/Blood_samples/blood_MDS_multiplot.tiff", 
+     width = 1920, height = 2160, res = 700, compression = "lzw")
+multiplot(original_MDS, z_MDS, cols = 1)
+m = ggplot(multiplot(original_MDS, z_MDS, cols = 1))
+dev.off(); rm(m)
+
 
 # Global expression boxplot: original matrix
 original_eset = as.data.frame(original_exprs_nonas)
-tiff("QC/Blood_samples/Original_boxplot.tif", width = 1920, height = 1080, res = 100)
-ggplot(melt(original_eset), aes(x=variable, y=value)) +
-  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
+original_boxplot = ggplot(melt(original_eset), aes(x=variable, y=value)) +
+  geom_boxplot(outlier.size = 0.01, outlier.shape = 20, linewidth = 0.02,
                fill = c(rep("cyan", 30), rep("chartreuse", 36),
                         rep("orange", 50), rep("red", 6)), outlier.alpha = 0.1)+
-  scale_y_continuous("Expression", limits = c(0,round(max(melt(original_eset)$value)+1)), 
-                     breaks = seq(0,round(max(melt(original_eset)$value)+1), 1))+
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+  scale_y_continuous("Expression",
+                     limits = c(round(min(reshape2::melt(original_eset)$value, na.rm = TRUE)-1),
+                                round(max(reshape2::melt(original_eset)$value, na.rm = TRUE)+1)), 
+                     breaks = seq(round(min(reshape2::melt(original_eset)$value, na.rm = TRUE)-1),
+                                  round(max(reshape2::melt(original_eset)$value, na.rm = TRUE)+1), 1))+
+  theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                   size = 15),
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 15, 
-                                   margin = margin(t = .05, unit = "cm") ),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
-                                  size = 25, face = "bold"),
-        axis.line = element_line())+
-  labs(title = "Boxplot of expression",
+        axis.text.y = element_text(angle = 0, hjust = 1, #margin = margin(t = 1, unit = "cm"),
+                                   size = 6),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5), 
+        #margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, #margin = margin(t = 1, unit = "cm"),
+                                  size = 10, face = "bold"),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks.x = element_line(linewidth = 0.1),
+        axis.ticks.y = element_line(linewidth = 0.1))+
+  labs(title = "Boxplot of expression: original values",
        x = "\nSamples",
        y = "Expression\n")
+original_boxplot
+ggsave(filename = "Original_boxplot.tiff",
+       path = "QC/Blood_samples", 
+       width = 7680, height = 3240, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 # Global expression boxplot: z-score normalised matrix
 z_eset = as.data.frame(z_exprs_nonas)
-tiff("QC/Blood_samples/KBZ_boxplot.tif", width = 1920, height = 1080, res = 100)
-ggplot(melt(z_eset), aes(x=variable, y=value)) +
-  geom_boxplot(outlier.size = 0.4, outlier.shape = 20,
-               fill = c(rep("cyan", 30), rep("chartreuse", 36),
-                        rep("orange", 50), rep("red", 6)), outlier.alpha = 0.1)+
-  scale_y_continuous("Expression", limits = c(0,round(max(melt(z_eset)$value)+1)), 
-                     breaks = seq(0,round(max(melt(z_eset)$value)+1), 1))+
-  theme(plot.title = element_text(face = "bold", size = 27, hjust = 0.5),
+z_boxplot = ggplot(melt(z_eset), aes(x=variable, y=value)) +
+  geom_boxplot(outlier.size = 0.01, outlier.shape = 20, linewidth = 0.02,
+                         fill = c(rep("cyan", 30), rep("chartreuse", 36),
+                                  rep("orange", 50), rep("red", 6)), outlier.alpha = 0.1)+
+  scale_y_continuous("Expression",
+                     limits = c(round(min(reshape2::melt(z_eset)$value, na.rm = TRUE)-1),
+                                round(max(reshape2::melt(z_eset)$value, na.rm = TRUE)+1)), 
+                     breaks = seq(round(min(reshape2::melt(z_eset)$value, na.rm = TRUE)-1),
+                                  round(max(reshape2::melt(z_eset)$value, na.rm = TRUE)+1), 1))+
+  theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
         panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 1, margin = margin(t = 1, unit = "cm"),
-                                   size = 15),
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 15, 
-                                   margin = margin(t = .05, unit = "cm") ),
-        axis.title = element_text(angle = 0, hjust = 0.5, margin = margin(t = 1, unit = "cm"),
-                                  size = 25, face = "bold"),
-        axis.line = element_line())+
-  labs(title = "Boxplot of expression: z-score-normalised data",
+        axis.text.y = element_text(angle = 0, hjust = 1, #margin = margin(t = 1, unit = "cm"),
+                                   size = 6),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5), 
+        #margin = margin(t = .05, unit = "cm") ),
+        axis.title = element_text(angle = 0, hjust = 0.5, #margin = margin(t = 1, unit = "cm"),
+                                  size = 10, face = "bold"),
+        axis.line = element_line(linewidth = 0.3),
+        axis.ticks.x = element_line(linewidth = 0.1),
+        axis.ticks.y = element_line(linewidth = 0.1))+
+  labs(title = "Boxplot of expression: normalized values",
        x = "\nSamples",
        y = "Expression\n")
+z_boxplot
+ggsave(filename = "blood_z_boxplot.tiff",
+       path = "QC/Blood_samples", 
+       width = 7680, height = 3240, device = 'tiff', units = "px",
+       dpi = 700, compression = "lzw")
 dev.off()
 
+tiff("QC/Blood_samples/blood_Boxplot_multiplot.tiff", 
+     width = 7680, height = 6480, res = 700, compression = "lzw")
+multiplot(original_boxplot, z_boxplot, cols = 1)
+m = ggplot(multiplot(original_boxplot, z_boxplot, cols = 1))
+dev.off(); rm(m)
+
+
 # Heatmaps
-save_pheatmap_png <- function(x, filename, width=2600, height=1800, res = 130) {
+save_pheatmap_png <- function(x, filename, width=2600*2, height=1800*2, res = 700) {
   png(filename, width = width, height = height, res = res)
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
 }
-save_pheatmap_tiff <- function(x, filename, width=2600, height=1800, res = 130) {
-  png(filename, width = width, height = height, res = res)
+save_pheatmap_tiff <- function(x, filename, width=2600*2, height=1800*2, res = 700) {
+  tiff(filename, width = width, height = height, res = res, compression = "lzw")
   grid::grid.newpage()
   grid::grid.draw(x$gtable)
   dev.off()
@@ -597,11 +704,12 @@ original_heatmap = pheatmap(t(original_dists), col = hmcol,
                             show_rownames = F,
                             show_colnames = F,
                             treeheight_col = 0,
+                            fontsize = 5,
                             legend_breaks = c(min(original_dists, na.rm = TRUE), 
                                               max(original_dists, na.rm = TRUE)), 
                             legend_labels = (c("small distance", "large distance")),
                             main = "Original heatmap")
-save_pheatmap_tiff(original_heatmap, "QC/Blood_samples/original_heatmap.tif")
+save_pheatmap_tiff(original_heatmap, "QC/Blood_samples/blood_original_heatmap.tiff")
 
 # Z-score version
 annotation_for_heatmap = full_pdata[, c("Study", "Tissue_type")]
@@ -627,11 +735,12 @@ z_heatmap = pheatmap(t(z_dists), col = hmcol,
                      show_rownames = F,
                      show_colnames = F,
                      treeheight_col = 0,
+                     fontsize = 5,
                      legend_breaks = c(min(z_dists, na.rm = TRUE), 
                                        max(z_dists, na.rm = TRUE)), 
                      legend_labels = (c("small distance", "large distance")),
                      main = "Z-score normalisation heatmap")
-save_pheatmap_tiff(z_heatmap, "QC/Blood_samples/KBZ_heatmap.tif")
+save_pheatmap_tiff(z_heatmap, "QC/Blood_samples/blood_z_heatmap.tiff")
 
 ##### Differential Gene Expression (DGEA) - Union #####
 # Joining in one expression matrix: z-score normalised version
@@ -731,24 +840,74 @@ write.xlsx(TN_z_DE_mapped, "DGEA/Union/Blood_samples_analysis/Blood_TN_z_DE_topT
            overwrite = TRUE)
 
 ##### Volcano plots #####
+keyvals.colour <- ifelse(
+  TN_z_DE_mapped$logFC < -1 & TN_z_DE_mapped$adj.P.Val < 0.05, 'royalblue',
+  ifelse(TN_z_DE_mapped$logFC > 1 & TN_z_DE_mapped$adj.P.Val < 0.05, 'red4',
+         ifelse(abs(TN_z_DE_mapped$logFC) < 1 & TN_z_DE_mapped$adj.P.Val > 0.05, 'pink', 
+                'grey')))
+# keyvals.colour[is.na(keyvals.colour)] <- 'black'
+names(keyvals.colour)[keyvals.colour == 'royalblue'] <- 'Down-regulated'
+names(keyvals.colour)[keyvals.colour == 'red4'] <- 'Up-regulated'
+names(keyvals.colour)[keyvals.colour == 'pink'] <- '|DE| < 1'
+names(keyvals.colour)[keyvals.colour == 'grey'] <- 'p.adj > 0.05'
+TN_z_DE_mapped$aes = keyvals.colour
+
 # Tumor vs Normal
 TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                lab = TN_z_DE_mapped[, "Gene.Symbol"],
+                               caption = NULL,
                                x = 'logFC',
                                y = 'adj.P.Val',
-                               title = "Tumor vs. Non-tumor (Blood)",
+                               title = "Tumor vs. Non-tumor (blood)",
                                pCutoff = 0.05,
+                               cutoffLineType = "dashed",
+                               cutoffLineWidth = 0.3,
+                               cutoffLineCol = "black",
                                FCcutoff = 1,
-                               ylim = c(0,9),
-                               xlim = c(-2,2),
-                               col=c('grey', 'pink', 'purple4', 'red4'),
+                               colCustom = keyvals.colour,
                                colAlpha = 0.7,
-                               ylab = bquote(~-Log[10] ~ (italic(adj.p.value))),
-                               xlab = "\nDifferential expression (units: sd)",
-                               legendLabels = c("NS", "|DE| > 1 s.d.", "FDR < 0.05", "FDR < 0.05 & |DE| > 1 s.d."))
-tiff("DGEA/Union/Blood_samples_analysis/Blood_TN_z_Volcano.tif", width = 1500, height = 1920, 
-     res = 130)
+                               xlim = c(-2, 2),
+                               ylab = bquote(bold(-log[10]("BH adj. p-value"))),
+                               xlab = "\nDifferential expression",
+                               pointSize = 1.5,
+                               axisLabSize = 7,
+                               subtitle = NULL,
+                               labSize = 2,
+                               selectLab = TN_z_DE_mapped[1:20, "Gene.Symbol"], # only one significant gene
+                               legendLabSize = 6,
+                               legendIconSize = 4,
+                               labFace = "bold",
+                               boxedLabels = TRUE,
+                               drawConnectors = TRUE,
+                               typeConnectors = "closed",
+                               arrowheads = FALSE,
+                               widthConnectors = 0.3,
+                               max.overlaps = Inf,
+                               legendLabels = c("NS", "|DE| > 1 s.d.", 
+                                                "p.adj < 0.05", 
+                                                "p.adj < 0.05 & |DE| > 1 s.d."))+
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1))+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.4),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(face = "bold", size = 10),
+        axis.line = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks = element_line(colour = "black", linewidth = 0.4),
+        axis.ticks.length = unit(1, units = "mm"),
+        legend.position = "bottom",
+        #legend.text = element_text(size = 8),
+        #legend.title = element_blank(),
+        #legend.margin = ggplot2::margin(0, 0, 0, 0, unit = "mm"),
+        #legend.spacing.y = unit(1, units = "mm"),
+        legend.spacing.x = unit(0.3, units = "mm")#,
+        #legend.background = element_blank(),
+        #legend.box.background = element_rect(colour = "black"))
+  )
 TN_z_volcano
+ggsave(filename = "Blood_TN_z_Volcano.tiff",
+       path = "DGEA/Union/Blood_samples_analysis", 
+       width = 100, height = 142, device = 'tiff', units = "mm",
+       dpi = 700, compression = "lzw")
 dev.off()
 
 ##### Comparisons between tumor tissue identified DEGs and blood samples DEGs follow.
@@ -987,7 +1146,7 @@ udBlood = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
 
 # Boxplots
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 6), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4, 5, 6)) +
   ggpubr::stat_compare_means(comparisons = list(c("Normal", "Stage 1"),
@@ -997,165 +1156,175 @@ metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) +
                                                 c("Normal", "Blood")), method = "t.test",
                              aes(label = ..p.signif..)) +
   # Stage 1
-  annotate("text", x = 2.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(dt1$statistic,2))) +
-  annotate("text", x = 2.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(dt1$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(dt1$p.value, 4))))) +
-  annotate("text", x = 2.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(dd1,2))) +
   geom_rect(aes(xmin = 1.7, xmax = 2.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 2
-  annotate("text", x = 3.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(dt2$statistic,2))) +
-  annotate("text", x = 3.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(dt2$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(dt2$p.value, 4))))) +
-  annotate("text", x = 3.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(dd2,2))) +
   geom_rect(aes(xmin = 2.7, xmax = 3.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 3
-  annotate("text", x = 4.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(dt3$statistic,2))) +
-  annotate("text", x = 4.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(dt3$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(dt3$p.value, 4))))) +
-  annotate("text", x = 4.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(dd3,2))) +
   geom_rect(aes(xmin = 3.7, xmax = 4.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 4
-  annotate("text", x = 5.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(dt4$statistic,2))) +
-  annotate("text", x = 5.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(dt4$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(dt4$p.value, 4))))) +
-  annotate("text", x = 5.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(dd4,2))) +
   geom_rect(aes(xmin = 4.7, xmax = 5.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Blood
-  annotate("text", x = 6.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(dtBlood$statistic,2))) +
-  annotate("text", x = 6.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(dtBlood$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(dtBlood$p.value, 4))))) +
-  annotate("text", x = 6.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(ddBlood,2))) +
   geom_rect(aes(xmin = 5.7, xmax = 6.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 3.5),
+        legend.key.size = unit(2, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of down-regulated genes",
-       title = "Boxplots of mean expression: down-regulated genes",
+       y = "Mean DRS expression",
+       title = "Boxplots of mean expression: DRS",
        fill = "Legend")
 metaplot1
 
 metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
-  geom_boxplot(width=0.35)+
+  geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 4.5), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4)) +
   ggpubr::stat_compare_means(comparisons = list(c("Normal", "Stage 1"),
-                                           c("Normal", "Stage 2"),
-                                           c("Normal", "Stage 3"),
-                                           c("Normal", "Stage 4"),
-                                           c("Normal", "Blood")), method = "t.test",
+                                                c("Normal", "Stage 2"),
+                                                c("Normal", "Stage 3"),
+                                                c("Normal", "Stage 4"),
+                                                c("Normal", "Blood")), method = "t.test",
                              aes(label = ..p.signif..)) +
   # Stage 1
-  annotate("text", x = 2.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(ut1$statistic,2))) +
-  annotate("text", x = 2.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(ut1$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(ut1$p.value, 4))))) +
-  annotate("text", x = 2.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 2.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(ud1,2))) +
   geom_rect(aes(xmin = 1.7, xmax = 2.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 2
-  annotate("text", x = 3.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(ut2$statistic,2))) +
-  annotate("text", x = 3.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(ut2$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(ut2$p.value, 4))))) +
-  annotate("text", x = 3.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 3.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(ud2,2))) +
   geom_rect(aes(xmin = 2.7, xmax = 3.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 3
-  annotate("text", x = 4.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(ut3$statistic,2))) +
-  annotate("text", x = 4.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(ut3$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(ut3$p.value, 4))))) +
-  annotate("text", x = 4.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 4.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(ud3,2))) +
   geom_rect(aes(xmin = 3.7, xmax = 4.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Stage 4
-  annotate("text", x = 5.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(ut4$statistic,2))) +
-  annotate("text", x = 5.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(ut4$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(ut4$p.value, 4))))) +
-  annotate("text", x = 5.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 5.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(ud4,2))) +
   geom_rect(aes(xmin = 4.7, xmax = 5.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # Blood
-  annotate("text", x = 6.0, y = -2.4, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -2.4, size = 0.85, parse = TRUE,
            label = paste0("italic(t) == ", round(utBlood$statistic,2))) +
-  annotate("text", x = 6.0, y = -2.7, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -2.7, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "p ", ifelse(round(utBlood$p.value, 4)<0.0001, "< 0.0001", 
                                        paste0("==",  round(utBlood$p.value, 4))))) +
-  annotate("text", x = 6.0, y = -3.0, size = 2.5, parse = TRUE,
+  annotate("text", x = 6.0, y = -3.0, size = 0.85, parse = TRUE,
            label = paste0("\n", 
                           "d == ", round(udBlood,2))) +
   geom_rect(aes(xmin = 5.7, xmax = 6.3, ymin = -2.25, ymax = -3.25),
-            fill = "transparent", color = "black", size = 0.5) +
+            fill = "transparent", color = "black", linewidth = 0.15) +
   # geom_jitter(color="black", size=0.4, alpha=0.9, width = 0.2) +
   theme(panel.background = element_rect(fill = "white", 
                                         colour = "white"),
         panel.grid = element_blank(),
-        axis.line = element_line(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-        axis.title = element_text(face = "bold")) +
+        axis.line = element_line(linewidth = 0.25),
+        axis.ticks = element_line(linewidth = 0.25),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 6),
+        axis.title = element_text(face = "bold", size = 5),
+        axis.text = element_text(size = 5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 3.5),
+        legend.key.size = unit(2, "mm")) +
   labs(x = "Sample type",
-       y = "Mean expression of up-regulated genes",
-       title = "Boxplots of mean expression: up-regulated genes",
+       y = "Mean URS expression",
+       title = "Boxplots of mean expression: URS",
        fill = "Legend")
 metaplot2
 
-tiff("Signatures/Our_signature_metaplots.tif", 
-     width = 1920, height = 1080, res = 150)
-multiplot(metaplot1, metaplot2, cols = 2)
-m = ggplot(multiplot(metaplot1, metaplot2, cols = 2),
+tiff("Signatures/Our_signature_metaplots.tiff", 
+     width = 1920*2, height = 1920, res = 700, compression = "lzw")
+multiplot(metaplot2, metaplot1, cols = 2)
+m = ggplot(multiplot(metaplot2, metaplot1, cols = 2),
            axis.title = element_text(face = "bold"))
 dev.off(); rm(m)
 
