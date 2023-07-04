@@ -5,6 +5,7 @@ library(limma)
 library(ggplot2)
 library(survminer)
 library(survival)
+library(openxlsx)
 
 query.miRNA = GDCquery(
   project = "TCGA-PAAD", 
@@ -177,7 +178,7 @@ metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) +
         legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
        y = "Mean DRS expression",
-       title = "Boxplots of mean expression: DRS",
+       title = "TCGA - Boxplots of mean expression: DRS",
        fill = "Legend")
 metaplot1
 
@@ -211,7 +212,7 @@ metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) +
         legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
        y = "Mean URS expression",
-       title = "Boxplots of mean expression: URS",
+       title = "TCGA - Boxplots of mean expression: URS",
        fill = "Legend")
 metaplot2
 
@@ -234,7 +235,7 @@ metaplot1_jitter = ggplot(metagene, aes(x = group, y = DRS, fill = group)) +
         legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
        y = "Mean DRS expression",
-       title = "Boxplots of mean expression: DRS",
+       title = "TCGA - Boxplots of mean expression: DRS",
        fill = "Legend")
 metaplot1_jitter
 
@@ -256,7 +257,7 @@ metaplot2_jitter = ggplot(metagene, aes(x = group, y = URS, fill = group)) +
         legend.key.size = unit(4, "mm")) +
   labs(x = "Sample type",
        y = "Mean URS expression",
-       title = "Boxplots of mean expression: URS",
+       title = "TCGA - Boxplots of mean expression: URS",
        fill = "Legend")
 metaplot2_jitter
 
@@ -349,7 +350,7 @@ URS_survfit = survfit(Surv(overall_survival, Deceased) ~ URS_group, data = metag
 URS_survfit
 
 survurs = ggsurvplot(URS_survfit,
-                     title = "Survival curves for URS groups",
+                     title = "TCGA - Survival curves for URS groups",
                      data = metagene_surv,
                      pval = T,
                      size = 0.35,
@@ -376,7 +377,7 @@ DRS_survfit = survfit(Surv(overall_survival, Deceased) ~ DRS_group, data = metag
 DRS_survfit
 
 survdrs = ggsurvplot(DRS_survfit,
-                     title = "Survival curves for DRS groups",
+                     title = "TCGA - Survival curves for DRS groups",
                      data = metagene_surv,
                      pval = T,
                      size = 0.35,
@@ -401,8 +402,24 @@ DRS_survfit2 = survdiff(Surv(overall_survival, Deceased) ~ DRS_group, data = met
 # All plots
 ggpubr::ggarrange(metaplot2, metaplot1, survurs$plot, survdrs$plot,
                   ncol = 2, nrow = 2, labels = c("a", "b", "c", "d"),
-                  font.label = list(size = 5))
+                  font.label = list(size = 7))
 ggsave("TCGA_metaplots_and_survcurves.tiff",
        path = "Signatures/",
        width = 1920*2, height = 1920*2, dpi = 700, compression = "lzw",
        units = "px", device = "tiff")
+
+# Load the metascore boxplots in our samples too
+internal_metaplots = readRDS("Signatures/internal_metaplots.rds")
+
+# Full multiplot
+ggpubr::ggarrange(internal_metaplots[[2]], internal_metaplots[[1]],
+                  metaplot2, metaplot1, survurs$plot, survdrs$plot,
+                  ncol = 2, nrow = 3, labels = c("a", "b", "c", "d", "e", "f"),
+                  font.label = list(size = 7))
+ggsave("full_TCGA_metaplots_and_survcurves.tiff",
+       path = "Signatures/",
+       width = 1920*2, height = 1920*3, dpi = 700, compression = "lzw",
+       units = "px", device = "tiff")
+
+# sessionInfo
+sessionInfo()
