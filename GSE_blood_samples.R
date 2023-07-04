@@ -1328,6 +1328,10 @@ m = ggplot(multiplot(metaplot2, metaplot1, cols = 2),
            axis.title = element_text(face = "bold"))
 dev.off(); rm(m)
 
+# Write the two metaplots out as .rds objects to load when running "TCGA_validations.R"
+internal_metaplots = list(metaplot1, metaplot2)
+saveRDS(internal_metaplots, "Signatures/internal_metaplots.rds")
+
 # Save the volcano after loading the previous volcano plots. Use the same
 # .RData file as before:
 
