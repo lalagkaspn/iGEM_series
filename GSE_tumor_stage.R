@@ -1185,7 +1185,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 # End of multiplot function
 
 tiff("QC/Tumor_stage/MDS_multiplot.tiff", 
-     width = 2160, height = 3840, res = 700, compression = "lzw")
+     width = 1920, height = 2160, res = 700, compression = "lzw")
 multiplot(original_MDS, KBZ_MDS_plot, cols = 1)
 m = ggplot(multiplot(original_MDS, KBZ_MDS_plot, cols = 1))
 dev.off(); rm(m)
