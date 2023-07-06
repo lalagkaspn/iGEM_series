@@ -90,8 +90,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
     labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_1)[i],
                         " terms enrichment dotplot - (", stages["stage_1"], ")"))
   tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
-             names(pathfindR_outputs_stage_1)[i], "_top10_dotplot.tif"), 
-       width = 2880, height = 1620, res = 210)
+             names(pathfindR_outputs_stage_1)[i], "_top10_dotplot.tiff"), 
+       width = 9600, height = 5400, res = 700, compression = "lzw")
   print(enrichment_dotplots_stage_1[[i]])
   dev.off()
   
@@ -112,8 +112,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
       labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_1)[i],
                           " terms enrichment dotplot - (", stages["stage_1"], ")"))
     tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
-               names(pathfindR_outputs_stage_1)[i], "_top10_dotplot_clustered.tif"), 
-         width = 2880, height = 1620, res = 210)
+               names(pathfindR_outputs_stage_1)[i], "_top10_dotplot_clustered.tiff"), 
+         width = 9600, height = 5400, res = 700, compression = "lzw")
     print(cluster_enrichment_dotplots_stage_1[[i]])
     dev.off()
   }
@@ -211,13 +211,13 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
           legend.title = element_text(size = 13),
           legend.title.align = 0.5,
           legend.direction = "vertical") +
-    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_1)[i], 
+    labs(title = paste0("Top 5 ", names(wrapped_pathfindR_outputs_stage_1)[i], 
                         " terms - differentially expressed genes heatmap (",
                         stages["stage_1"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
-             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_term_gene_heatmap.tif"), 
-      width = 3840, height = 648, res = 150)
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_term_gene_heatmap.tiff"), 
+      width = 17920, height = 3024, res = 700, compression = "lzw")
   print(ggdraw(align_legend(term_gene_heatmaps_stage_1[[i]], hjust = 0.5)))
   dev.off()
   
@@ -237,8 +237,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
                         stages["stage_1"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
-             names(wrapped_pathfindR_outputs_stage_1)[i], "_top3_term_gene_graph.tif"), 
-       width = 1920, height = 1080, res = 100)
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top3_term_gene_graph.tiff"), 
+       width = 1920*7, height = 1080*7, res = 700, compression ="lzw")
   print(term_gene_graphs_stage_1[[i]])
   dev.off()
 }
@@ -256,8 +256,8 @@ for (i in 1:length(pathfindR_outputs_stage_1)){
                                 mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
   tiff(paste0("pathfindR/Stage_1/", names(wrapped_pathfindR_outputs_stage_1)[i], "/",
-             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_UpSet_plot.tif"), 
-      width = 1444, height = 3840, res = 150)
+             names(wrapped_pathfindR_outputs_stage_1)[i], "_top5_UpSet_plot.tiff"), 
+      width = 6740, height = 17920, res = 700, compression = "lzw")
   print(UpSet_plots_stage_1[[i]])
   dev.off()
 }
@@ -341,8 +341,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
     labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_2)[i],
                         " terms enrichment dotplot - (", stages["stage_2"], ")"))
   tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
-              names(pathfindR_outputs_stage_2)[i], "_top10_dotplot.tif"), 
-       width = 2880, height = 1620, res = 210)
+              names(pathfindR_outputs_stage_2)[i], "_top10_dotplot.tiff"), 
+       width = 9600, height = 5400, res = 700, compression = "lzw")
   print(enrichment_dotplots_stage_2[[i]])
   dev.off()
   
@@ -363,8 +363,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
       labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_2)[i],
                           " terms enrichment dotplot - (", stages["stage_2"], ")"))
     tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
-                names(pathfindR_outputs_stage_2)[i], "_top10_dotplot_clustered.tif"), 
-         width = 2880, height = 1620, res = 210)
+                names(pathfindR_outputs_stage_2)[i], "_top10_dotplot_clustered.tiff"), 
+         width = 9600, height = 5400, res = 700, compression = "lzw")
     print(cluster_enrichment_dotplots_stage_2[[i]])
     dev.off()
   }
@@ -411,8 +411,12 @@ saveWorkbook(wb2, file = "pathfindR/Stage_2/Representative_terms.xlsx",
 term_gene_heatmaps_stage_2 = list()
 term_gene_graphs_stage_2 = list()
 
-# Loop not executable for the term-gene graph for i = 2 #
-for (i in 1:length(pathfindR_outputs_stage_2)){
+# Loop not executable for the term-gene heatmaps for i = 2, 4 #
+# Term-gene graph generation leads to session abort messages for i = 2
+# Better to run all elements manually while setting i to different values
+# DO NOT RUN AS A LOOP
+# GitHub error solution did not fix it (https://github.com/egeulgen/pathfindR/issues/50)
+for (i in c(1, 3, 4, 5, 6)){
   # term-gene heatmaps
   term_gene_heatmaps_stage_2[[i]] = term_gene_heatmap(result_df = wrapped_pathfindR_outputs_stage_2[[i]],
                                                       genes_df = Stage_2_tT,
@@ -427,13 +431,13 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
           legend.title = element_text(size = 13),
           legend.title.align = 0.5,
           legend.direction = "vertical") +
-    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_2)[i], 
+    labs(title = paste0("Top 5 ", names(wrapped_pathfindR_outputs_stage_2)[i], 
                         " terms - differentially expressed genes heatmap (",
                         stages["stage_2"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_term_gene_heatmap.tif"), 
-       width = 3840, height = 648, res = 150)
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_term_gene_heatmap.tiff"), 
+       width = 17920, height = 3024, res = 700, compression = "lzw")
   print(ggdraw(align_legend(term_gene_heatmaps_stage_2[[i]], hjust = 0.5)))
   dev.off()
 
@@ -453,8 +457,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
                         stages["stage_2"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_2)[i], "_top3_term_gene_graph.tif"), 
-       width = 1920, height = 1080, res = 100)
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top3_term_gene_graph.tiff"), 
+       width = 1920*7, height = 1080*7, res = 700, compression = "lzw")
   print(term_gene_graphs_stage_2[[i]])
   dev.off()
 }
@@ -472,8 +476,8 @@ for (i in 1:length(pathfindR_outputs_stage_2)){
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
   tiff(paste0("pathfindR/Stage_2/", names(wrapped_pathfindR_outputs_stage_2)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_UpSet_plot.tif"), 
-       width = 1444, height = 3840, res = 150)
+              names(wrapped_pathfindR_outputs_stage_2)[i], "_top5_UpSet_plot.tiff"), 
+       width = 6740, height = 17920, res = 700, compression = "lzw")
   print(UpSet_plots_stage_2[[i]])
   dev.off()
 }
@@ -557,8 +561,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
     labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_3)[i],
                         " terms enrichment dotplot - (", stages["stage_3"], ")"))
   tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
-              names(pathfindR_outputs_stage_3)[i], "_top10_dotplot.tif"), 
-       width = 2880, height = 1620, res = 210)
+              names(pathfindR_outputs_stage_3)[i], "_top10_dotplot.tiff"), 
+       width = 9600, height = 5400, res = 700, compression = "lzw")
   print(enrichment_dotplots_stage_3[[i]])
   dev.off()
   
@@ -579,8 +583,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
       labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_3)[i],
                           " terms enrichment dotplot - (", stages["stage_3"], ")"))
     tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
-                names(pathfindR_outputs_stage_3)[i], "_top10_dotplot_clustered.tif"), 
-         width = 2880, height = 1620, res = 210)
+                names(pathfindR_outputs_stage_3)[i], "_top10_dotplot_clustered.tiff"), 
+         width = 9600, height = 5400, res = 700, compression = "lzw")
     print(cluster_enrichment_dotplots_stage_3[[i]])
     dev.off()
   }
@@ -642,13 +646,13 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
           legend.title = element_text(size = 13),
           legend.title.align = 0.5,
           legend.direction = "vertical") +
-    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_3)[i], 
+    labs(title = paste0("Top 5 ", names(wrapped_pathfindR_outputs_stage_3)[i], 
                         " terms - differentially expressed genes heatmap (",
                         stages["stage_3"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_term_gene_heatmap.tif"), 
-       width = 3840, height = 648, res = 150)
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_term_gene_heatmap.tiff"), 
+       width = 17920, height = 3024, res = 700, compression = "lzw")
   print(ggdraw(align_legend(term_gene_heatmaps_stage_3[[i]], hjust = 0.5)))
   dev.off()
   
@@ -668,8 +672,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
                         stages["stage_3"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_3)[i], "_top3_term_gene_graph.tif"), 
-       width = 1920, height = 1080, res = 100)
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top3_term_gene_graph.tiff"), 
+       width = 1920*7, height = 1080*7, res = 700, compression = "lzw")
   print(term_gene_graphs_stage_3[[i]])
   dev.off()
 }
@@ -687,8 +691,8 @@ for (i in 1:length(pathfindR_outputs_stage_3)){
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
   tiff(paste0("pathfindR/Stage_3/", names(wrapped_pathfindR_outputs_stage_3)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_UpSet_plot.tif"), 
-       width = 1444, height = 3840, res = 150)
+              names(wrapped_pathfindR_outputs_stage_3)[i], "_top5_UpSet_plot.tiff"), 
+       width = 6740, height = 17920, res = 700, compression = "lzw")
   print(UpSet_plots_stage_3[[i]])
   dev.off()
 }
@@ -772,8 +776,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
     labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_4)[i],
                         " terms enrichment dotplot - (", stages["stage_4"], ")"))
   tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
-              names(pathfindR_outputs_stage_4)[i], "_top10_dotplot.tif"), 
-       width = 2880, height = 1620, res = 210)
+              names(pathfindR_outputs_stage_4)[i], "_top10_dotplot.tiff"), 
+       width = 9600, height = 5400, res = 700, compression = "lzw")
   print(enrichment_dotplots_stage_4[[i]])
   dev.off()
   
@@ -794,8 +798,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
       labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_stage_4)[i],
                           " terms enrichment dotplot - (", stages["stage_4"], ")"))
     tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
-                names(pathfindR_outputs_stage_4)[i], "_top10_dotplot_clustered.tif"), 
-         width = 2880, height = 1620, res = 210)
+                names(pathfindR_outputs_stage_4)[i], "_top10_dotplot_clustered.tiff"), 
+         width = 9600, height = 5400, res = 700, compression = "lzw")
     print(cluster_enrichment_dotplots_stage_4[[i]])
     dev.off()
   }
@@ -857,13 +861,13 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
           legend.title = element_text(size = 13),
           legend.title.align = 0.5,
           legend.direction = "vertical") +
-    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_stage_4)[i], 
+    labs(title = paste0("Top 5 ", names(wrapped_pathfindR_outputs_stage_4)[i], 
                         " terms - differentially expressed genes heatmap (",
                         stages["stage_4"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_term_gene_heatmap.tif"), 
-       width = 3840, height = 648, res = 150)
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_term_gene_heatmap.tiff"), 
+       width = 17920, height = 3024, res = 700, compression = "lzw")
   print(ggdraw(align_legend(term_gene_heatmaps_stage_4[[i]], hjust = 0.5)))
   dev.off()
   
@@ -883,8 +887,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
                         stages["stage_4"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_4)[i], "_top3_term_gene_graph.tif"), 
-       width = 1920, height = 1080, res = 100)
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top3_term_gene_graph.tiff"), 
+       width = 1920*7, height = 1080*7, res = 700, compression = "lzw")
   print(term_gene_graphs_stage_4[[i]])
   dev.off()
 }
@@ -902,8 +906,8 @@ for (i in 1:length(pathfindR_outputs_stage_4)){
                                         mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
   tiff(paste0("pathfindR/Stage_4/", names(wrapped_pathfindR_outputs_stage_4)[i], "/",
-              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_UpSet_plot.tif"), 
-       width = 1444, height = 3840, res = 150)
+              names(wrapped_pathfindR_outputs_stage_4)[i], "_top5_UpSet_plot.tiff"), 
+       width = 6740, height = 17920, res = 700, compression = "lzw")
   print(UpSet_plots_stage_4[[i]])
   dev.off()
 }
@@ -987,8 +991,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
     labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_blood)[i],
                         " terms enrichment dotplot - (", stages["blood"], ")"))
   tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
-              names(pathfindR_outputs_blood)[i], "_top10_dotplot.tif"), 
-       width = 2880, height = 1620, res = 210)
+              names(pathfindR_outputs_blood)[i], "_top10_dotplot.tiff"), 
+       width = 9600, height = 5400, res = 700, compression = "lzw")
   print(enrichment_dotplots_blood[[i]])
   dev.off()
   
@@ -1009,8 +1013,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
       labs(title = paste0("Top 10 clustered ", names(wrapped_pathfindR_outputs_blood)[i],
                           " terms enrichment dotplot - (", stages["blood"], ")"))
     tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
-                names(pathfindR_outputs_blood)[i], "_top10_dotplot_clustered.tif"), 
-         width = 2880, height = 1620, res = 210)
+                names(pathfindR_outputs_blood)[i], "_top10_dotplot_clustered.tiff"), 
+         width = 9600, height = 5400, res = 700, compression = "lzw")
     print(cluster_enrichment_dotplots_blood[[i]])
     dev.off()
   }
@@ -1072,13 +1076,13 @@ for (i in 1:length(pathfindR_outputs_blood)){
           legend.title = element_text(size = 13),
           legend.title.align = 0.5,
           legend.direction = "vertical") +
-    labs(title = paste0("Top 10 ", names(wrapped_pathfindR_outputs_blood)[i], 
+    labs(title = paste0("Top 5 ", names(wrapped_pathfindR_outputs_blood)[i], 
                         " terms - differentially expressed genes heatmap (",
                         stages["blood"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
-              names(wrapped_pathfindR_outputs_blood)[i], "_top5_term_gene_heatmap.tif"), 
-       width = 3840, height = 648, res = 150)
+              names(wrapped_pathfindR_outputs_blood)[i], "_top5_term_gene_heatmap.tiff"), 
+       width = 17920, height = 3024, res = 700, compression = "lzw")
   print(ggdraw(align_legend(term_gene_heatmaps_blood[[i]], hjust = 0.5)))
   dev.off()
   
@@ -1098,8 +1102,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
                         stages["blood"], ")"),
          fill = "Differential\nExpression\nunits: sd")
   tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
-              names(wrapped_pathfindR_outputs_blood)[i], "_top3_term_gene_graph.tif"), 
-       width = 1920, height = 1080, res = 100)
+              names(wrapped_pathfindR_outputs_blood)[i], "_top3_term_gene_graph.tiff"), 
+       width = 1920*7, height = 1080*7, res = 700, compression = "lzw")
   print(term_gene_graphs_blood[[i]])
   dev.off()
 }
@@ -1117,8 +1121,8 @@ for (i in 1:length(pathfindR_outputs_blood)){
                                       mid = "black")+
     theme(axis.text.y = element_text(size = axis_text_size[[i]]))
   tiff(paste0("pathfindR/Blood/", names(wrapped_pathfindR_outputs_blood)[i], "/",
-              names(wrapped_pathfindR_outputs_blood)[i], "_top5_UpSet_plot.tif"), 
-       width = 1444, height = 3840, res = 150)
+              names(wrapped_pathfindR_outputs_blood)[i], "_top5_UpSet_plot.tiff"), 
+       width = 6740, height = 17920, res = 700, compression = "lzw")
   print(UpSet_plots_blood[[i]])
   dev.off()
 }
@@ -1154,8 +1158,8 @@ for (j in 1:length(combinations)){
     combinations[[j]][[gene_sets[i]]] = combine_pathfindR_results(result_A = comparisons_A[[j]][[gene_sets[i]]],
                                             result_B = comparisons_B[[j]][[gene_sets[i]]],
                                             plot_common = FALSE)
-    tiff(paste0(directories[j], "/", gene_sets[i], "_comparison.tif"), 
-         width = 3840, height = 2160, res = 200)
+    tiff(paste0(directories[j], "/", gene_sets[i], "_comparison.tiff"), 
+         width = 13440, height = 7560, res = 700, compression = "lzw")
     print(combined_results_graph(combinations[[j]][[gene_sets[i]]], 
                            use_description = TRUE,
                            selected_terms = combinations[[j]][[gene_sets[i]]]$Term_Description[1:5]))
@@ -1281,7 +1285,7 @@ diagram1 = ggVennDiagram(
   scale_fill_gradient(low = "white", high = "darkred") +
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size =18))+
   labs(title = "Venn diagram of significantly differentially expressed genes (DEGs)")
-tiff("Additional_plots/Venn/ggVennDiagram_DEG_Venn_tissue_and_blood.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_DEG_Venn_tissue_and_blood.tiff", 
      width = 1920, height = 1080, res = 130)
 diagram1
 dev.off()
@@ -1341,20 +1345,20 @@ diagram2 = ggVennDiagram(
   scale_fill_gradient(low = "white", high = "darkred") +
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size  = 18))+
   labs(title = "Venn diagram of sig. diff. expressed genes (DEGs): tumor tissue")
-tiff("Additional_plots/Venn/ggVennDiagram_stages_DEG_Venn.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_stages_DEG_Venn.tiff", 
      width = 1920, height = 1080, res = 200)
 diagram2
 dev.off()
 
 # DEG venn with blood and tumors multiplot (horizontal)
-tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot.tiff", 
      width = 2880, height = 1620, res = 150)
 multiplot(diagram1, diagram2, cols = 2)
 m = ggplot(multiplot(diagram1, diagram2, cols = 2))
 dev.off(); rm(m)
 
 # DEG venn with blood and tumors multiplot (vertical)
-tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot_vertical.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot_vertical.tiff", 
      width = 1620, height = 2880, res = 150)
 multiplot(diagram1, diagram2, cols = 2)
 m = ggplot(multiplot(diagram2, diagram1, cols = 1))
@@ -1515,7 +1519,7 @@ for (i in 1:length(venn_path)){
     labs(title = paste0("Venn diagram of ", names(venn_path)[i], " enriched networks"))
 }
 
-tiff("Additional_plots/Venn/all_path_results_ggVennDiagram_multiplot.tif", 
+tiff("Additional_plots/Venn/all_path_results_ggVennDiagram_multiplot.tiff", 
      width = 3840, height = 2160, res = 135)
 multiplot(all_results_path_venn[[1]], all_results_path_venn[[2]],
               all_results_path_venn[[3]], all_results_path_venn[[4]],
@@ -1537,7 +1541,7 @@ for (i in 1:length(top100_venn_path)){
                         " enriched networks"))
 }
 
-tiff("Additional_plots/Venn/top100_path_results_ggVennDiagram_multiplot.tif", 
+tiff("Additional_plots/Venn/top100_path_results_ggVennDiagram_multiplot.tiff", 
      width = 3840, height = 2160, res = 135)
 multiplot(top100_results_path_venn[[1]], top100_results_path_venn[[2]],
           top100_results_path_venn[[3]], top100_results_path_venn[[4]],
@@ -1559,7 +1563,7 @@ for (i in 1:length(clustered_venn_path)){
                         " enriched networks"))
 }
 
-tiff("Additional_plots/Venn/clustered_path_results_ggVennDiagram_multiplot.tif", 
+tiff("Additional_plots/Venn/clustered_path_results_ggVennDiagram_multiplot.tiff", 
      width = 2560, height = 2160, res = 140)
 multiplot(clustered_results_path_venn[[1]], clustered_results_path_venn[[2]],
           clustered_results_path_venn[[3]], clustered_results_path_venn[[4]], cols = 2)
@@ -1885,7 +1889,7 @@ Top100_Reactome_map[which(Top100_Reactome_map$Stage_1 == "Present" & Top100_Reac
 # load("/Your/path/your_volcano_plots.RData")
 
 # All-stage(+blood)-volcano-dotplot (BioCarta)-pairs
-tiff("Additional_plots/all_Volcano_CE_Dotplot_multiplot.tif", 
+tiff("Additional_plots/all_Volcano_CE_Dotplot_multiplot.tiff", 
      width = 4320, height = 7680, res = 100)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
               union_three_normal_volcano, union_four_normal_volcano, 
@@ -1907,7 +1911,7 @@ dev.off(); rm(m)
 
 # 2 pairs: Stages 1-2, Stages 3-4
 # Stages 1-2
-tiff("Additional_plots/Stages_1_2_Volcano_CE_Dotplot_multiplot.tif", 
+tiff("Additional_plots/Stages_1_2_Volcano_CE_Dotplot_multiplot.tiff", 
      width = 4320, height = 3840, res = 200)
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]],
@@ -1918,7 +1922,7 @@ m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano,
 dev.off(); rm(m)
 
 # Stages 3-4
-tiff("Additional_plots/Stages_3_4_Volcano_CE_Dotplot_multiplot.tif", 
+tiff("Additional_plots/Stages_3_4_Volcano_CE_Dotplot_multiplot.tiff", 
      width = 4320, height = 3840, res = 200)
 multiplot(union_three_normal_volcano, union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]],
@@ -1930,7 +1934,7 @@ dev.off(); rm(m)
 
 # Unique pairs
 # Stage 1
-tiff("Additional_plots/Stage_1_Volcano_CE_Dotplot.tif", 
+tiff("Additional_plots/Stage_1_Volcano_CE_Dotplot.tiff", 
      width = 3456, height = 2160, res = 170)
 multiplot(union_one_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]], cols = 2)
@@ -1939,7 +1943,7 @@ m = ggplot(multiplot(union_one_normal_volcano,
 dev.off(); rm(m)
 
 # Stage 2
-tiff("Additional_plots/Stage_2_Volcano_CE_Dotplot.tif", 
+tiff("Additional_plots/Stage_2_Volcano_CE_Dotplot.tiff", 
      width = 3456, height = 2160, res = 170)
 multiplot(union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
@@ -1948,7 +1952,7 @@ m = ggplot(multiplot(union_two_normal_volcano,
 dev.off(); rm(m)
 
 # Stage 3
-tiff("Additional_plots/Stage_3_Volcano_CE_Dotplot.tif", 
+tiff("Additional_plots/Stage_3_Volcano_CE_Dotplot.tiff", 
      width = 3456, height = 2160, res = 170)
 multiplot(union_three_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]], cols = 2)
@@ -1957,7 +1961,7 @@ m = ggplot(multiplot(union_three_normal_volcano,
 dev.off(); rm(m)
 
 # Stage 4
-tiff("Additional_plots/Stage_4_Volcano_CE_Dotplot.tif", 
+tiff("Additional_plots/Stage_4_Volcano_CE_Dotplot.tiff", 
      width = 3456, height = 2160, res = 170)
 multiplot(union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
@@ -1966,7 +1970,7 @@ m = ggplot(multiplot(union_four_normal_volcano,
 dev.off(); rm(m)
 
 # Blood
-tiff("Additional_plots/Blood_Volcano_CE_Dotplot.tif", 
+tiff("Additional_plots/Blood_Volcano_CE_Dotplot.tiff", 
      width = 3456, height = 2160, res = 170)
 multiplot(TN_z_volcano, 
           cluster_enrichment_dotplots_blood[["BioCarta"]], cols = 2)
@@ -2011,7 +2015,7 @@ DEmiRNAs_venn = ggVennDiagram(
   scale_fill_gradient(low = "white", high = "darkred") +
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))+
   labs(title = "Venn diagram of sig. diff. expressed miRNAs (+ host genes)")
-tiff("Additional_plots/Venn/ggVennDiagram_blood_and_Stages_miRNA_Venn.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_blood_and_Stages_miRNA_Venn.tiff", 
      width = 1920, height = 1080, res = 150)
 DEmiRNAs_venn
 dev.off()
@@ -2023,12 +2027,12 @@ clean_DEmiRNAs_venn = ggVennDiagram(
   scale_fill_gradient(low = "white", high = "darkred") +
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))+
   labs(title = "Venn diagram of sig. diff.expressed miRNAs")
-tiff("Additional_plots/Venn/clean_ggVennDiagram_Stages_miRNA_Venn.tif", 
+tiff("Additional_plots/Venn/clean_ggVennDiagram_Stages_miRNA_Venn.tiff", 
      width = 1920, height = 1080, res = 150)
 clean_DEmiRNAs_venn
 dev.off()
 
-tiff("Additional_plots/Venn/ggVennDiagram_DEmiRNA_multiplot.tif", 
+tiff("Additional_plots/Venn/ggVennDiagram_DEmiRNA_multiplot.tiff", 
      width = 1920, height = 1080, res = 120)
 multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
 m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
