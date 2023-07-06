@@ -14,6 +14,7 @@ There are five scripts:
 - `GSE_blood_samples.R` is the script used to download, preprocess and conduct DGEA on clinical PDAC blood samples (results not adjusted for tumor stage).
 - `Pathway_ontology_driver_genes.R` contains the code for performing Active Subnetwork Enrichment analysis with the `pathfindR` package, annotating genes of interest with cancer driver information from the Catalogue Of Somatic Mutations In Cancer (*COSMIC*) and checking the overlaps between significant genes and pathways across stages and sample types.
 - `Circos.R` is the script in which the code for generating all the files necessary to produce the Circos plots are generated.
-- `TCGA_validations.R` contains the code for downloading relative TCGA PDAC data and validating our signature on them.
+- `TCGA_validations.R` contains the code for downloading relative TCGA PDAC data and validating our signature on them as well as conducting survival analysis.
+- `Gut_panc_dgea.R` contains the code for the external validation of our signature in a large cohort of normal, PDAC and chronic pancreatitis samples.
 
 This repository contains all the work conducted for our PDAC work. All scripts are written in **R**. The vast majority of the output is **HTML** plots generated from the `pathfindR` package.
