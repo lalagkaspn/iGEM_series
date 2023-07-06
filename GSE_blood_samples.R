@@ -843,7 +843,7 @@ write.xlsx(TN_z_DE_mapped, "DGEA/Union/Blood_samples_analysis/Blood_TN_z_DE_topT
 keyvals.colour <- ifelse(
   TN_z_DE_mapped$logFC < -1 & TN_z_DE_mapped$adj.P.Val < 0.05, 'royalblue',
   ifelse(TN_z_DE_mapped$logFC > 1 & TN_z_DE_mapped$adj.P.Val < 0.05, 'red4',
-         ifelse(abs(TN_z_DE_mapped$logFC) < 1 & TN_z_DE_mapped$adj.P.Val > 0.05, 'pink', 
+         ifelse(abs(TN_z_DE_mapped$logFC) < 1 & TN_z_DE_mapped$adj.P.Val < 0.05, 'pink', 
                 'grey')))
 # keyvals.colour[is.na(keyvals.colour)] <- 'black'
 names(keyvals.colour)[keyvals.colour == 'royalblue'] <- 'Down-regulated'
@@ -869,7 +869,7 @@ TN_z_volcano = EnhancedVolcano(TN_z_DE_mapped,
                                xlim = c(-2, 2),
                                ylab = bquote(bold(-log[10]("BH adj. p-value"))),
                                xlab = "\nDifferential expression",
-                               pointSize = 1.5,
+                               pointSize = 1,
                                axisLabSize = 7,
                                subtitle = NULL,
                                labSize = 2,
