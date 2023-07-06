@@ -1910,7 +1910,7 @@ for (i in 1:length(DE_maps)) {
   keyvals.colour <- ifelse(
     tab$logFC < -1 & tab$adj.P.Val < 0.05, 'royalblue',
     ifelse(tab$logFC > 1 & tab$adj.P.Val < 0.05, 'red4',
-           ifelse(abs(tab$logFC) < 1 & tab$adj.P.Val > 0.05, 'pink', 
+           ifelse(abs(tab$logFC) < 1 & tab$adj.P.Val < 0.05, 'pink', 
                   'grey')))
   # keyvals.colour[is.na(keyvals.colour)] <- 'black'
   names(keyvals.colour)[keyvals.colour == 'royalblue'] <- 'Down-regulated'
