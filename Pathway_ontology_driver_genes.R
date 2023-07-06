@@ -1131,6 +1131,34 @@ names(term_gene_graphs_blood) = names(pathfindR_outputs_blood)
 names(term_gene_heatmaps_blood) = names(pathfindR_outputs_blood)
 names(UpSet_plots_blood) = names(pathfindR_outputs_blood)
 
+# pathfindR multiplots #####
+# Reactome all-stage term-gene graphs
+tiff("Additional_plots/Reactome_term_gene_graph_multiplot.tiff",
+     width = 19200, height = 10800, res = 700, compression = "lzw")
+multiplot(term_gene_graphs_stage_1$Reactome, term_gene_graphs_stage_3$Reactome,
+          term_gene_graphs_stage_2$Reactome, term_gene_graphs_stage_4$Reactome, cols = 2)
+m = ggplot(multiplot(term_gene_graphs_stage_1$Reactome, term_gene_graphs_stage_3$Reactome,
+                     term_gene_graphs_stage_2$Reactome, term_gene_graphs_stage_4$Reactome, cols = 2))
+dev.off(); rm(m)
+
+# Reactome all-stage dotplot
+tiff("Additional_plots/Reactome_all_stage_dotplot.tiff",
+     width = 19200, height = 10800, res = 700, compression = "lzw")
+multiplot(enrichment_dotplots_stage_1$Reactome, enrichment_dotplots_stage_3$Reactome,
+          enrichment_dotplots_stage_2$Reactome, enrichment_dotplots_stage_4$Reactome, cols = 2)
+m = ggplot(multiplot(enrichment_dotplots_stage_1$Reactome, enrichment_dotplots_stage_3$Reactome,
+                     enrichment_dotplots_stage_2$Reactome, enrichment_dotplots_stage_4$Reactome, cols = 2))
+dev.off(); rm(m)
+
+# KEGG all-stage clustered dotplot
+tiff("Additional_plots/KEGG_all_stage_clustered_dotplot.tiff",
+     width = 19200, height = 10800, res = 700, compression = "lzw")
+multiplot(cluster_enrichment_dotplots_stage_1$KEGG, cluster_enrichment_dotplots_stage_3$KEGG,
+          cluster_enrichment_dotplots_stage_2$KEGG, cluster_enrichment_dotplots_stage_4$KEGG, cols = 2)
+m = ggplot(multiplot(cluster_enrichment_dotplots_stage_1$KEGG, cluster_enrichment_dotplots_stage_3$KEGG,
+                     cluster_enrichment_dotplots_stage_2$KEGG, cluster_enrichment_dotplots_stage_4$KEGG, cols = 2))
+dev.off(); rm(m)
+
 # Comparing results using compare_pathfindR_results() #####
 # A list of lists
 combined_df_stage_1_vs_stage_2 = list()
@@ -1166,6 +1194,58 @@ for (j in 1:length(combinations)){
     dev.off();
   }
 }
+
+# Comparison & dotplots multiplots
+
+# KEGG stage 1 vs 2
+combo1 = combined_results_graph(combinations[[5]][[gene_sets[5]]], 
+                                use_description = TRUE,
+                                selected_terms = combinations[[5]][[gene_sets[5]]]$Term_Description[1:5]) +
+  ggtitle("KEGG") +
+  theme(plot.title = element_text(face = "bold", hjust = 0, size = 25))
+
+# Reactome stage 1 vs 2
+combo2 = combined_results_graph(combinations[[5]][[gene_sets[6]]], 
+                                use_description = TRUE,
+                                selected_terms = combinations[[5]][[gene_sets[6]]]$Term_Description[1:5])+
+  ggtitle("Reactome") +
+  theme(plot.title = element_text(face = "bold", hjust = 0, size = 25))
+
+# Multiplot with CC from stages 1 & 2
+tiff("Additional_plots/KEGG_Reactome_comparison_CC_clustered_dotplot_stages_1_2.tiff",
+     width = 22940, height = 10800, res = 700, compression = "lzw")
+multiplot(combo1, combo2,
+          cluster_enrichment_dotplots_stage_1$`GO-CC`,
+           cluster_enrichment_dotplots_stage_2$`GO-CC`, cols = 2)
+m = multiplot(combo1, combo2, 
+              cluster_enrichment_dotplots_stage_1$`GO-CC`,
+              cluster_enrichment_dotplots_stage_2$`GO-CC`, cols = 2)
+dev.off(); rm(m)
+
+# KEGG blood vs stage 1
+combo1f = combined_results_graph(combinations[[1]][[gene_sets[5]]], 
+                                use_description = TRUE,
+                                selected_terms = combinations[[1]][[gene_sets[5]]]$Term_Description[1:5]) +
+  ggtitle("KEGG") +
+  theme(plot.title = element_text(face = "bold", hjust = 0, size = 25))
+
+# Reactome blood vs stage 1
+combo2f = combined_results_graph(combinations[[1]][[gene_sets[6]]], 
+                                use_description = TRUE,
+                                selected_terms = combinations[[1]][[gene_sets[6]]]$Term_Description[1:5])+
+  ggtitle("Reactome") +
+  theme(plot.title = element_text(face = "bold", hjust = 0, size = 25))
+
+# Multiplot with CC from stages 1 & 2
+tiff("Additional_plots/KEGG_Reactome_comparison_CC_clustered_dotplot_blood_stage_1.tiff",
+     width = 22940, height = 10800, res = 700, compression = "lzw")
+multiplot(combo1f, combo2f,
+          cluster_enrichment_dotplots_blood$`GO-CC`,
+          cluster_enrichment_dotplots_stage_1$`GO-CC`, cols = 2)
+m = multiplot(combo1f, combo2f, 
+              cluster_enrichment_dotplots_blood$`GO-CC`,
+              cluster_enrichment_dotplots_stage_1$`GO-CC`, cols = 2)
+dev.off(); rm(m)
 
 ##### REQUIRES COMPLETE-CASE MATRIX - CANNOT BE RUN IN OUR CASE #####
 # Calculate agglomerated z-scores for representative terms and plot heatmap 
@@ -1286,7 +1366,7 @@ diagram1 = ggVennDiagram(
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size =18))+
   labs(title = "Venn diagram of significantly differentially expressed genes (DEGs)")
 tiff("Additional_plots/Venn/ggVennDiagram_DEG_Venn_tissue_and_blood.tiff", 
-     width = 1920, height = 1080, res = 130)
+     width = 10340, height = 5816, res = 700, compression = "lzw")
 diagram1
 dev.off()
 
@@ -1346,20 +1426,20 @@ diagram2 = ggVennDiagram(
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size  = 18))+
   labs(title = "Venn diagram of sig. diff. expressed genes (DEGs): tumor tissue")
 tiff("Additional_plots/Venn/ggVennDiagram_stages_DEG_Venn.tiff", 
-     width = 1920, height = 1080, res = 200)
+     width = 10340, height = 5816, res = 700, compression = "lzw")
 diagram2
 dev.off()
 
 # DEG venn with blood and tumors multiplot (horizontal)
 tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot.tiff", 
-     width = 2880, height = 1620, res = 150)
+     width = 10340*2, height = 5816*2, res = 700, compression = "lzw")
 multiplot(diagram1, diagram2, cols = 2)
 m = ggplot(multiplot(diagram1, diagram2, cols = 2))
 dev.off(); rm(m)
 
 # DEG venn with blood and tumors multiplot (vertical)
 tiff("Additional_plots/Venn/ggVennDiagram_DEG_multiplot_vertical.tiff", 
-     width = 1620, height = 2880, res = 150)
+     height = 10340*2, width = 5816*2, res = 700, compression = "lzw")
 multiplot(diagram1, diagram2, cols = 2)
 m = ggplot(multiplot(diagram2, diagram1, cols = 1))
 dev.off(); rm(m)
@@ -1520,7 +1600,7 @@ for (i in 1:length(venn_path)){
 }
 
 tiff("Additional_plots/Venn/all_path_results_ggVennDiagram_multiplot.tiff", 
-     width = 3840, height = 2160, res = 135)
+     width = 19911, height = 11200, res = 700, compression = "lzw")
 multiplot(all_results_path_venn[[1]], all_results_path_venn[[2]],
               all_results_path_venn[[3]], all_results_path_venn[[4]],
               all_results_path_venn[[5]], all_results_path_venn[[6]], cols = 3)
@@ -1542,7 +1622,7 @@ for (i in 1:length(top100_venn_path)){
 }
 
 tiff("Additional_plots/Venn/top100_path_results_ggVennDiagram_multiplot.tiff", 
-     width = 3840, height = 2160, res = 135)
+     width = 19911, height = 11200, res = 700, compression = "lzw")
 multiplot(top100_results_path_venn[[1]], top100_results_path_venn[[2]],
           top100_results_path_venn[[3]], top100_results_path_venn[[4]],
           top100_results_path_venn[[5]], top100_results_path_venn[[6]], cols = 3)
@@ -1564,7 +1644,7 @@ for (i in 1:length(clustered_venn_path)){
 }
 
 tiff("Additional_plots/Venn/clustered_path_results_ggVennDiagram_multiplot.tiff", 
-     width = 2560, height = 2160, res = 140)
+     width = 12800, height = 10800, res = 700, compression = "lzw")
 multiplot(clustered_results_path_venn[[1]], clustered_results_path_venn[[2]],
           clustered_results_path_venn[[3]], clustered_results_path_venn[[4]], cols = 2)
 m = ggplot(multiplot(clustered_results_path_venn[[1]], clustered_results_path_venn[[2]],
@@ -1888,9 +1968,21 @@ Top100_Reactome_map[which(Top100_Reactome_map$Stage_1 == "Present" & Top100_Reac
 # Load volcano plots from tumor stage DGEA as an .RData file:
 # load("/Your/path/your_volcano_plots.RData")
 
+# All-volcano multiplot
+tiff("Additional_plots/all_Volcano_multiplot_horizontal.tiff",
+     width = 200*4, height = 284, units ="mm",
+     res = 1200, compression = "lzw")
+multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+          union_three_normal_volcano, union_four_normal_volcano, 
+          TN_z_volcano, cols = 5)
+m = ggplot(multiplot(union_one_normal_volcano, union_two_normal_volcano, 
+                     union_three_normal_volcano, union_four_normal_volcano, 
+                     TN_z_volcano, cols = 5))
+dev.off(); rm(m)
+
 # All-stage(+blood)-volcano-dotplot (BioCarta)-pairs
 tiff("Additional_plots/all_Volcano_CE_Dotplot_multiplot.tiff", 
-     width = 4320, height = 7680, res = 100)
+     width = 4320*3, height = 7680*3, res = 700, compression = "lzw")
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
               union_three_normal_volcano, union_four_normal_volcano, 
           TN_z_volcano,
@@ -1912,7 +2004,7 @@ dev.off(); rm(m)
 # 2 pairs: Stages 1-2, Stages 3-4
 # Stages 1-2
 tiff("Additional_plots/Stages_1_2_Volcano_CE_Dotplot_multiplot.tiff", 
-     width = 4320, height = 3840, res = 200)
+     width = 12096, height = 10752, res = 700, compression = "lzw")
 multiplot(union_one_normal_volcano, union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]],
           cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
@@ -1923,7 +2015,7 @@ dev.off(); rm(m)
 
 # Stages 3-4
 tiff("Additional_plots/Stages_3_4_Volcano_CE_Dotplot_multiplot.tiff", 
-     width = 4320, height = 3840, res = 200)
+     width = 12096, height = 10752, res = 700, compression = "lzw")
 multiplot(union_three_normal_volcano, union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]],
           cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
@@ -1935,7 +2027,7 @@ dev.off(); rm(m)
 # Unique pairs
 # Stage 1
 tiff("Additional_plots/Stage_1_Volcano_CE_Dotplot.tiff", 
-     width = 3456, height = 2160, res = 170)
+     width = 14230, height = 7000, res = 700, compression = "lzw")
 multiplot(union_one_normal_volcano, 
           cluster_enrichment_dotplots_stage_1[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_one_normal_volcano, 
@@ -1944,7 +2036,7 @@ dev.off(); rm(m)
 
 # Stage 2
 tiff("Additional_plots/Stage_2_Volcano_CE_Dotplot.tiff", 
-     width = 3456, height = 2160, res = 170)
+     width = 14230, height = 7000, res = 700, compression = "lzw")
 multiplot(union_two_normal_volcano, 
           cluster_enrichment_dotplots_stage_2[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_two_normal_volcano, 
@@ -1953,7 +2045,7 @@ dev.off(); rm(m)
 
 # Stage 3
 tiff("Additional_plots/Stage_3_Volcano_CE_Dotplot.tiff", 
-     width = 3456, height = 2160, res = 170)
+     width = 14230, height = 7000, res = 700, compression = "lzw")
 multiplot(union_three_normal_volcano, 
           cluster_enrichment_dotplots_stage_3[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_three_normal_volcano, 
@@ -1962,7 +2054,7 @@ dev.off(); rm(m)
 
 # Stage 4
 tiff("Additional_plots/Stage_4_Volcano_CE_Dotplot.tiff", 
-     width = 3456, height = 2160, res = 170)
+     width = 14230, height = 7000, res = 700, compression = "lzw")
 multiplot(union_four_normal_volcano, 
           cluster_enrichment_dotplots_stage_4[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(union_four_normal_volcano, 
@@ -1971,7 +2063,7 @@ dev.off(); rm(m)
 
 # Blood
 tiff("Additional_plots/Blood_Volcano_CE_Dotplot.tiff", 
-     width = 3456, height = 2160, res = 170)
+     width = 14230, height = 7000, res = 700, compression = "lzw")
 multiplot(TN_z_volcano, 
           cluster_enrichment_dotplots_blood[["BioCarta"]], cols = 2)
 m = ggplot(multiplot(TN_z_volcano, 
@@ -2016,7 +2108,7 @@ DEmiRNAs_venn = ggVennDiagram(
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))+
   labs(title = "Venn diagram of sig. diff. expressed miRNAs (+ host genes)")
 tiff("Additional_plots/Venn/ggVennDiagram_blood_and_Stages_miRNA_Venn.tiff", 
-     width = 1920, height = 1080, res = 150)
+     width = 8960, height = 5040, res = 700, compression = "lzw")
 DEmiRNAs_venn
 dev.off()
 
@@ -2028,12 +2120,12 @@ clean_DEmiRNAs_venn = ggVennDiagram(
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))+
   labs(title = "Venn diagram of sig. diff.expressed miRNAs")
 tiff("Additional_plots/Venn/clean_ggVennDiagram_Stages_miRNA_Venn.tiff", 
-     width = 1920, height = 1080, res = 150)
+     width = 8960, height = 5040, res = 700, compression = "lzw")
 clean_DEmiRNAs_venn
 dev.off()
 
 tiff("Additional_plots/Venn/ggVennDiagram_DEmiRNA_multiplot.tiff", 
-     width = 1920, height = 1080, res = 120)
+     width = 11200, height = 6300, res = 700, compression = "lzw")
 multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2)
 m = ggplot(multiplot(DEmiRNAs_venn, clean_DEmiRNAs_venn, cols = 2))
 dev.off(); rm(m)
