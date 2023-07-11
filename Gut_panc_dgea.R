@@ -176,7 +176,7 @@ create_density_plot_color <- function(matrix) {
 
 dir.create("Exosome_PDAC_plots")
 
-# Density plots/curves for our data
+# Density plots/curves for data
 create_density_curve(log2tpm_filt)
 ggsave(filename = "ExosomePDAC_filtered_log2(TPM+1)_density_curves.tiff",
        path = "Exosome_PDAC_plots",
@@ -184,7 +184,7 @@ ggsave(filename = "ExosomePDAC_filtered_log2(TPM+1)_density_curves.tiff",
        dpi = 150, compression = "lzw")
 dev.off()
 
-# Color density plots for counts
+# Color density plots for data
 create_density_plot_color(log2tpm_filt)
 ggsave(filename = "ExosomePDAC_filtered_log2(TPM+1)_color_densities.tiff",
        path = "Exosome_PDAC_plots",
@@ -206,7 +206,7 @@ tiff("Exosome_PDAC_plots/meanSdPlot.tiff", res = 300,
 plot1
 dev.off()
 
-# Heatmap of the count matrix - top 100 genes
+# Heatmap of the log2(TPM + 1) matrix - top 50 genes
 library(pheatmap)
 library(rcartocolor)
 select = order(rowMeans(log2tpm_filt),
@@ -226,7 +226,7 @@ ann_colors = list(
 )
 
 # log2(TPM + 1)
-tiff("Exosome_PDAC_plots/top50_heatmap_log2(counts+1).tiff",
+tiff("Exosome_PDAC_plots/top50_heatmap_log2(TPM+1).tiff",
      res = 200, width = 1920, 
      height = 1080, compression = "lzw")
 pheatmap(log2tpm_filt[select, ], cluster_rows=FALSE, show_rownames=FALSE,
