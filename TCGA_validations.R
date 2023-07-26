@@ -363,7 +363,8 @@ survurs = ggsurvplot(URS_survfit,
                      ggtheme = theme_classic()+
                        theme(plot.title = element_text(face = "bold", size = 6),
                              axis.title = element_text(face = "bold", size = 5),
-                             axis.text = element_text(size = 5)))
+                             axis.text = element_text(size = 5)))+
+  labs(x = "Time (days)")
 
 tiff("Signatures/URS_survival_curve.tiff", width = 1920, height = 1920,
      res = 700, units = "px", compression = "lzw")
@@ -390,7 +391,8 @@ survdrs = ggsurvplot(DRS_survfit,
                      ggtheme = theme_classic()+
                        theme(plot.title = element_text(face = "bold", size = 6),
                              axis.title = element_text(face = "bold", size = 5),
-                             axis.text = element_text(size = 5)))
+                             axis.text = element_text(size = 5)))+
+  labs(x = "Time (days)")
 
 tiff("Signatures/DRS_survival_curve.tiff", width = 1920, height = 1920,
      res = 700, units = "px", compression = "lzw")
