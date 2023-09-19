@@ -1063,18 +1063,54 @@ Bailey = read.xlsx("Signatures/Collisson_Moffit_Bailey-gene_signatures.xlsx", sh
 Haider = read.xlsx("Signatures/Haider_signature.xlsx", sheet = 4)
 
 signature_overlap_Collisson = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
-                                       Collisson$Sig.Collisson) # no overlap
-
-signature_overlap_Moffitt = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
-                                       Collisson$Sig.Moffitt) 
+                                       Collisson$Sig.Collisson)
 # 6-gene overlap: AIM2, HK2, HMMR, S100P, PMAIP1, CEACAM6
 
+signature_overlap_Moffitt = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
+                                       Moffitt$Sig..Moffitt) 
+# 1-gene overlap: CEACAM6
+
 signature_overlap_Bailey = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
-                                       Collisson$Sig.Bailey) # no overlap
+                                       Bailey$Sig..Bailey)
+# 17-gene overlap: PYGL, NR3C2, ACSS1, TPD52L2, PARM1, XBP1, GPD1L, TNFSF13, AKR7A3,
+# BICD2, MTMR12, CTSS, C2orf72, CCRL2, ADAM17, LYZ, PTPRJ  
 
 signature_overlap_Haider = intersect(all_stage_blood_concordant_overlap_set$Gene.Symbol,
                                      Haider$Gene) 
 # 2-gene overlap: CNNM3, QDPR
+
+library(htmlTable)
+
+# Step 2: Calculate the pairwise overlap lengths and percentages
+overlap_info <- sapply(list(
+  "Stage 1 DEGs" = significants_stage_1, 
+  "Stage 2 DEGs" = significants_stage_2, 
+  "Stage 3 DEGs" = significants_stage_3, 
+  "Stage 4 DEGs" = significants_stage_4, 
+  "Blood DEGs" = significants_blood,
+  "PTS" = all_stage_blood_concordant_overlap_set$Gene.Symbol
+), function(row_list) {
+  sapply(list(
+    Collisson = Collisson$Sig.Collisson, 
+    Bailey = Bailey$Sig..Bailey, 
+    Moffitt = Moffitt$Sig..Moffitt, 
+    Haider = Haider$Gene
+  ), function(column_list) {
+    length_of_overlap <- length(intersect(row_list, column_list))
+    percentage_of_signature <- 100 * length_of_overlap / length(column_list)
+    paste0(length_of_overlap, " (", 
+           sprintf("%.2f", percentage_of_signature), "%)")
+  })
+})
+
+# Step 3: Create a data frame to store this information
+overlap_df <- as.data.frame(overlap_info)
+
+# Step 4: Use the htmlTable function to create the HTML table
+html_table <- htmlTable(t(overlap_df))
+
+# Print the HTML table
+print(html_table)
 
 # Metagene #####
 # Mean score of the signature in samples (na.rm = TRUE; caution when interpreting)
