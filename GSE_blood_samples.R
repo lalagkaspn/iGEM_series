@@ -1181,9 +1181,26 @@ udBlood = DescTools::CohenD(metagene$URS[metagene$group=="Normal"],
                             metagene$URS[metagene$group=="Blood"], correct = TRUE)
 
 # Boxplots
-metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
+n_normal = sum(metagene$group == "Normal")
+n_stage1 = sum(metagene$group == "Stage 1")
+n_stage2 = sum(metagene$group == "Stage 2")
+n_stage3 = sum(metagene$group == "Stage 3")
+n_stage4 = sum(metagene$group == "Stage 4")
+n_blood = sum(metagene$group == "Blood")
+
+metagene$group2 = factor(metagene$group,
+                         levels = c("Normal", "Stage 1", "Stage 2", "Stage 3",
+                                    "Stage 4", "Blood"),
+                         labels = c(paste0("Normal (n = ", n_normal, ")"),
+                                    paste0("Stage 1 (n = ", n_stage1, ")"),
+                                    paste0("Stage 2 (n = ", n_stage2, ")"),
+                                    paste0("Stage 3 (n = ", n_stage3, ")"),
+                                    paste0("Stage 4 (n = ", n_stage4, ")"),
+                                    paste0("Blood (n = ", n_blood, ")")))
+
+metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group2)) + 
   geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
-  scale_fill_brewer(palette = "RdPu") +
+  scale_fill_brewer(palette = "RdPu", ) +
   scale_y_continuous(limits = c(-3.5, 6), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4, 5, 6)) +
   ggpubr::stat_compare_means(comparisons = list(c("Normal", "Stage 1"),
                                                 c("Normal", "Stage 2"),
@@ -1269,7 +1286,7 @@ metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) +
        fill = "Legend")
 metaplot1
 
-metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) + 
+metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group2)) + 
   geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 4.5), breaks = c(-3, -2, -1, 0, 1, 2, 3, 4)) +

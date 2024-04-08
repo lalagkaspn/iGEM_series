@@ -147,12 +147,22 @@ DescTools::CohenD(metagene$URS[metagene$group=="Dead"], metagene$URS[metagene$gr
 # t = 2.8918, p = 0.004363, d = 0.43: small effect size 
 
 # Metaplots
+
+# Add sample size info in group
+n_alive = sum(metagene$group == "Alive")
+n_dead = sum(metagene$group == "Dead")
+metagene$group = factor(metagene$group, levels = c("Alive", "Dead"),
+                        labels = c(paste0("Alive (n = ", n_alive, ")"),
+                                   paste0("Dead (n = ", n_dead, ")")))
+
 # Without overlaid points
 metaplot1 = ggplot(metagene, aes(x = group, y = DRS, fill = group)) + 
   geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
-  ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
+  scale_x_discrete(labels = c("Alive", "Dead")) +
+  ggsignif::geom_signif(comparisons = list(c(paste0("Dead (n = ", n_dead, ")"),
+                                             paste0("Alive (n = ", n_alive, ")"))), 
                         map_signif_level=TRUE, size = 0.25, textsize = 3) +
   annotate("text", x = 1.5, y = -1.8, size = 1.5, parse = TRUE,
            label = "italic(t) == -2.2\n") +
@@ -186,7 +196,9 @@ metaplot2 = ggplot(metagene, aes(x = group, y = URS, fill = group)) +
   geom_boxplot(width=0.35, outlier.size = 0.5, linewidth = 0.3)+
   scale_fill_brewer(palette = "RdPu") +
   scale_y_continuous(limits = c(-3.5, 3.5), breaks = c(-3, -2, -1, 0, 1, 2, 3)) +
-  ggsignif::geom_signif(comparisons = list(c("Dead", "Alive")), 
+  scale_x_discrete(labels = c("Alive", "Dead")) +
+  ggsignif::geom_signif(comparisons = list(c(paste0("Dead (n = ", n_dead, ")"),
+                                             paste0("Alive (n = ", n_alive, ")"))), 
                         map_signif_level=TRUE, size = 0.25, textsize = 3) +
   annotate("text", x = 1.5, y = -1.8, size = 1.5, parse = TRUE,
            label = "italic(t) == 2.9\n") +
@@ -345,6 +357,9 @@ outcomes$overall_survival = ifelse(outcomes$`Vital Status` == "Alive",
 metagene_surv = metagene %>% inner_join(outcomes, by = "Sample.ID")
 
 # fitting survival curve -----------
+n_high_urs = sum(metagene_surv$URS_group == "High")
+n_low_urs = sum(metagene_surv$URS_group == "Low")
+
 # URS
 URS_survfit = survfit(Surv(overall_survival, Deceased) ~ URS_group, data = metagene_surv)
 URS_survfit
@@ -357,8 +372,9 @@ survurs = ggsurvplot(URS_survfit,
                      censor.size = 2.5,
                      pval.size = 2,
                      risk.table = F,
-                     legend.labs = c("URS > 0", "URS < 0"),
-                     legend = c(0.9, 1),
+                     legend.labs = c(paste0("URS > 0 (n = ", n_high_urs, ")"),
+                                     paste0("URS < 0 (n = ", n_low_urs, ")")),
+                     legend = c(0.9, 0.8),
                      font.legend = 4,
                      ggtheme = theme_classic()+
                        theme(plot.title = element_text(face = "bold", size = 6),
@@ -377,6 +393,9 @@ URS_survfit2 = survdiff(Surv(overall_survival, Deceased) ~ URS_group, data = met
 DRS_survfit = survfit(Surv(overall_survival, Deceased) ~ DRS_group, data = metagene_surv)
 DRS_survfit
 
+n_high_drs = sum(metagene_surv$DRS_group == "High")
+n_low_drs = sum(metagene_surv$DRS_group == "Low")
+
 survdrs = ggsurvplot(DRS_survfit,
                      title = "TCGA - Survival curves for DRS groups",
                      data = metagene_surv,
@@ -385,8 +404,9 @@ survdrs = ggsurvplot(DRS_survfit,
                      censor.size = 2.5,
                      pval.size = 2,
                      risk.table = F,
-                     legend.labs = c("DRS > 0", "DRS < 0"),
-                     legend = c(0.9, 1),
+                     legend.labs = c(paste0("DRS > 0 (n = ", n_high_drs, ")"),
+                                     paste0("DRS < 0 (n = ", n_low_drs, ")")),
+                     legend = c(0.9, 0.8),
                      font.legend = 4,
                      ggtheme = theme_classic()+
                        theme(plot.title = element_text(face = "bold", size = 6),
@@ -407,7 +427,7 @@ ggpubr::ggarrange(metaplot2, metaplot1, survurs$plot, survdrs$plot,
                   font.label = list(size = 7))
 ggsave("TCGA_metaplots_and_survcurves.tiff",
        path = "Signatures/",
-       width = 1920*2, height = 1920*2, dpi = 700, compression = "lzw",
+       width = 1920*2.5, height = 1920*2, dpi = 700, compression = "lzw",
        units = "px", device = "tiff")
 
 # Load the metascore boxplots in our samples too
@@ -420,7 +440,7 @@ ggpubr::ggarrange(internal_metaplots[[2]], internal_metaplots[[1]],
                   font.label = list(size = 7))
 ggsave("full_TCGA_metaplots_and_survcurves.tiff",
        path = "Signatures/",
-       width = 1920*2, height = 1920*3, dpi = 700, compression = "lzw",
+       width = 1920*2.5, height = 1920*3, dpi = 700, compression = "lzw",
        units = "px", device = "tiff")
 
 # sessionInfo
